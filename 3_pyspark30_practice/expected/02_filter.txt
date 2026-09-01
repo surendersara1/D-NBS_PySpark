@@ -1,0 +1,180 @@
+
+==========================================================================
+  05 - filter / where
+==========================================================================
+  the same method under two names. Pick one.
+
+--- filter: region == "NA" ---
++--------+------+------------+
+|order_id|region|order_status|
++--------+------+------------+
+|ORD-1001|NA    |completed   |
+|ORD-1002|NA    |refunded    |
+|ORD-1004|NA    |refunded    |
+|ORD-1006|NA    |pending     |
+|ORD-1009|NA    |completed   |
++--------+------+------------+
+
+--- AND -> &   (each side in its own brackets) ---
++--------+------+------------+
+|order_id|region|order_status|
++--------+------+------------+
+|ORD-1005|EMEA  |completed   |
+|ORD-1007|EMEA  |completed   |
+|ORD-1011|EMEA  |completed   |
++--------+------+------------+
+
+--- isin ---
++--------+------------+
+|order_id|order_status|
++--------+------------+
+|ORD-1002|refunded    |
+|ORD-1004|refunded    |
+|ORD-1010|cancelled   |
++--------+------------+
+
+--- between (inclusive on both ends) ---
++--------+----------+---+
+|order_id|sku       |qty|
++--------+----------+---+
+|ORD-1001|SKU-EL-201|1  |
+|ORD-1002|SKU-AP-410|2  |
+|ORD-1003|SKU-EL-115|1  |
+|ORD-1005|SKU-BE-330|2  |
++--------+----------+---+
+
+orders where customer_email == None : 0  <- always 0
+orders where customer_email isNull(): 1  <- correct
+
+==========================================================================
+  06 - when / otherwise
+==========================================================================
+  CASE WHEN. Chain as many .when() as you need.
+
+--- four-way classification ---
++--------+----------+---+----------+----------+
+|order_id|sku       |qty|net_amount|band      |
++--------+----------+---+----------+----------+
+|ORD-1001|SKU-GR-088|3  |13.5      |small     |
+|ORD-1001|SKU-EL-201|1  |224.99    |standard  |
+|ORD-1002|SKU-AP-410|2  |78.0      |standard  |
+|ORD-1003|SKU-EL-115|1  |854.05    |high_value|
+|ORD-1003|SKU-HO-007|4  |49.0      |small     |
+|ORD-1004|SKU-GR-088|-3 |-13.5     |return    |
+|ORD-1005|SKU-BE-330|2  |37.5      |small     |
+|ORD-1005|SKU-AP-410|1  |31.2      |small     |
+|ORD-1006|SKU-EL-201|1  |249.99    |standard  |
+|ORD-1007|SKU-AP-522|3  |191.25    |standard  |
+|ORD-1007|SKU-BE-330|1  |18.75     |small     |
+|ORD-1007|SKU-HO-007|2  |24.5      |small     |
+|ORD-1008|SKU-EL-115|2  |1798.0    |high_value|
+|ORD-1009|SKU-GR-044|5  |16.0      |small     |
+|ORD-1010|SKU-BE-901|1  |55.0      |standard  |
+|ORD-1011|SKU-HO-118|1  |116.1     |standard  |
+|ORD-1011|SKU-GR-044|2  |6.4       |small     |
+|ORD-9999|SKU-XX-000|1  |10.0      |small     |
++--------+----------+---+----------+----------+
+
+--- omitting otherwise() yields NULL ---
++----------+------------+
+|sku       |no_otherwise|
++----------+------------+
+|SKU-GR-088|NULL        |
+|SKU-EL-201|NULL        |
+|SKU-AP-410|NULL        |
+|SKU-EL-115|NULL        |
++----------+------------+
+
+
+==========================================================================
+  07 - coalesce
+==========================================================================
+  first non-null argument. The null-fallback function - unrelated to the .coalesce() partition method (#30).
+
+--- cascade through three fallbacks ---
++--------+---------------------+----------------------+
+|order_id|customer_email       |contact               |
++--------+---------------------+----------------------+
+|ORD-1001|ana.silva@example.com|ana.silva@example.com |
+|ORD-1002|bob@shop.io          |bob@shop.io           |
+|ORD-1003|chen.w@mail.cn       |chen.w@mail.cn        |
+|ORD-1004|ana.silva@example.com|ana.silva@example.com |
+|ORD-1005|dana@corp.de         |dana@corp.de          |
+|ORD-1006|bob@shop.io          |bob@shop.io           |
+|ORD-1007|eve@x.co.uk          |eve@x.co.uk           |
+|ORD-1008|chen.w@mail.cn       |chen.w@mail.cn        |
+|ORD-1009|NULL                 |CUST-63@no-email.local|
+|ORD-1010|dana@corp.de         |dana@corp.de          |
+|ORD-1011|frank@nordic.se      |frank@nordic.se       |
+|ORD-1012|eve@x.co.uk          |eve@x.co.uk           |
++--------+---------------------+----------------------+
+
+
+==========================================================================
+  08 - fillna / dropna
+==========================================================================
+  bulk null handling. Type-aware: a string default is ignored on numeric columns and vice versa.
+
+--- before ---
++--------+---------------------+-------+--------------------+
+|order_id|customer_email       |channel|promo_codes         |
++--------+---------------------+-------+--------------------+
+|ORD-1001|ana.silva@example.com|web    |[SUMMER10, FREESHIP]|
+|ORD-1002|bob@shop.io          |app    |[]                  |
+|ORD-1003|chen.w@mail.cn       |store  |[WELCOME5]          |
+|ORD-1004|ana.silva@example.com|unknown|[SUMMER10]          |
+|ORD-1005|dana@corp.de         |web    |[]                  |
+|ORD-1006|bob@shop.io          |app    |NULL                |
+|ORD-1007|eve@x.co.uk          |store  |[VIP20, FREESHIP]   |
+|ORD-1008|chen.w@mail.cn       |web    |[]                  |
+|ORD-1009|NULL                 |app    |[SUMMER10]          |
+|ORD-1010|dana@corp.de         |web    |[]                  |
+|ORD-1011|frank@nordic.se      |store  |[WELCOME5]          |
+|ORD-1012|eve@x.co.uk          |web    |[]                  |
++--------+---------------------+-------+--------------------+
+
+--- na.fill with a dict - the ONLY form you should use ---
++--------+---------------------+-------+--------------------+
+|order_id|customer_email       |channel|promo_codes         |
++--------+---------------------+-------+--------------------+
+|ORD-1001|ana.silva@example.com|web    |[SUMMER10, FREESHIP]|
+|ORD-1002|bob@shop.io          |app    |[]                  |
+|ORD-1003|chen.w@mail.cn       |store  |[WELCOME5]          |
+|ORD-1004|ana.silva@example.com|unknown|[SUMMER10]          |
+|ORD-1005|dana@corp.de         |web    |[]                  |
+|ORD-1006|bob@shop.io          |app    |NULL                |
+|ORD-1007|eve@x.co.uk          |store  |[VIP20, FREESHIP]   |
+|ORD-1008|chen.w@mail.cn       |web    |[]                  |
+|ORD-1009|missing@unknown      |app    |[SUMMER10]          |
+|ORD-1010|dana@corp.de         |web    |[]                  |
+|ORD-1011|frank@nordic.se      |store  |[WELCOME5]          |
+|ORD-1012|eve@x.co.uk          |web    |[]                  |
++--------+---------------------+-------+--------------------+
+
+--- na.drop(subset=[...]) - drops 1 row ---
++--------+---------------------+-------+--------------------+
+|order_id|customer_email       |channel|promo_codes         |
++--------+---------------------+-------+--------------------+
+|ORD-1001|ana.silva@example.com|web    |[SUMMER10, FREESHIP]|
+|ORD-1002|bob@shop.io          |app    |[]                  |
+|ORD-1003|chen.w@mail.cn       |store  |[WELCOME5]          |
+|ORD-1004|ana.silva@example.com|unknown|[SUMMER10]          |
+|ORD-1005|dana@corp.de         |web    |[]                  |
+|ORD-1006|bob@shop.io          |app    |NULL                |
+|ORD-1007|eve@x.co.uk          |store  |[VIP20, FREESHIP]   |
+|ORD-1008|chen.w@mail.cn       |web    |[]                  |
+|ORD-1010|dana@corp.de         |web    |[]                  |
+|ORD-1011|frank@nordic.se      |store  |[WELCOME5]          |
+|ORD-1012|eve@x.co.uk          |web    |[]                  |
++--------+---------------------+-------+--------------------+
+
+na.drop(how='any') over all columns keeps: 10 of 12  <- 'any' is aggressive; almost always pass subset=
+
+==========================================================================
+  -- - VERIFY
+==========================================================================
+  PASS  SQL-string and Column filters agree
+  PASS  == None matches nothing - always use isNull()
+  PASS  isNull() finds the 1 order with no email
+  PASS  when() without otherwise() leaves NULLs
+  PASS  coalesce removed every null

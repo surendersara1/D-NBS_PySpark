@@ -1,0 +1,129 @@
+
+==========================================================================
+  01 - select
+==========================================================================
+  pick columns. On Parquet/Iceberg this changes how many bytes leave S3 - it is not cosmetic.
+
+--- four columns of eleven ---
++--------+------+-------+------------+
+|order_id|region|channel|order_status|
++--------+------+-------+------------+
+|ORD-1001|NA    |web    |completed   |
+|ORD-1002|NA    |app    |refunded    |
+|ORD-1003|APAC  |store  |completed   |
+|ORD-1004|NA    |unknown|refunded    |
+|ORD-1005|EMEA  |web    |completed   |
++--------+------+-------+------------+
+
+--- col / bracket / alias / expression ---
++--------+------+---------+--------+
+|order_id|region|status   |is_first|
++--------+------+---------+--------+
+|ORD-1001|NA    |completed|true    |
+|ORD-1002|NA    |refunded |false   |
+|ORD-1003|APAC  |completed|false   |
++--------+------+---------+--------+
+
+Columns actually read by Spark:
+== Physical Plan ==
+* ColumnarToRow (2)
++- Scan parquet  (1)
+
+
+(1) Scan parquet 
+Output [2]: [order_id#0, region#3]
+Batched: true
+Location: InMemoryFileIndex [file:/home/claude/pyspark30/warehouse/silver/orders]
+ReadSchema: struct<order_id:string,region:string>
+
+(2) ColumnarToRow [codegen id : 1]
+Input [2]: [order_id#0, region#3]
+
+
+
+==========================================================================
+  02 - withColumn
+==========================================================================
+  add a column, or replace one by reusing its name
+
+--- one added, one replaced ---
++--------+------+---------+
+|order_id|region|region_lc|
++--------+------+---------+
+|ORD-1001|R-NA  |na       |
+|ORD-1002|R-NA  |na       |
+|ORD-1003|R-APAC|apac     |
+|ORD-1004|R-NA  |na       |
++--------+------+---------+
+
+--- withColumns - one plan node, not three ---
++--------+------+---------+-----+
+|order_id|layer |loaded_by|is_na|
++--------+------+---------+-----+
+|ORD-1001|silver|00_setup |true |
+|ORD-1002|silver|00_setup |true |
+|ORD-1003|silver|00_setup |true |
++--------+------+---------+-----+
+
+
+==========================================================================
+  03 - cast
+==========================================================================
+  change type. What a BAD value does depends on ANSI mode - read the note below, it bites people moving Spark versions.
+
+--- double -> int / string / decimal ---
++--------+----------+---+---------+-------+---------+
+|order_id|unit_price|qty|price_int|qty_str|price_dec|
++--------+----------+---+---------+-------+---------+
+|ORD-1001|4.5       |3  |4        |3      |4.50     |
+|ORD-1001|249.99    |1  |249      |1      |249.99   |
+|ORD-1002|39.0      |2  |39       |2      |39.00    |
+|ORD-1003|899.0     |1  |899      |1      |899.00   |
++--------+----------+---+---------+-------+---------+
+
+ansi.enabled = true
+--- try_cast - NULL on failure, in every Spark version ---
++------------+--------+
+|v           |try_cast|
++------------+--------+
+|42          |42      |
+|not_a_number|NULL    |
+|NULL        |NULL    |
++------------+--------+
+
+--- cast with ANSI off - the silent NULL. This is how bad data disappears. ---
++------------+-------------+
+|v           |cast_ansi_off|
++------------+-------------+
+|42          |42           |
+|not_a_number|NULL         |
+|NULL        |NULL         |
++------------+-------------+
+
+cast with ANSI on  -> NumberFormatException - CAST_INVALID_INPUT. The job FAILS instead of hiding the row.
+
+==========================================================================
+  04 - withColumnRenamed / drop
+==========================================================================
+  rename and remove
+
+before: 13 columns -> ['order_id', 'customer_id', 'customer_email', 'region', 'channel', 'order_status', 'order_ts', 'currency', 'promo_codes', 'ingested_at', 'order_date', 'city', 'state']
+after : 10 columns -> ['order_id', 'customer_id', 'email', 'region', 'channel', 'order_status', 'event_time', 'order_date', 'city', 'state']
+--- renamed and slimmed ---
++--------+-----------+---------------------+------+-------+------------+-------------------+----------+---------+-----+
+|order_id|customer_id|email                |region|channel|order_status|event_time         |order_date|city     |state|
++--------+-----------+---------------------+------+-------+------------+-------------------+----------+---------+-----+
+|ORD-1001|CUST-77    |ana.silva@example.com|NA    |web    |completed   |2026-08-30 14:23:11|2026-08-30|Austin   |TX   |
+|ORD-1002|CUST-42    |bob@shop.io          |NA    |app    |refunded    |2026-08-30 09:02:44|2026-08-30|Denver   |CO   |
+|ORD-1003|CUST-19    |chen.w@mail.cn       |APAC  |store  |completed   |2026-08-30 22:41:05|2026-08-30|Singapore|SG   |
++--------+-----------+---------------------+------+-------+------------+-------------------+----------+---------+-----+
+
+
+==========================================================================
+  -- - VERIFY
+==========================================================================
+  PASS  select returns exactly the requested columns, in order
+  PASS  withColumn adds a column
+  PASS  withColumn with an existing name REPLACES, it does not duplicate
+  PASS  try_cast produces NULL on failure in every Spark version
+  PASS  drop removed the column

@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+3_pyspark30_practice/warehouse/
+.playwright-mcp/

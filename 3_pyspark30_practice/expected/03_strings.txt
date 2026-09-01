@@ -1,0 +1,117 @@
+
+==========================================================================
+  09 - trim / lower / upper / initcap
+==========================================================================
+  run against BRONZE so you can see the dirt these functions remove
+
+--- brackets added so you can SEE the padding ---
++--------+--------------------------+---------------------+----------+------------+
+|order_id|raw_email                 |clean_email          |raw_region|clean_region|
++--------+--------------------------+---------------------+----------+------------+
+|ORD-1001|[  Ana.Silva@Example.COM ]|ana.silva@example.com|[na]      |NA          |
+|ORD-1002|[bob@shop.io]             |bob@shop.io          |[NA]      |NA          |
+|ORD-1003|[  Chen.W@mail.cn]        |chen.w@mail.cn       |[apac]    |APAC        |
+|ORD-1004|[Ana.Silva@example.com]   |ana.silva@example.com|[Na]      |NA          |
+|ORD-1005|[dana@corp.de]            |dana@corp.de         |[emea]    |EMEA        |
+|ORD-1006|[bob@shop.io ]            |bob@shop.io          |[NA]      |NA          |
++--------+--------------------------+---------------------+----------+------------+
+
+--- initcap - capitalises each word ---
++-----------+-----------+
+|department |initcap    |
++-----------+-----------+
+|Grocery    |Grocery    |
+|Electronics|Electronics|
+|Apparel    |Apparel    |
++-----------+-----------+
+
+distinct regions in BRONZE: 7 | in SILVER after trim+upper: 3
+
+==========================================================================
+  10 - split
+==========================================================================
+  string -> array. Then [n] or .getItem(n) to pull an element.
+
+--- email -> local part + domain ---
++--------+---------------------+------------------------+----------+-----------+-------+
+|order_id|customer_email       |parts                   |local_part|domain     |n_parts|
++--------+---------------------+------------------------+----------+-----------+-------+
+|ORD-1001|ana.silva@example.com|[ana.silva, example.com]|ana.silva |example.com|2      |
+|ORD-1002|bob@shop.io          |[bob, shop.io]          |bob       |shop.io    |2      |
+|ORD-1003|chen.w@mail.cn       |[chen.w, mail.cn]       |chen.w    |mail.cn    |2      |
+|ORD-1004|ana.silva@example.com|[ana.silva, example.com]|ana.silva |example.com|2      |
+|ORD-1005|dana@corp.de         |[dana, corp.de]         |dana      |corp.de    |2      |
+|ORD-1006|bob@shop.io          |[bob, shop.io]          |bob       |shop.io    |2      |
++--------+---------------------+------------------------+----------+-----------+-------+
+
+--- splitting a structured key ---
++----------+---------+-------+
+|sku       |dept_code|item_no|
++----------+---------+-------+
+|SKU-GR-088|GR       |088    |
+|SKU-EL-201|EL       |201    |
+|SKU-AP-410|AP       |410    |
+|SKU-EL-115|EL       |115    |
++----------+---------+-------+
+
+
+==========================================================================
+  11 - regexp_replace / regexp_extract
+==========================================================================
+  replace vs capture
+
+--- regexp_extract group 0 = whole match, 1 = first capture group ---
++----------+--------+---------+---------+--------+
+|sku       |stripped|no_prefix|grp1_dept|grp2_num|
++----------+--------+---------+---------+--------+
+|SKU-GR-088|SKUGR088|GR-088   |GR       |088     |
+|SKU-EL-201|SKUEL201|EL-201   |EL       |201     |
+|SKU-AP-410|SKUAP410|AP-410   |AP       |410     |
+|SKU-EL-115|SKUEL115|EL-115   |EL       |115     |
++----------+--------+---------+---------+--------+
+
+--- no match -> empty string, never an error ---
++---------------------+-----------+
+|customer_email       |domain     |
++---------------------+-----------+
+|ana.silva@example.com|example.com|
+|bob@shop.io          |shop.io    |
+|chen.w@mail.cn       |mail.cn    |
+|ana.silva@example.com|example.com|
++---------------------+-----------+
+
+
+==========================================================================
+  12 - concat_ws / concat
+==========================================================================
+  concat_ws SKIPS nulls. concat returns NULL if ANY input is null. This surprises everyone once.
+
+--- look at ORD-1009 (null email): concat_ws survives, concat does not ---
++--------+------+-------+---------------------+------------------------------------+--------------------------+
+|order_id|region|channel|customer_email       |concat_ws                           |concat                    |
++--------+------+-------+---------------------+------------------------------------+--------------------------+
+|ORD-1001|NA    |web    |ana.silva@example.com|NA | web | ana.silva@example.com    |NA | ana.silva@example.com|
+|ORD-1002|NA    |app    |bob@shop.io          |NA | app | bob@shop.io              |NA | bob@shop.io          |
+|ORD-1003|APAC  |store  |chen.w@mail.cn       |APAC | store | chen.w@mail.cn       |APAC | chen.w@mail.cn     |
+|ORD-1004|NA    |unknown|ana.silva@example.com|NA | unknown | ana.silva@example.com|NA | ana.silva@example.com|
+|ORD-1005|EMEA  |web    |dana@corp.de         |EMEA | web | dana@corp.de           |EMEA | dana@corp.de       |
+|ORD-1006|NA    |app    |bob@shop.io          |NA | app | bob@shop.io              |NA | bob@shop.io          |
++--------+------+-------+---------------------+------------------------------------+--------------------------+
+
+--- building a composite key ---
++---------------+
+|surrogate_key  |
++---------------+
+|NA-2026-08-30  |
+|NA-2026-08-30  |
+|APAC-2026-08-30|
++---------------+
+
+
+==========================================================================
+  -- - VERIFY
+==========================================================================
+  PASS  trim+upper collapsed 7 raw region spellings into 3
+  PASS  split+getItem found 2 orders on the example.com domain
+  PASS  regexp_extract capture group found 4 Electronics SKUs
+  PASS  concat_ws skipped the null; concat returned NULL for the whole row

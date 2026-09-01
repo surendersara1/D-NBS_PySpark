@@ -1,0 +1,202 @@
+
+==========================================================================
+  20 - join
+==========================================================================
+  on= a shared column name gives ONE joined column. on= an expression gives BOTH.
+
+--- inner: only order_ids present on BOTH sides ---
++--------+------+------------+-------+----------+----------+
+|order_id|region|order_status|line_no|sku       |net_amount|
++--------+------+------------+-------+----------+----------+
+|ORD-1001|NA    |completed   |1      |SKU-GR-088|13.5      |
+|ORD-1001|NA    |completed   |2      |SKU-EL-201|224.99    |
+|ORD-1002|NA    |refunded    |1      |SKU-AP-410|78.0      |
+|ORD-1003|APAC  |completed   |1      |SKU-EL-115|854.05    |
+|ORD-1003|APAC  |completed   |2      |SKU-HO-007|49.0      |
+|ORD-1004|NA    |refunded    |1      |SKU-GR-088|-13.5     |
+|ORD-1005|EMEA  |completed   |1      |SKU-BE-330|37.5      |
+|ORD-1005|EMEA  |completed   |2      |SKU-AP-410|31.2      |
++--------+------+------------+-------+----------+----------+
+
+ inner:  17 rows
+  left:  18 rows
+ right:  18 rows
+  full:  19 rows
+  orders=12  items=18 | ORD-9999 is an orphan item, ORD-1012 shipped nothing
+--- the full-outer join exposes BOTH sides' unmatched rows ---
++--------+------+----------+----------+
+|order_id|region|sku       |net_amount|
++--------+------+----------+----------+
+|ORD-1012|APAC  |NULL      |NULL      |
+|ORD-9999|NULL  |SKU-XX-000|10.0      |
++--------+------+----------+----------+
+
+
+==========================================================================
+  21 - broadcast
+==========================================================================
+  if one side fits in executor memory, ship it everywhere and the shuffle disappears. Highest leverage word in PySpark.
+
+--- WITHOUT broadcast (auto-broadcast disabled) ---
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [order_id#13, line_no#14, sku#15, department#16, qty#17, unit_price#18, discount_pct#19, gross_amount#20, net_amount#21, region#3, customer_id#1]
+   +- SortMergeJoin [order_id#13], [order_id#0], Inner
+      :- Sort [order_id#13 ASC NULLS FIRST], false, 0
+      :  +- Exchange hashpartitioning(order_id#13, 8), ENSURE_REQUIREMENTS, [plan_id=812]
+      :     +- Filter isnotnull(order_id#13)
+      :        +- FileScan parquet [order_id#13,line_no#14,sku#15,department#16,qty#17,unit_price#18,discount_pct#19,gross_amount#20,net_amount#21] Batched: true, DataFilters: [isnotnull(order_id#13)], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/order_items], PartitionFilters: [], PushedFilters: [IsNotNull(order_id)], ReadSchema: struct<order_id:string,line_no:int,sku:string,department:string,qty:int,unit_price:double,discoun...
+      +- Sort [order_id#0 ASC NULLS FIRST], false, 0
+         +- Exchange hashpartitioning(order_id#0, 8), ENSURE_REQUIREMENTS, [plan_id=813]
+            +- Filter isnotnull(order_id#0)
+               +- FileScan parquet [order_id#0,customer_id#1,region#3] Batched: true, DataFilters: [isnotnull(order_id#0)], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/orders], PartitionFilters: [], PushedFilters: [IsNotNull(order_id)], ReadSchema: struct<order_id:string,customer_id:string,region:string>
+
+
+
+--- WITH an explicit broadcast() hint - it wins even with auto OFF ---
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Project [order_id#13, line_no#14, sku#15, department#16, qty#17, unit_price#18, discount_pct#19, gross_amount#20, net_amount#21, region#3, customer_id#1]
+   +- BroadcastHashJoin [order_id#13], [order_id#0], Inner, BuildRight, false, false
+      :- Filter isnotnull(order_id#13)
+      :  +- FileScan parquet [order_id#13,line_no#14,sku#15,department#16,qty#17,unit_price#18,discount_pct#19,gross_amount#20,net_amount#21] Batched: true, DataFilters: [isnotnull(order_id#13)], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/order_items], PartitionFilters: [], PushedFilters: [IsNotNull(order_id)], ReadSchema: struct<order_id:string,line_no:int,sku:string,department:string,qty:int,unit_price:double,discoun...
+      +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, false]),false), [plan_id=844]
+         +- Filter isnotnull(order_id#0)
+            +- FileScan parquet [order_id#0,customer_id#1,region#3] Batched: true, DataFilters: [isnotnull(order_id#0)], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/orders], PartitionFilters: [], PushedFilters: [IsNotNull(order_id)], ReadSchema: struct<order_id:string,customer_id:string,region:string>
+
+
+
+Note: at THIS data size Spark auto-broadcasts anyway - we disabled it above
+to make the contrast visible. At real scale, on a side Spark cannot size,
+the explicit hint is what saves you the shuffle.
+Threshold: spark.sql.autoBroadcastJoinThreshold = 10485760
+
+==========================================================================
+  22 - left_anti / left_semi
+==========================================================================
+  anti = rows with NO match. semi = rows WITH a match, no extra columns. Neither duplicates rows.
+
+--- ORPHANS: order_items with no parent order. Your daily QA check. ---
++--------+-------+----------+----------+---+----------+------------+------------+----------+
+|order_id|line_no|sku       |department|qty|unit_price|discount_pct|gross_amount|net_amount|
++--------+-------+----------+----------+---+----------+------------+------------+----------+
+|ORD-9999|1      |SKU-XX-000|Unknown   |1  |10.0      |0.0         |10.0        |10.0      |
++--------+-------+----------+----------+---+----------+------------+------------+----------+
+
+--- orders that shipped nothing ---
++--------+------+------------+
+|order_id|region|order_status|
++--------+------+------------+
+|ORD-1012|APAC  |completed   |
++--------+------+------------+
+
+left_semi row count: 11 | inner join row count: 17
+semi does NOT fan out - that is the point of it.
+
+==========================================================================
+  23 - unionByName
+==========================================================================
+  matches by NAME. union() matches by POSITION and will cheerfully put emails in the amount column.
+
+--- unionByName - correct ---
++--------+------+------------+
+|order_id|region|order_status|
++--------+------+------------+
+|ORD-1001|NA    |completed   |
+|ORD-1002|NA    |refunded    |
+|ORD-1004|NA    |refunded    |
+|ORD-1005|EMEA  |completed   |
+|ORD-1006|NA    |pending     |
+|ORD-1007|EMEA  |completed   |
+|ORD-1009|NA    |completed   |
+|ORD-1010|EMEA  |cancelled   |
+|ORD-1011|EMEA  |completed   |
++--------+------+------------+
+
+--- union - SAME code, columns silently scrambled. Look at region. ---
++--------+------+------------+
+|order_id|region|order_status|
++--------+------+------------+
+|ORD-1001|NA    |completed   |
+|ORD-1002|NA    |refunded    |
+|ORD-1004|NA    |refunded    |
+|ORD-1006|NA    |pending     |
++--------+------+------------+
+
+--- allowMissingColumns=True fills the gap with NULL ---
++--------+------+------------+
+|order_id|region|order_status|
++--------+------+------------+
+|ORD-1001|NA    |completed   |
+|ORD-1002|NA    |refunded    |
+|ORD-1003|APAC  |NULL        |
+|ORD-1004|NA    |refunded    |
+|ORD-1006|NA    |pending     |
+|ORD-1008|APAC  |NULL        |
+|ORD-1009|NA    |completed   |
+|ORD-1012|APAC  |NULL        |
++--------+------+------------+
+
+
+==========================================================================
+  24 - explode / explode_outer
+==========================================================================
+  one array element per row. explode DROPS rows whose array is empty or null; explode_outer keeps them.
+
+--- explode - 12 orders become 8 promo rows; the 6 with no promos VANISH ---
++--------+--------------------+--------+
+|order_id|promo_codes         |promo   |
++--------+--------------------+--------+
+|ORD-1001|[SUMMER10, FREESHIP]|SUMMER10|
+|ORD-1001|[SUMMER10, FREESHIP]|FREESHIP|
+|ORD-1003|[WELCOME5]          |WELCOME5|
+|ORD-1004|[SUMMER10]          |SUMMER10|
+|ORD-1007|[VIP20, FREESHIP]   |VIP20   |
+|ORD-1007|[VIP20, FREESHIP]   |FREESHIP|
+|ORD-1009|[SUMMER10]          |SUMMER10|
+|ORD-1011|[WELCOME5]          |WELCOME5|
++--------+--------------------+--------+
+
+--- explode_outer - 14 rows: the same 8, plus the 6 orders kept with promo=NULL ---
++--------+--------------------+--------+
+|order_id|promo_codes         |promo   |
++--------+--------------------+--------+
+|ORD-1001|[SUMMER10, FREESHIP]|SUMMER10|
+|ORD-1001|[SUMMER10, FREESHIP]|FREESHIP|
+|ORD-1002|[]                  |NULL    |
+|ORD-1003|[WELCOME5]          |WELCOME5|
+|ORD-1004|[SUMMER10]          |SUMMER10|
+|ORD-1005|[]                  |NULL    |
+|ORD-1006|NULL                |NULL    |
+|ORD-1007|[VIP20, FREESHIP]   |VIP20   |
+|ORD-1007|[VIP20, FREESHIP]   |FREESHIP|
+|ORD-1008|[]                  |NULL    |
+|ORD-1009|[SUMMER10]          |SUMMER10|
+|ORD-1010|[]                  |NULL    |
+|ORD-1011|[WELCOME5]          |WELCOME5|
+|ORD-1012|[]                  |NULL    |
++--------+--------------------+--------+
+
+--- posexplode also gives you the array index ---
++--------+---+--------+
+|order_id|pos|promo   |
++--------+---+--------+
+|ORD-1001|0  |SUMMER10|
+|ORD-1001|1  |FREESHIP|
+|ORD-1003|0  |WELCOME5|
+|ORD-1004|0  |SUMMER10|
+|ORD-1007|0  |VIP20   |
+|ORD-1007|1  |FREESHIP|
+|ORD-1009|0  |SUMMER10|
+|ORD-1011|0  |WELCOME5|
++--------+---+--------+
+
+
+==========================================================================
+  -- - VERIFY
+==========================================================================
+  PASS  inner join drops the orphan item -> 17 rows
+  PASS  left join keeps ORD-1012 (no items) -> 18 rows
+  PASS  exactly 1 orphan order_item (ORD-9999)
+  PASS  left_semi does not fan out; inner does
+  PASS  explode gives 8 rows (6 orders silently dropped); explode_outer gives 14

@@ -1,0 +1,123 @@
+--- the base table for this file ---
++------+-----------+-------+
+|region|department |revenue|
++------+-----------+-------+
+|APAC  |Electronics|2652.05|
+|APAC  |Home       |49.0   |
+|EMEA  |Apparel    |222.45 |
+|EMEA  |Home       |140.6  |
+|EMEA  |Beauty     |56.25  |
+|EMEA  |Grocery    |6.4    |
+|NA    |Electronics|224.99 |
+|NA    |Grocery    |29.5   |
++------+-----------+-------+
+
+
+==========================================================================
+  25 - Window.partitionBy / orderBy + row_number
+==========================================================================
+  rank within each group. SQL: ROW_NUMBER() OVER (PARTITION BY region ORDER BY revenue DESC)
+
+--- row_number restarts at 1 inside every region ---
++------+-----------+-------+---+
+|region|department |revenue|rn |
++------+-----------+-------+---+
+|APAC  |Electronics|2652.05|1  |
+|APAC  |Home       |49.0   |2  |
+|EMEA  |Apparel    |222.45 |1  |
+|EMEA  |Home       |140.6  |2  |
+|EMEA  |Beauty     |56.25  |3  |
+|EMEA  |Grocery    |6.4    |4  |
+|NA    |Electronics|224.99 |1  |
+|NA    |Grocery    |29.5   |2  |
++------+-----------+-------+---+
+
+--- top-2 department per region - the single most common window pattern ---
++------+-----------+-------+---+
+|region|department |revenue|rn |
++------+-----------+-------+---+
+|APAC  |Electronics|2652.05|1  |
+|APAC  |Home       |49.0   |2  |
+|EMEA  |Apparel    |222.45 |1  |
+|EMEA  |Home       |140.6  |2  |
+|NA    |Electronics|224.99 |1  |
+|NA    |Grocery    |29.5   |2  |
++------+-----------+-------+---+
+
+
+==========================================================================
+  26 - rank / dense_rank
+==========================================================================
+  how ties are numbered. Build a tie to see it.
+
+--- B and C tie at 90: row_number 2,3 | rank 2,2 then 4 | dense_rank 2,2 then 3 ---
++------+----+-------+----------+----+----------+------------+-------+
+|region|dept|revenue|row_number|rank|dense_rank|percent_rank|ntile_2|
++------+----+-------+----------+----+----------+------------+-------+
+|NA    |A   |100.0  |1         |1   |1         |0.0         |1      |
+|NA    |B   |90.0   |2         |2   |2         |0.333       |1      |
+|NA    |C   |90.0   |3         |2   |2         |0.333       |2      |
+|NA    |D   |80.0   |4         |4   |3         |1.0         |2      |
++------+----+-------+----------+----+----------+------------+-------+
+
+
+==========================================================================
+  27 - lag / lead / rowsBetween
+==========================================================================
+  look at neighbouring rows, and accumulate
+
+--- lag/lead are NULL at the edges of each partition - that is correct, not a bug ---
++-----------+--------+-------------------+------+----------+----------+---------------+---+
+|customer_id|order_id|order_ts           |region|prev_order|next_order|mins_since_prev|seq|
++-----------+--------+-------------------+------+----------+----------+---------------+---+
+|CUST-05    |ORD-1011|2026-08-30 08:00:00|EMEA  |NULL      |NULL      |NULL           |1  |
+|CUST-19    |ORD-1008|2026-08-30 03:20:00|APAC  |NULL      |ORD-1003  |NULL           |1  |
+|CUST-19    |ORD-1003|2026-08-30 22:41:05|APAC  |ORD-1008  |NULL      |1161.1         |2  |
+|CUST-42    |ORD-1002|2026-08-30 09:02:44|NA    |NULL      |ORD-1006  |NULL           |1  |
+|CUST-42    |ORD-1006|2026-08-30 18:30:00|NA    |ORD-1002  |NULL      |567.3          |2  |
+|CUST-51    |ORD-1007|2026-08-30 11:15:33|EMEA  |NULL      |ORD-1012  |NULL           |1  |
+|CUST-51    |ORD-1012|2026-08-30 19:12:00|APAC  |ORD-1007  |NULL      |476.5          |2  |
+|CUST-63    |ORD-1009|2026-08-30 13:47:29|NA    |NULL      |NULL      |NULL           |1  |
+|CUST-77    |ORD-1001|2026-08-30 14:23:11|NA    |NULL      |ORD-1004  |NULL           |1  |
+|CUST-77    |ORD-1004|2026-08-30 16:10:00|NA    |ORD-1001  |NULL      |106.8          |2  |
+|CUST-88    |ORD-1005|2026-08-30 07:55:12|EMEA  |NULL      |ORD-1010  |NULL           |1  |
+|CUST-88    |ORD-1010|2026-08-30 20:05:00|EMEA  |ORD-1005  |NULL      |729.8          |2  |
++-----------+--------+-------------------+------+----------+----------+---------------+---+
+
+--- running total per customer via rowsBetween(unboundedPreceding, currentRow) ---
++-----------+--------+-------------------+----------+-------------+-------------+
+|customer_id|order_id|order_ts           |net_amount|running_total|orders_so_far|
++-----------+--------+-------------------+----------+-------------+-------------+
+|CUST-05    |ORD-1011|2026-08-30 08:00:00|116.1     |116.1        |1            |
+|CUST-05    |ORD-1011|2026-08-30 08:00:00|6.4       |122.5        |2            |
+|CUST-19    |ORD-1008|2026-08-30 03:20:00|1798.0    |1798.0       |1            |
+|CUST-19    |ORD-1003|2026-08-30 22:41:05|854.05    |2652.05      |2            |
+|CUST-19    |ORD-1003|2026-08-30 22:41:05|49.0      |2701.05      |3            |
+|CUST-51    |ORD-1007|2026-08-30 11:15:33|191.25    |191.25       |1            |
+|CUST-51    |ORD-1007|2026-08-30 11:15:33|18.75     |210.0        |2            |
+|CUST-51    |ORD-1007|2026-08-30 11:15:33|24.5      |234.5        |3            |
+|CUST-63    |ORD-1009|2026-08-30 13:47:29|16.0      |16.0         |1            |
+|CUST-77    |ORD-1001|2026-08-30 14:23:11|13.5      |13.5         |1            |
+|CUST-77    |ORD-1001|2026-08-30 14:23:11|224.99    |238.49       |2            |
+|CUST-88    |ORD-1005|2026-08-30 07:55:12|37.5      |37.5         |1            |
++-----------+--------+-------------------+----------+-------------+-------------+
+
+
+A window with NO partitionBy - read the warning Spark itself prints:
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Window [row_number() windowspecdefinition(order_ts#6 ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS global_seq#457], [order_ts#6 ASC NULLS FIRST]
+   +- Sort [order_ts#6 ASC NULLS FIRST], false, 0
+      +- Exchange SinglePartition, ENSURE_REQUIREMENTS, [plan_id=700]
+         +- FileScan parquet [order_id#0,customer_id#1,customer_email#2,region#3,channel#4,order_status#5,order_ts#6,currency#7,promo_codes#8,ingested_at#9,order_date#10,city#11,state#12] Batched: true, DataFilters: [], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/orders], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<order_id:string,customer_id:string,customer_email:string,region:string,channel:string,orde...
+
+
+
+==========================================================================
+  -- - VERIFY
+==========================================================================
+  PASS  exactly one #1 department per region (3 regions)
+  PASS  rank leaves a gap after a tie: 1,2,2,4
+  PASS  dense_rank does not: 1,2,2,3
+  PASS  lag is NULL exactly once per customer - the first row of each partition
+  PASS  the final running total per customer sums back to the grand total

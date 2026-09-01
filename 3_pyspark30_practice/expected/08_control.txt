@@ -1,0 +1,120 @@
+
+==========================================================================
+  28 - dropDuplicates / distinct
+==========================================================================
+  bronze still holds ORD-1002 twice - same order_id, different ingested_at, DIFFERENT order_status.
+
+--- the duplicate: which one is correct? ---
++--------+------------+-------------------+
+|order_id|order_status|ingested_at        |
++--------+------------+-------------------+
+|ORD-1002|completed   |2026-08-30 23:05:00|
+|ORD-1002|REFUNDED    |2026-08-31 02:10:00|
++--------+------------+-------------------+
+
+bronze rows                       : 13
+distinct() - all columns compared : 13  <- keeps BOTH; the rows are not identical
+dropDuplicates(['order_id'])      : 12  <- keeps ONE, but WHICH one is arbitrary
+--- window + row_number: deterministic, and you CHOOSE the winner ---
++--------+------------+-------------------+
+|order_id|order_status|ingested_at        |
++--------+------------+-------------------+
+|ORD-1002|REFUNDED    |2026-08-31 02:10:00|
++--------+------------+-------------------+
+
+Use dropDuplicates() only when the rows are genuinely interchangeable.
+Any time 'latest wins' matters, use the window. Every time.
+
+==========================================================================
+  29 - orderBy / sortWithinPartitions
+==========================================================================
+  orderBy is GLOBAL and costs a range-partitioning shuffle. sortWithinPartitions is local and nearly free.
+
+--- orderBy: look for 'rangepartitioning' in the Exchange ---
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Sort [net_amount#34 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(net_amount#34 ASC NULLS FIRST, 8), ENSURE_REQUIREMENTS, [plan_id=357]
+      +- FileScan parquet [order_id#26,line_no#27,sku#28,department#29,qty#30,unit_price#31,discount_pct#32,gross_amount#33,net_amount#34] Batched: true, DataFilters: [], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/order_items], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<order_id:string,line_no:int,sku:string,department:string,qty:int,unit_price:double,discoun...
+
+
+
+--- sortWithinPartitions: no Exchange at all ---
+== Physical Plan ==
+*(1) Sort [net_amount#34 ASC NULLS FIRST], false, 0
++- *(1) ColumnarToRow
+   +- FileScan parquet [order_id#26,line_no#27,sku#28,department#29,qty#30,unit_price#31,discount_pct#32,gross_amount#33,net_amount#34] Batched: true, DataFilters: [], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/order_items], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<order_id:string,line_no:int,sku:string,department:string,qty:int,unit_price:double,discoun...
+
+
+--- top 5 line items by value ---
++--------+----------+----------+
+|order_id|sku       |net_amount|
++--------+----------+----------+
+|ORD-1008|SKU-EL-115|1798.0    |
+|ORD-1003|SKU-EL-115|854.05    |
+|ORD-1006|SKU-EL-201|249.99    |
+|ORD-1001|SKU-EL-201|224.99    |
+|ORD-1007|SKU-AP-522|191.25    |
++--------+----------+----------+
+
+Never sort just to make output files 'look tidy' before a write.
+The consumer will re-sort anyway and you paid a full shuffle for nothing.
+
+==========================================================================
+  30 - repartition / coalesce
+==========================================================================
+  repartition = full shuffle, can grow, can rebalance skew. coalesce = merge only, no shuffle, can only shrink.
+
+partitions as read      : 1
+after repartition(6)    : 6
+after repartition by key: 4
+after coalesce(1)       : 1
+--- repartition(4,'department') co-locates each department on one partition ---
++---+----------------------+----+
+|pid|departments           |rows|
++---+----------------------+----+
+|0  |[Home, Beauty]        |6   |
+|1  |[Electronics, Unknown]|5   |
+|2  |[Grocery]             |4   |
+|3  |[Apparel]             |3   |
++---+----------------------+----+
+
+--- repartition: an Exchange (shuffle) appears ---
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- Exchange RoundRobinPartitioning(4), REPARTITION_BY_NUM, [plan_id=566]
+   +- FileScan parquet [order_id#26,line_no#27,sku#28,department#29,qty#30,unit_price#31,discount_pct#32,gross_amount#33,net_amount#34] Batched: true, DataFilters: [], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/order_items], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<order_id:string,line_no:int,sku:string,department:string,qty:int,unit_price:double,discoun...
+
+
+
+--- coalesce: no Exchange ---
+== Physical Plan ==
+Coalesce 1
++- *(1) ColumnarToRow
+   +- FileScan parquet [order_id#26,line_no#27,sku#28,department#29,qty#30,unit_price#31,discount_pct#32,gross_amount#33,net_amount#34] Batched: true, DataFilters: [], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/order_items], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<order_id:string,line_no:int,sku:string,department:string,qty:int,unit_price:double,discoun...
+
+
+
+Rule of thumb: coalesce() before a write so you do not emit 200 tiny files.
+repartition() when the DATA itself is unbalanced, or you need more tasks.
+
+==========================================================================
+  B2 - cache / unpersist  (bonus, not one of the 30)
+==========================================================================
+  costs executor memory and evicts other things. Worth it at 3+ reuses.
+
+is cached: True
+reuse 1 - rows      : 17
+reuse 2 - revenue   : 3774.23
+reuse 3 - departments: 6
+after unpersist     : False
+Cached for 3 reuses = good trade. Cached and used once = you made it slower.
+
+==========================================================================
+  -- - VERIFY
+==========================================================================
+  PASS  dropDuplicates on order_id collapses 13 bronze rows to 12
+  PASS  the window keeps the LATEST ingested version deterministically
+  PASS  repartition sets an exact partition count
+  PASS  coalesce merges down to 1 without a shuffle
+  PASS  every department lands on exactly ONE partition after repartition by key

@@ -1,0 +1,111 @@
+
+==========================================================================
+  16 - groupBy + agg
+==========================================================================
+  every groupBy is a shuffle. Filter BEFORE it, never after.
+
+--- revenue by region x department (completed orders only) ---
++------+-----------+-----+-------+--------+--------+--------+
+|region|department |lines|revenue|avg_line|min_line|max_line|
++------+-----------+-----+-------+--------+--------+--------+
+|APAC  |Electronics|2    |2652.05|1326.03 |854.05  |1798.0  |
+|APAC  |Home       |1    |49.0   |49.0    |49.0    |49.0    |
+|EMEA  |Apparel    |2    |222.45 |111.23  |31.2    |191.25  |
+|EMEA  |Beauty     |2    |56.25  |28.13   |18.75   |37.5    |
+|EMEA  |Grocery    |1    |6.4    |6.4     |6.4     |6.4     |
+|EMEA  |Home       |2    |140.6  |70.3    |24.5    |116.1   |
+|NA    |Electronics|1    |224.99 |224.99  |224.99  |224.99  |
+|NA    |Grocery    |2    |29.5   |14.75   |13.5    |16.0    |
++------+-----------+-----+-------+--------+--------+--------+
+
+Count the shuffles in the plan below - there should be exactly one:
+== Physical Plan ==
+AdaptiveSparkPlan isFinalPlan=false
++- HashAggregate(keys=[region#3], functions=[sum(net_amount#21)])
+   +- Exchange hashpartitioning(region#3, 8), ENSURE_REQUIREMENTS, [plan_id=214]
+      +- HashAggregate(keys=[region#3], functions=[partial_sum(net_amount#21)])
+         +- Project [region#3, net_amount#21]
+            +- BroadcastHashJoin [order_id#0], [order_id#13], Inner, BuildLeft, false, false
+               :- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true]),false), [plan_id=209]
+               :  +- Project [order_id#0, region#3]
+               :     +- Filter ((isnotnull(order_status#5) AND (order_status#5 = completed)) AND isnotnull(order_id#0))
+               :        +- FileScan parquet [order_id#0,region#3,order_status#5] Batched: true, DataFilters: [isnotnull(order_status#5), (order_status#5 = completed), isnotnull(order_id#0)], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/orders], PartitionFilters: [], PushedFilters: [IsNotNull(order_status), EqualTo(order_status,completed), IsNotNull(order_id)], ReadSchema: struct<order_id:string,region:string,order_status:string>
+               +- Filter isnotnull(order_id#13)
+                  +- FileScan parquet [order_id#13,net_amount#21] Batched: true, DataFilters: [isnotnull(order_id#13)], Format: Parquet, Location: InMemoryFileIndex(1 paths)[file:/home/claude/pyspark30/warehouse/silver/order_items], PartitionFilters: [], PushedFilters: [IsNotNull(order_id)], ReadSchema: struct<order_id:string,net_amount:double>
+
+
+
+==========================================================================
+  17 - count / countDistinct
+==========================================================================
+  count("*") counts ROWS. count(col) counts NON-NULL VALUES. The gap is a data-quality metric.
+
+--- look at NA: 5 orders but only 4 emails ---
++------+------+----------+-------------+------------------+---------------+
+|region|orders|with_email|missing_email|distinct_customers|distinct_combos|
++------+------+----------+-------------+------------------+---------------+
+|APAC  |3     |3         |0            |2                 |2              |
+|EMEA  |4     |4         |0            |3                 |3              |
+|NA    |5     |4         |1            |3                 |5              |
++------+------+----------+-------------+------------------+---------------+
+
+
+==========================================================================
+  18 - approx_count_distinct
+==========================================================================
+  exact distinct cannot be partially aggregated before the shuffle. HyperLogLog sketches can.
+
+--- identical here because the set is tiny - at 900M rows the cost is not ---
++-----+-------------------+---------------+
+|exact|approx_default_5pct|approx_1pct_rsd|
++-----+-------------------+---------------+
+|7    |7                  |7              |
++-----+-------------------+---------------+
+
+At scale: exact distinct ships every raw value across the network.
+approx ships a fixed-size sketch per partition. That is the whole difference.
+
+==========================================================================
+  19 - collect_set / collect_list
+==========================================================================
+  rows -> array. set = deduplicated, list = keeps duplicates and order.
+
+--- ORD-1007 bought from 3 departments ---
++--------+-----------------------+-----------------------+------------------------------------+----------------+
+|order_id|departments_list       |departments_set        |skus_sorted                         |n_distinct_depts|
++--------+-----------------------+-----------------------+------------------------------------+----------------+
+|ORD-1001|[Grocery, Electronics] |[Grocery, Electronics] |[SKU-EL-201, SKU-GR-088]            |2               |
+|ORD-1003|[Electronics, Home]    |[Home, Electronics]    |[SKU-EL-115, SKU-HO-007]            |2               |
+|ORD-1005|[Beauty, Apparel]      |[Apparel, Beauty]      |[SKU-AP-410, SKU-BE-330]            |2               |
+|ORD-1007|[Apparel, Beauty, Home]|[Apparel, Home, Beauty]|[SKU-AP-522, SKU-BE-330, SKU-HO-007]|3               |
+|ORD-1008|[Electronics]          |[Electronics]          |[SKU-EL-115]                        |1               |
+|ORD-1009|[Grocery]              |[Grocery]              |[SKU-GR-044]                        |1               |
+|ORD-1011|[Home, Grocery]        |[Home, Grocery]        |[SKU-GR-044, SKU-HO-118]            |2               |
++--------+-----------------------+-----------------------+------------------------------------+----------------+
+
+DANGER: these arrays are UNBOUNDED and built in ONE executor's memory
+per group. One hot key (region='NA' at 900M rows) is an OOM waiting.
+
+==========================================================================
+  B1 - pivot  (bonus, not one of the 30)
+==========================================================================
+  long -> wide. ALWAYS pass the value list, or Spark runs an extra job to discover it.
+
+--- revenue matrix: region x department ---
++------+-------+-----------+-------+-----+------+
+|region|Grocery|Electronics|Apparel|Home |Beauty|
++------+-------+-----------+-------+-----+------+
+|APAC  |NULL   |2652.05    |NULL   |49.0 |NULL  |
+|EMEA  |6.4    |NULL       |222.45 |140.6|56.25 |
+|NA    |29.5   |224.99     |NULL   |NULL |NULL  |
++------+-------+-----------+-------+-----+------+
+
+
+==========================================================================
+  -- - VERIFY
+==========================================================================
+  PASS  count("*")=5 vs count(email)=4 for region NA
+  PASS  7 distinct customers across 11 orders
+  PASS  ORD-1007 spans 3 distinct departments
+  PASS  3 region groups survive the shuffle
+  PASS  filtering to completed orders BEFORE the join shrank the join input
