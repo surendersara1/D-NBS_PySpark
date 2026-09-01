@@ -1,0 +1,1786 @@
+<meta charset="utf-8">
+<title>The Iceberg Atlas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EEF3F6; --surface:#FFFFFF; --surface2:#E3EBF0; --sunken:#DCE7EE;
+  --ink:#0A1E28; --muted:#4E6A78; --line:#C4D6E0; --line2:#A9C2D0;
+  --accent:#0B7B8A; --accent-ink:#06616D; --accent-soft:rgba(11,123,138,.10);
+  --ochre:#B4741A; --ochre-soft:rgba(180,116,26,.12);
+  --coral:#C4443F; --coral-soft:rgba(196,68,63,.10);
+  --data:#2F6FA8; --data-soft:rgba(47,111,168,.12);
+  --snap:#6B5CA5; --snap-soft:rgba(107,92,165,.12);
+  --good:#2C7A5B;
+  --code-bg:#08222C; --code-ink:#CFE4EC; --code-dim:#6F94A4;
+  --hero-bg:#08222C; --hero-ink:#E8F2F6; --hero-mute:#8FB0BF; --hero-line:#194554;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#071319; --surface:#0E212B; --surface2:#16303C; --sunken:#0B1B23;
+    --ink:#E4EFF4; --muted:#8AA6B4; --line:#23414F; --line2:#2E5364;
+    --accent:#35B7C4; --accent-ink:#5ED0DA; --accent-soft:rgba(53,183,196,.13);
+    --ochre:#E0A44A; --ochre-soft:rgba(224,164,74,.14);
+    --coral:#E8736D; --coral-soft:rgba(232,115,109,.13);
+    --data:#63A6E0; --data-soft:rgba(99,166,224,.14);
+    --snap:#9A8BD8; --snap-soft:rgba(154,139,216,.14);
+    --good:#4FB489;
+    --code-bg:#04161D; --code-ink:#C6DDE6; --code-dim:#67909F;
+    --hero-bg:#04161D; --hero-ink:#E4EFF4; --hero-mute:#8AA6B4; --hero-line:#1A3C4A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#071319; --surface:#0E212B; --surface2:#16303C; --sunken:#0B1B23;
+  --ink:#E4EFF4; --muted:#8AA6B4; --line:#23414F; --line2:#2E5364;
+  --accent:#35B7C4; --accent-ink:#5ED0DA; --accent-soft:rgba(53,183,196,.13);
+  --ochre:#E0A44A; --ochre-soft:rgba(224,164,74,.14);
+  --coral:#E8736D; --coral-soft:rgba(232,115,109,.13);
+  --data:#63A6E0; --data-soft:rgba(99,166,224,.14);
+  --snap:#9A8BD8; --snap-soft:rgba(154,139,216,.14);
+  --good:#4FB489;
+  --code-bg:#04161D; --code-ink:#C6DDE6; --code-dim:#67909F;
+  --hero-bg:#04161D; --hero-ink:#E4EFF4; --hero-mute:#8AA6B4; --hero-line:#1A3C4A;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);margin:0;
+  font:16.5px/1.65 'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  font-feature-settings:"kern" 1}
+h1,h2,h3,h4{margin:0;text-wrap:balance}
+code,kbd,.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+.wrap{max-width:1120px;margin:0 auto;padding:0 30px}
+
+/* ============ hero ============ */
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:78px 0 0;position:relative;overflow:hidden}
+.hero .wrap{position:relative;z-index:2}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.hero h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;
+  font-size:clamp(46px,8vw,88px);line-height:.98;letter-spacing:-.015em}
+.hero h1 em{font-style:italic;color:var(--accent)}
+.hero .deck{font-size:clamp(17px,2.2vw,20px);color:var(--hero-mute);max-width:64ch;margin:24px 0 0;line-height:1.6}
+.hero .deck b{color:var(--hero-ink);font-weight:600}
+.hero .src{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--hero-mute);
+  margin-top:26px;padding-top:18px;border-top:1px solid var(--hero-line)}
+.strata{display:flex;margin-top:44px;border-top:1px solid var(--hero-line);
+  border-left:1px solid var(--hero-line);flex-wrap:wrap}
+.strata div{flex:1 1 168px;padding:16px 18px;border-right:1px solid var(--hero-line);
+  border-bottom:1px solid var(--hero-line)}
+.strata b{display:block;font-family:'Instrument Serif',serif;font-size:26px;line-height:1.1;
+  font-variant-numeric:tabular-nums;color:var(--hero-ink)}
+.strata span{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--hero-mute);margin-top:6px}
+
+/* ============ nav ============ */
+nav{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:0;overflow-x:auto;scrollbar-width:thin}
+nav a{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;
+  color:var(--muted);text-decoration:none;padding:13px 10px;white-space:nowrap;
+  border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}
+nav a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+nav a:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+
+/* ============ sections ============ */
+section{padding:76px 0 44px;border-bottom:1px solid var(--line)}
+.kick{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.kick .n{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.16em;
+  color:var(--accent-ink);font-weight:600}
+.kick .t{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted)}
+section h2{font-family:'Instrument Serif',Georgia,serif;font-weight:400;
+  font-size:clamp(30px,4.4vw,46px);line-height:1.08;letter-spacing:-.01em;max-width:20ch}
+.lede{max-width:70ch;color:var(--muted);font-size:17.5px;margin:18px 0 0}
+.lede b,.lede strong{color:var(--ink);font-weight:600}
+.lede code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--ink)}
+p.body{max-width:70ch;color:var(--muted);margin:16px 0 0}
+p.body b{color:var(--ink);font-weight:600}
+p.body code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--ink)}
+
+/* ============ figures ============ */
+figure{margin:34px 0 0;background:var(--surface);border:1px solid var(--line);
+  border-radius:4px;padding:26px 24px 16px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:660px;margin:0 auto}
+figcaption{font-size:14.5px;color:var(--muted);max-width:84ch;margin:16px auto 6px;
+  padding-top:14px;border-top:1px solid var(--line)}
+figcaption b{color:var(--ink);font-weight:600}
+figcaption code{font-size:.9em;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--ink)}
+
+/* ============ code ============ */
+.code{background:var(--code-bg);border-radius:4px;margin:26px 0 0;overflow:hidden}
+.code .hd{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.09)}
+.code .hd span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--code-dim)}
+.code .hd span.lang{color:var(--accent)}
+.code pre{margin:0;padding:16px 18px 18px;overflow-x:auto;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.72;color:var(--code-ink)}
+.code .c{color:var(--code-dim)}
+.code .k{color:#7FD7E3}
+.code .s{color:#E8C07D}
+.code .f{color:#9FD8A8}
+.code .n{color:#D8A0C8}
+.code .hl{color:#F0B860;font-weight:600}
+
+/* ============ panels ============ */
+.grid{display:grid;gap:14px;margin-top:22px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px 18px 16px}
+.card .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--accent-ink);margin-bottom:9px}
+.card.warn .tag{color:var(--coral)}
+.card.warn{border-color:var(--coral)}
+.card.ok .tag{color:var(--good)}
+.card h3{font-size:16px;font-weight:600;margin-bottom:7px;letter-spacing:-.005em}
+.card p{font-size:14px;color:var(--muted);margin:6px 0 0}
+.card p code,.card li code{font-family:'IBM Plex Mono',monospace;font-size:12.2px;
+  background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink)}
+.card ul{margin:8px 0 0;padding-left:17px;font-size:14px;color:var(--muted)}
+.card li{margin:4px 0}
+
+.note{display:flex;gap:13px;align-items:flex-start;background:var(--accent-soft);
+  border-left:3px solid var(--accent);border-radius:0 4px 4px 0;padding:15px 17px;
+  margin-top:22px;font-size:15px;max-width:88ch}
+.note b{color:var(--accent-ink)}
+.note.warn{background:var(--coral-soft);border-left-color:var(--coral)}
+.note.warn b{color:var(--coral)}
+.note.ochre{background:var(--ochre-soft);border-left-color:var(--ochre)}
+.note.ochre b{color:var(--ochre)}
+.note .ic{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;
+  letter-spacing:.1em;flex-shrink:0;padding-top:2px}
+
+table{width:100%;border-collapse:collapse;margin-top:24px;font-size:14px;
+  background:var(--surface);border:1px solid var(--line)}
+th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 13px;
+  border-bottom:1px solid var(--line2);background:var(--surface2);vertical-align:bottom}
+td{padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:'IBM Plex Mono',monospace;font-size:12.2px;color:var(--ink)}
+td b{color:var(--ink);font-weight:600}
+.tw{overflow-x:auto;border-radius:4px}
+.mono-col td:first-child{font-family:'IBM Plex Mono',monospace;font-size:12.4px;white-space:nowrap}
+
+footer{padding:46px 0 70px;color:var(--muted);font-size:13.5px}
+footer b{color:var(--ink)}
+
+/* ============ svg ============ */
+svg text{font-family:'IBM Plex Sans',system-ui,sans-serif}
+.t1{font-size:14px;font-weight:600;fill:var(--ink)}
+.t2{font-size:12.5px;font-weight:600;fill:var(--ink)}
+.t3{font-size:12px;fill:var(--muted)}
+.t4{font-size:11px;fill:var(--muted)}
+.m1{font-family:'IBM Plex Mono',monospace;font-size:11.5px;fill:var(--ink)}
+.m2{font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--muted)}
+.m3{font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--muted)}
+.eb{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.11em;fill:var(--accent-ink)}
+.eb-o{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.11em;fill:var(--ochre)}
+.eb-c{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.11em;fill:var(--coral)}
+.eb-d{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.11em;fill:var(--data)}
+.eb-s{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.11em;fill:var(--snap)}
+.lbl-a{font-size:11.5px;font-weight:600;fill:var(--accent-ink)}
+.lbl-c{font-size:11.5px;font-weight:600;fill:var(--coral)}
+.lbl-o{font-size:11.5px;font-weight:600;fill:var(--ochre)}
+.bx{fill:var(--surface);stroke:var(--line2);stroke-width:1.1}
+.bx2{fill:var(--surface2);stroke:var(--line2);stroke-width:1}
+.bxs{fill:var(--sunken);stroke:var(--line2);stroke-width:1}
+.bxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+.bxo{fill:var(--ochre-soft);stroke:var(--ochre);stroke-width:1.3}
+.bxc{fill:var(--coral-soft);stroke:var(--coral);stroke-width:1.3}
+.bxd{fill:var(--data-soft);stroke:var(--data);stroke-width:1.2}
+.bxsn{fill:var(--snap-soft);stroke:var(--snap);stroke-width:1.2}
+.bxdash{fill:none;stroke:var(--line2);stroke-width:1.1;stroke-dasharray:5 4}
+.ln{stroke:var(--line2);stroke-width:1.5;fill:none}
+.ln-a{stroke:var(--accent);stroke-width:1.9;fill:none}
+.ln-o{stroke:var(--ochre);stroke-width:1.9;fill:none}
+.ln-c{stroke:var(--coral);stroke-width:1.7;fill:none}
+.ln-d{stroke:var(--data);stroke-width:1.6;fill:none}
+.ln-s{stroke:var(--snap);stroke-width:1.6;fill:none}
+.dash{stroke-dasharray:5 4}
+.cbg{fill:var(--code-bg)}
+.ct{font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--code-ink)}
+.ct-d{font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--code-dim)}
+.ct-h{fill:#F0B860}
+.ct-s{fill:#E8C07D}
+.ct-k{fill:#7FD7E3}
+
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media print{nav{display:none}section{break-inside:avoid-page;padding:32px 0 18px}figure{break-inside:avoid}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="a" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line2)"/></marker>
+  <marker id="aa" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+  <marker id="ao" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ochre)"/></marker>
+  <marker id="ac" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--coral)"/></marker>
+  <marker id="ad" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--data)"/></marker>
+  <marker id="as" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--snap)"/></marker>
+</defs></svg>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Apache Iceberg · Spark · EMR · deep dive</div>
+    <h1>The <em>Iceberg</em> Atlas</h1>
+    <p class="deck">Every diagram traced from the internals: the metadata tree, the commit protocol, the pruning cascade, delete files, partition and schema evolution, and the exact PySpark that drives each one. <b>Built for engineers who have to operate the table, not just query it.</b></p>
+    <div class="strata">
+      <div><b>3</b><span>layers: catalog · metadata · data</span></div>
+      <div><b>4</b><span>hops from catalog to bytes</span></div>
+      <div><b>1</b><span>atomic swap per commit</span></div>
+      <div><b>2</b><span>row-level modes: CoW · MoR</span></div>
+      <div><b>2</b><span>delete file kinds</span></div>
+      <div><b>0</b><span>S3 LIST calls to plan</span></div>
+    </div>
+    <p class="src">Source: <b>Apache Iceberg: The Definitive Guide</b> (Aakulov, Merced, Gidon · O'Reilly) — chapters 1–14, read in full. Companion to Module 02 · Surender Sara · NorthBay Solutions.</p>
+  </div>
+</header>
+
+<nav aria-label="Chapters"><div class="wrap">
+<a href="#c1">01 The flaw</a><a href="#c2">02 Anatomy</a><a href="#c3">03 Write path</a><a href="#c4">04 Commit</a><a href="#c5">05 Read path</a><a href="#c6">06 Time travel</a><a href="#c7">07 Partitioning</a><a href="#c8">08 Schema</a><a href="#c9">09 CoW vs MoR</a><a href="#c10">10 Compaction</a><a href="#c11">11 Maintenance</a><a href="#c12">12 Catalogs</a><a href="#c13">13 Branch &amp; WAP</a><a href="#c14">14 Migration</a><a href="#c15">15 Streaming</a><a href="#c16">16 EMR wiring</a>
+</div></nav>
+
+<!-- ==================== 01 ==================== -->
+<section id="c1"><div class="wrap">
+  <div class="kick"><span class="n">01</span><span class="t">The flaw Iceberg was built to fix</span></div>
+  <h2>Hive tracked directories. Iceberg tracks files.</h2>
+  <p class="lede">Every Hive limitation descends from one design decision: <b>a table is defined as a set of directories.</b> The Metastore can atomically swap a partition directory, so that is the smallest unit of change — you cannot atomically swap one <i>file</i>. Planning means <code>LIST</code>-ing prefixes in S3, which is slow, throttled, and gets worse with scale. Netflix's fix in 2017 was to define a table as <b>a canonical list of files</b>, written down in metadata. Everything else — ACID, time travel, evolution — falls out of that one change.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 430" role="img" aria-label="Hive resolves a table by listing S3 directories and can only swap a whole partition atomically; Iceberg reads a manifest that names every file with statistics, so it never lists and can swap a single file.">
+      <text x="20" y="24" class="eb-c">HIVE TABLE FORMAT — "THE TABLE IS THESE DIRECTORIES"</text>
+      <rect x="20" y="36" width="180" height="52" rx="3" class="bx"/>
+      <text x="34" y="58" class="t2">Hive Metastore</text>
+      <text x="34" y="76" class="m3">table → s3://lake/orders/</text>
+      <line x1="200" y1="62" x2="252" y2="62" class="ln-c" marker-end="url(#ac)"/>
+      <text x="226" y="52" text-anchor="middle" class="m3">dir</text>
+      <rect x="256" y="30" width="212" height="140" rx="3" class="bxc"/>
+      <text x="270" y="52" class="lbl-c">LIST s3 prefixes</text>
+      <text x="270" y="72" class="m2">/dt=2026-08-29/ …</text>
+      <text x="270" y="90" class="m2">/dt=2026-08-30/ …</text>
+      <text x="270" y="108" class="m2">/dt=2026-08-31/ …</text>
+      <text x="270" y="132" class="t4">recursive, paginated, throttled</text>
+      <text x="270" y="150" class="t4">per prefix — the planning bottleneck</text>
+      <line x1="468" y1="100" x2="520" y2="100" class="ln-c" marker-end="url(#ac)"/>
+      <rect x="524" y="72" width="176" height="56" rx="3" class="bx"/>
+      <text x="538" y="94" class="t2">a file list, at last</text>
+      <text x="538" y="112" class="m3">no stats · no pruning</text>
+
+      <rect x="730" y="30" width="250" height="140" rx="3" class="bxs"/>
+      <text x="744" y="52" class="eb-c">WHAT YOU CANNOT DO</text>
+      <text x="744" y="74" class="t4">✕  swap one file atomically</text>
+      <text x="744" y="94" class="t4">✕  update 2 partitions as one txn</text>
+      <text x="744" y="114" class="t4">✕  filter ts and get partition pruning</text>
+      <text x="744" y="134" class="t4">✕  trust statistics (async, stale)</text>
+      <text x="744" y="154" class="t4">✕  two writers safely at once</text>
+
+      <line x1="20" y1="196" x2="980" y2="196" class="ln dash"/>
+
+      <text x="20" y="232" class="eb">ICEBERG TABLE FORMAT — "THE TABLE IS THIS LIST OF FILES"</text>
+      <rect x="20" y="244" width="180" height="52" rx="3" class="bxa"/>
+      <text x="34" y="266" class="t2">Catalog</text>
+      <text x="34" y="284" class="m3">table → v3.metadata.json</text>
+      <line x1="200" y1="270" x2="252" y2="270" class="ln-a" marker-end="url(#aa)"/>
+      <text x="226" y="260" text-anchor="middle" class="m3">ptr</text>
+      <rect x="256" y="238" width="212" height="150" rx="3" class="bx"/>
+      <text x="270" y="260" class="eb">READ MANIFEST (AVRO)</text>
+      <rect x="270" y="270" width="184" height="24" rx="2" class="bx2"/>
+      <text x="280" y="286" class="m3">part-0.parquet  ts∈[08-29,08-29]</text>
+      <rect x="270" y="298" width="184" height="24" rx="2" class="bx2"/>
+      <text x="280" y="314" class="m3">part-1.parquet  ts∈[08-30,08-30]</text>
+      <rect x="270" y="326" width="184" height="24" rx="2" class="bx2"/>
+      <text x="280" y="342" class="m3">part-2.parquet  ts∈[08-31,08-31]</text>
+      <text x="270" y="368" class="t4">every path + min/max per column</text>
+      <line x1="468" y1="308" x2="520" y2="308" class="ln-a" marker-end="url(#aa)"/>
+      <rect x="524" y="280" width="176" height="56" rx="3" class="bxa"/>
+      <text x="538" y="302" class="t2">plan without listing</text>
+      <text x="538" y="320" class="m3">open only matching files</text>
+
+      <rect x="730" y="238" width="250" height="150" rx="3" class="bxa"/>
+      <text x="744" y="260" class="eb">WHAT THAT UNLOCKS</text>
+      <text x="744" y="282" class="t4">✓  file-level atomic replacement</text>
+      <text x="744" y="302" class="t4">✓  any number of partitions, one txn</text>
+      <text x="744" y="322" class="t4">✓  hidden partitioning — filter naturally</text>
+      <text x="744" y="342" class="t4">✓  stats written by the writer, always fresh</text>
+      <text x="744" y="362" class="t4">✓  optimistic concurrency for N writers</text>
+      <text x="744" y="382" class="t4">✓  snapshots ⇒ time travel &amp; rollback</text>
+    </svg>
+    <figcaption><b>One decision, every consequence.</b> Hive must discover the table by listing object-store prefixes and can only ever swap a whole directory; Iceberg is handed the file list up front, with per-column statistics attached, and swaps a single pointer. Object stores throttle requests against the same prefix, so Hive's cost grows precisely where your data does.</figcaption>
+  </figure>
+
+  <div class="grid g3">
+    <div class="card"><div class="tag">Consistency</div><h3>All-or-nothing across partitions</h3><p>An update spanning 40 partitions is one commit. Readers see the state before or after — never a half-applied write.</p></div>
+    <div class="card"><div class="tag">Performance</div><h3>Planning stops being a scan</h3><p>No file/directory listing. Manifests carry partition ranges and column bounds, so whole manifests and whole files are discarded before a byte of Parquet opens.</p></div>
+    <div class="card"><div class="tag">Evolvability</div><h3>Layout is metadata, not physics</h3><p>Partition scheme and schema change without rewriting history, because both are recorded per-snapshot rather than baked into directory names.</p></div>
+  </div>
+</div></section>
+
+<!-- ==================== 02 ==================== -->
+<section id="c2"><div class="wrap">
+  <div class="kick"><span class="n">02</span><span class="t">Anatomy</span></div>
+  <h2>Three layers, four hops, one pointer</h2>
+  <p class="lede">An Iceberg table is a tree with the catalog at the root and Parquet at the leaves. <b>Read it top-down to understand queries; bottom-up to understand writes.</b> Each level exists to throw away work at the level below it — the manifest list prunes whole manifests, a manifest prunes whole data files, and only what survives is opened.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 620" role="img" aria-label="The Iceberg tree: catalog pointer to metadata.json, which holds schemas, partition specs, snapshots and refs; each snapshot points at a manifest list; manifest lists point at manifest files carrying per-file statistics; manifests point at Parquet data files and delete files.">
+      <!-- catalog -->
+      <rect x="300" y="20" width="400" height="66" rx="3" class="bxa"/>
+      <text x="500" y="44" text-anchor="middle" class="eb">CATALOG LAYER</text>
+      <text x="500" y="64" text-anchor="middle" class="t1">Glue / Hive / Nessie / REST / JDBC</text>
+      <text x="500" y="80" text-anchor="middle" class="t4">holds ONE thing: the current metadata pointer — swapped atomically</text>
+      <line x1="500" y1="86" x2="500" y2="116" class="ln-a" marker-end="url(#aa)"/>
+
+      <!-- metadata.json -->
+      <rect x="190" y="120" width="620" height="132" rx="3" class="bx"/>
+      <text x="206" y="142" class="eb-o">METADATA LAYER · v3.metadata.json</text>
+      <text x="206" y="164" class="t2">one file per commit — never mutated, only superseded</text>
+      <rect x="206" y="176" width="140" height="62" rx="2" class="bx2"/>
+      <text x="216" y="194" class="m3">schemas[]</text>
+      <text x="216" y="210" class="m3">current-schema-id</text>
+      <text x="216" y="228" class="m3">last-column-id</text>
+      <rect x="354" y="176" width="140" height="62" rx="2" class="bx2"/>
+      <text x="364" y="194" class="m3">partition-specs[]</text>
+      <text x="364" y="210" class="m3">default-spec-id</text>
+      <text x="364" y="228" class="m3">sort-orders[]</text>
+      <rect x="502" y="176" width="140" height="62" rx="2" class="bxsn"/>
+      <text x="512" y="194" class="m3">snapshots[]</text>
+      <text x="512" y="210" class="m3">current-snapshot-id</text>
+      <text x="512" y="228" class="m3">snapshot-log[]</text>
+      <rect x="650" y="176" width="144" height="62" rx="2" class="bx2"/>
+      <text x="660" y="194" class="m3">refs {main, …}</text>
+      <text x="660" y="210" class="m3">properties{}</text>
+      <text x="660" y="228" class="m3">table-uuid</text>
+
+      <line x1="572" y1="252" x2="572" y2="284" class="ln-s" marker-end="url(#as)"/>
+      <text x="584" y="272" class="eb-s">EACH SNAPSHOT → ONE MANIFEST LIST</text>
+
+      <!-- manifest lists -->
+      <rect x="120" y="288" width="200" height="70" rx="3" class="bxdash"/>
+      <text x="134" y="310" class="t3">snap-…-s1.avro</text>
+      <text x="134" y="328" class="t4">older snapshot</text>
+      <text x="134" y="346" class="t4">kept for time travel</text>
+      <rect x="352" y="288" width="440" height="70" rx="3" class="bxsn"/>
+      <text x="368" y="310" class="eb-s">MANIFEST LIST — snap-5139…-s2.avro  (THE SNAPSHOT)</text>
+      <text x="368" y="330" class="m3">manifest_path · partition ranges (lower/upper) · added/existing/deleted counts</text>
+      <text x="368" y="348" class="m3">sequence_number · min_sequence_number · content: 0=data | 1=deletes</text>
+
+      <line x1="450" y1="358" x2="330" y2="396" class="ln" marker-end="url(#a)"/>
+      <line x1="600" y1="358" x2="600" y2="396" class="ln" marker-end="url(#a)"/>
+      <line x1="720" y1="358" x2="836" y2="396" class="ln-c" marker-end="url(#ac)"/>
+      <text x="500" y="382" text-anchor="middle" class="t4">prune whole manifests by partition range</text>
+
+      <!-- manifests -->
+      <rect x="180" y="400" width="230" height="76" rx="3" class="bx"/>
+      <text x="194" y="422" class="eb-o">MANIFEST FILE (avro)</text>
+      <text x="194" y="442" class="m3">file_path, file_format, partition</text>
+      <text x="194" y="459" class="m3">record_count, lower/upper_bounds</text>
+      <text x="194" y="474" class="m3">null_value_counts, split offsets</text>
+      <rect x="486" y="400" width="230" height="76" rx="3" class="bx"/>
+      <text x="500" y="422" class="eb-o">MANIFEST FILE (avro)</text>
+      <text x="500" y="442" class="m3">tracks a different subset</text>
+      <text x="500" y="459" class="m3">of the table's data files</text>
+      <text x="500" y="474" class="m3">stats written at write time</text>
+      <rect x="760" y="400" width="220" height="76" rx="3" class="bxc"/>
+      <text x="774" y="422" class="eb-c">DELETE MANIFEST</text>
+      <text x="774" y="442" class="m3">separate manifest, same schema</text>
+      <text x="774" y="459" class="m3">tracks delete files only</text>
+      <text x="774" y="474" class="m3">MoR tables · v2 format</text>
+
+      <line x1="260" y1="476" x2="230" y2="516" class="ln-d" marker-end="url(#ad)"/>
+      <line x1="350" y1="476" x2="390" y2="516" class="ln-d" marker-end="url(#ad)"/>
+      <line x1="600" y1="476" x2="600" y2="516" class="ln-d" marker-end="url(#ad)"/>
+      <line x1="870" y1="476" x2="870" y2="516" class="ln-c" marker-end="url(#ac)"/>
+      <text x="404" y="502" class="t4">prune individual files by column min/max</text>
+
+      <!-- data layer -->
+      <rect x="120" y="520" width="600" height="76" rx="3" class="bxd"/>
+      <text x="136" y="542" class="eb-d">DATA LAYER — PARQUET (or ORC / Avro)</text>
+      <rect x="136" y="552" width="130" height="30" rx="2" class="bx"/>
+      <text x="201" y="571" text-anchor="middle" class="m3">00000-0.parquet</text>
+      <rect x="276" y="552" width="130" height="30" rx="2" class="bx"/>
+      <text x="341" y="571" text-anchor="middle" class="m3">00001-0.parquet</text>
+      <rect x="416" y="552" width="130" height="30" rx="2" class="bx"/>
+      <text x="481" y="571" text-anchor="middle" class="m3">00002-0.parquet</text>
+      <rect x="556" y="552" width="148" height="30" rx="2" class="bx"/>
+      <text x="630" y="571" text-anchor="middle" class="m3">written once · no rename</text>
+      <rect x="740" y="520" width="240" height="76" rx="3" class="bxc"/>
+      <text x="756" y="542" class="eb-c">DELETE FILES</text>
+      <text x="756" y="562" class="m3">positional: (file_path, pos)</text>
+      <text x="756" y="580" class="m3">equality: col = value + seq_no</text>
+
+      <!-- side rails -->
+      <path d="M 96 560 L 96 60" class="ln-o" marker-end="url(#ao)"/>
+      <text x="82" y="330" class="lbl-o" text-anchor="end" transform="rotate(-90 82 330)">WRITE ↑ data · manifest · list · metadata · pointer</text>
+    </svg>
+    <figcaption><b>The write walks up, the read walks down.</b> A writer creates data files first and the catalog pointer last — so a crash at any point leaves the table untouched, only orphan files. A reader starts at the pointer and discards work at every level. The delete-file branch on the right exists only for merge-on-read tables (chapter 09); a copy-on-write table's tree has no delete manifests at all.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">PySpark · inspect the real tree</span><span>runs on EMR, Glue, or your laptop</span></div>
+<pre><span class="c"># Which metadata.json does the catalog currently point at?</span>
+spark.sql(<span class="s">"""
+  SELECT * FROM glue_catalog.silver_db.orders.metadata_log_entries
+  ORDER BY timestamp DESC LIMIT 1
+"""</span>).show(truncate=<span class="k">False</span>)
+
+<span class="c"># Every data file the current snapshot references, with its statistics</span>
+spark.sql(<span class="s">"""
+  SELECT file_path, record_count, file_size_in_bytes, partition,
+         lower_bounds, upper_bounds
+  FROM glue_catalog.silver_db.orders.files
+"""</span>).show(truncate=<span class="k">False</span>)
+
+<span class="c"># The manifests themselves — how many files each one tracks</span>
+spark.sql(<span class="s">"""
+  SELECT path, length, added_data_files_count,
+         existing_data_files_count, deleted_data_files_count
+  FROM glue_catalog.silver_db.orders.manifests
+"""</span>).show(truncate=<span class="k">False</span>)</pre>
+  </div>
+  <p class="body">Those three queries are the fastest way to make this diagram real in a classroom: run them against a table you just wrote and the tree above stops being an illustration. <code>.files</code> is the leaf level, <code>.manifests</code> is the level that prunes it, and <code>.metadata_log_entries</code> is the pointer the catalog hands out.</p>
+</div></section>
+
+<!-- ==================== 03 ==================== -->
+<section id="c3"><div class="wrap">
+  <div class="kick"><span class="n">03</span><span class="t">The write path</span></div>
+  <h2>Three commits, watched from the inside</h2>
+  <p class="lede">Nothing teaches the format like following one table through <code>CREATE</code>, <code>INSERT</code> and <code>MERGE</code> and watching the tree grow. Each commit writes a <b>new</b> metadata file — <code>v1</code>, <code>v2</code>, <code>v3</code> — appends a snapshot to the list, and moves the catalog pointer exactly once at the end. Old files are never edited.</p>
+
+  <div class="code">
+    <div class="hd"><span class="lang">Spark SQL</span><span>the three statements the diagram follows</span></div>
+<pre><span class="c">-- ① CREATE: metadata only. No data files, no manifest, no manifest list.</span>
+<span class="k">CREATE TABLE</span> glue_catalog.silver_db.orders (
+    order_id     <span class="k">BIGINT</span>,
+    customer_id  <span class="k">BIGINT</span>,
+    order_amount <span class="k">DECIMAL</span>(10,2),
+    order_ts     <span class="k">TIMESTAMP</span>)
+<span class="k">USING</span> iceberg
+<span class="k">PARTITIONED BY</span> (<span class="hl">hours(order_ts)</span>);        <span class="c">-- hidden partitioning, ch 07</span>
+
+<span class="c">-- ② INSERT: one data file, one manifest, one manifest list, snapshot s1</span>
+<span class="k">INSERT INTO</span> glue_catalog.silver_db.orders
+<span class="k">VALUES</span> (123, 456, 36.17, <span class="s">'2026-03-07 08:10:23'</span>);
+
+<span class="c">-- ③ MERGE: upsert. Copy-on-write rewrites the touched file; snapshot s2</span>
+<span class="k">MERGE INTO</span> glue_catalog.silver_db.orders o
+<span class="k">USING</span> (<span class="k">SELECT</span> * <span class="k">FROM</span> orders_staging) s
+   <span class="k">ON</span> o.order_id = s.order_id
+<span class="k">WHEN MATCHED THEN UPDATE SET</span> order_amount = s.order_amount
+<span class="k">WHEN NOT MATCHED THEN INSERT</span> *;</pre>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 560" role="img" aria-label="Three progressive commits: CREATE produces v1 metadata and an empty snapshot; INSERT adds a data file, manifest, manifest list and snapshot s1 with v2 metadata; MERGE with copy-on-write rewrites the touched file, adds a second data file, and produces v3 metadata with snapshot s2. The catalog pointer moves once per commit.">
+      <!-- ============ commit 1 ============ -->
+      <text x="20" y="22" class="eb">① CREATE TABLE</text>
+      <rect x="20" y="32" width="300" height="150" rx="3" class="bx"/>
+      <rect x="36" y="46" width="268" height="30" rx="2" class="bxa"/>
+      <text x="50" y="66" class="m1">catalog → v1.metadata.json</text>
+      <line x1="170" y1="76" x2="170" y2="96" class="ln-a" marker-end="url(#aa)"/>
+      <rect x="36" y="100" width="268" height="44" rx="2" class="bxo"/>
+      <text x="50" y="118" class="m1">v1.metadata.json</text>
+      <text x="50" y="134" class="m3">schema · partition-spec: hours(order_ts)</text>
+      <rect x="36" y="150" width="268" height="24" rx="2" class="bxdash"/>
+      <text x="170" y="166" text-anchor="middle" class="t4">snapshot s0 — no manifest list, table is empty</text>
+
+      <!-- ============ commit 2 ============ -->
+      <text x="350" y="22" class="eb">② INSERT INTO</text>
+      <rect x="350" y="32" width="300" height="240" rx="3" class="bx"/>
+      <rect x="366" y="46" width="268" height="30" rx="2" class="bxa"/>
+      <text x="380" y="66" class="m1">catalog → <tspan class="ct-h" style="fill:var(--accent-ink)">v2</tspan>.metadata.json</text>
+      <line x1="500" y1="76" x2="500" y2="96" class="ln-a" marker-end="url(#aa)"/>
+      <rect x="366" y="100" width="268" height="44" rx="2" class="bxo"/>
+      <text x="380" y="118" class="m1">v2.metadata.json</text>
+      <text x="380" y="134" class="m3">snapshots: [s0, <tspan style="fill:var(--snap)">s1</tspan>] · current = s1</text>
+      <line x1="500" y1="144" x2="500" y2="162" class="ln-s" marker-end="url(#as)"/>
+      <rect x="366" y="166" width="268" height="34" rx="2" class="bxsn"/>
+      <text x="380" y="187" class="m3">manifest list snap-8333…-s1.avro</text>
+      <line x1="500" y1="200" x2="500" y2="216" class="ln" marker-end="url(#a)"/>
+      <rect x="366" y="220" width="268" height="26" rx="2" class="bx2"/>
+      <text x="380" y="237" class="m3">manifest 62acb3d7….avro</text>
+
+      <!-- ============ commit 3 ============ -->
+      <text x="680" y="22" class="eb">③ MERGE INTO  ·  copy-on-write</text>
+      <rect x="680" y="32" width="300" height="240" rx="3" class="bx"/>
+      <rect x="696" y="46" width="268" height="30" rx="2" class="bxa"/>
+      <text x="710" y="66" class="m1">catalog → <tspan style="fill:var(--accent-ink)">v3</tspan>.metadata.json</text>
+      <line x1="830" y1="76" x2="830" y2="96" class="ln-a" marker-end="url(#aa)"/>
+      <rect x="696" y="100" width="268" height="44" rx="2" class="bxo"/>
+      <text x="710" y="118" class="m1">v3.metadata.json</text>
+      <text x="710" y="134" class="m3">snapshots: [s0, s1, <tspan style="fill:var(--snap)">s2</tspan>] · current = s2</text>
+      <line x1="830" y1="144" x2="830" y2="162" class="ln-s" marker-end="url(#as)"/>
+      <rect x="696" y="166" width="268" height="34" rx="2" class="bxsn"/>
+      <text x="710" y="187" class="m3">manifest list snap-5139…-s2.avro</text>
+      <line x1="830" y1="200" x2="830" y2="216" class="ln" marker-end="url(#a)"/>
+      <rect x="696" y="220" width="268" height="26" rx="2" class="bx2"/>
+      <text x="710" y="237" class="m3">manifest faf71ac0….avro</text>
+
+      <!-- data layer band -->
+      <line x1="500" y1="272" x2="500" y2="300" class="ln-d" marker-end="url(#ad)"/>
+      <line x1="830" y1="272" x2="830" y2="300" class="ln-d" marker-end="url(#ad)"/>
+      <rect x="350" y="304" width="630" height="96" rx="3" class="bxd"/>
+      <text x="366" y="326" class="eb-d">DATA LAYER ON S3 — s3://lake/silver_db/orders/data/</text>
+      <rect x="366" y="336" width="250" height="50" rx="2" class="bx"/>
+      <text x="378" y="354" class="m3">order_ts_hour=2026-03-07-08/</text>
+      <text x="378" y="371" class="m3">0_0_0.parquet   <tspan style="fill:var(--muted)">amount = 36.17</tspan></text>
+      <rect x="632" y="336" width="160" height="50" rx="2" class="bxo"/>
+      <text x="644" y="354" class="m3">…-08/0_0_1.parquet</text>
+      <text x="644" y="371" class="m3">amount = 50.50 ✎</text>
+      <rect x="806" y="336" width="160" height="50" rx="2" class="bx"/>
+      <text x="818" y="354" class="m3">…2026-01-27-10/</text>
+      <text x="818" y="371" class="m3">0_0_0.parquet (new)</text>
+
+      <!-- annotations -->
+      <path d="M 616 361 C 622 361, 626 361, 630 361" class="ln-o"/>
+      <text x="366" y="414" class="t4">written by ② — superseded now</text>
+      <text x="632" y="414" class="lbl-o">CoW rewrites the whole</text>
+      <text x="632" y="428" class="lbl-o">file, not the row</text>
+      <text x="806" y="414" class="t4">the row that matched</text>
+      <text x="806" y="428" class="t4">nothing → plain insert</text>
+
+      <rect x="20" y="440" width="960" height="100" rx="3" class="bxs"/>
+      <text x="36" y="462" class="eb-o">WHAT SNAPSHOT s2 ACTUALLY REFERENCES</text>
+      <rect x="36" y="474" width="200" height="26" rx="2" class="bxdash"/>
+      <text x="136" y="491" text-anchor="middle" class="m3">0_0_0.parquet (v1 of the row)</text>
+      <text x="248" y="491" class="t4">— dropped from s2, still alive in s1 for time travel</text>
+      <rect x="36" y="506" width="200" height="26" rx="2" class="bxo"/>
+      <text x="136" y="523" text-anchor="middle" class="m3">0_0_1.parquet + new file</text>
+      <text x="248" y="523" class="t4">— the two files s2 lists. Storage now holds all three; <tspan class="m3">expire_snapshots</tspan> is what eventually frees the first.</text>
+    </svg>
+    <figcaption><b>Commits accumulate, they don't overwrite.</b> After three statements the table has three metadata files, three snapshots and three data files on S3 — even though the logical table holds two rows. That redundancy <i>is</i> time travel, and it is also why <code>expire_snapshots</code> is not optional housekeeping (chapter 11).</figcaption>
+  </figure>
+
+  <div class="note ochre"><span class="ic">KEY</span><div>Notice what the engine reads <b>before</b> writing anything: the catalog, for two reasons — to learn the current schema so the write conforms to it, and to learn the partition spec so rows land in the right place. A write is never blind.</div></div>
+</div></section>
+
+<!-- ==================== 04 ==================== -->
+<section id="c4"><div class="wrap">
+  <div class="kick"><span class="n">04</span><span class="t">The commit protocol</span></div>
+  <h2>Optimistic concurrency and the atomic swap</h2>
+  <p class="lede">Iceberg does not lock. Every writer assumes it will win, does all its expensive work speculatively, and gambles on a single <b>compare-and-swap</b> at the very end: <i>"replace the pointer, but only if it still equals the version I started from."</i> Exactly one writer can win that race. The loser is not corrupt and not lost — it re-reads, revalidates its work against the new state, and retries.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 500" role="img" aria-label="Two writers both read v2 as their base, both write data files and metadata speculatively, then both attempt a compare-and-swap on the catalog pointer; writer A wins and the pointer moves to v3, writer B's swap fails because the base no longer matches, so B revalidates and retries against v3, producing v4.">
+      <text x="20" y="22" class="eb">TIME →</text>
+      <line x1="20" y1="34" x2="980" y2="34" class="ln dash"/>
+
+      <!-- writer A lane -->
+      <text x="20" y="66" class="eb-d">WRITER A — nightly batch</text>
+      <rect x="20" y="76" width="150" height="44" rx="3" class="bx"/>
+      <text x="34" y="96" class="m3">read pointer</text>
+      <text x="34" y="112" class="m3">base = <tspan style="fill:var(--data)">v2</tspan></text>
+      <line x1="170" y1="98" x2="204" y2="98" class="ln-d" marker-end="url(#ad)"/>
+      <rect x="208" y="76" width="196" height="44" rx="3" class="bxd"/>
+      <text x="222" y="96" class="m3">write data files + manifests</text>
+      <text x="222" y="112" class="m3">+ v3.metadata.json  (speculative)</text>
+      <line x1="404" y1="98" x2="438" y2="98" class="ln-d" marker-end="url(#ad)"/>
+      <rect x="442" y="76" width="180" height="44" rx="3" class="bxd"/>
+      <text x="456" y="96" class="m3">CAS: v2 → v3</text>
+      <text x="456" y="112" class="m3">"only if current == v2"</text>
+      <line x1="622" y1="98" x2="656" y2="98" class="ln-d" marker-end="url(#ad)"/>
+      <rect x="660" y="76" width="150" height="44" rx="3" style="fill:var(--accent-soft);stroke:var(--good);stroke-width:1.4"/>
+      <text x="674" y="103" class="t2" style="fill:var(--good)">✓ COMMITTED</text>
+
+      <!-- catalog spine -->
+      <rect x="20" y="200" width="960" height="70" rx="3" class="bxa"/>
+      <text x="36" y="222" class="eb">THE CATALOG — SINGLE SOURCE OF TRUTH, ATOMIC COMPARE-AND-SWAP</text>
+      <rect x="36" y="232" width="150" height="28" rx="2" class="bx"/>
+      <text x="111" y="251" text-anchor="middle" class="m3">pointer = v2</text>
+      <line x1="186" y1="246" x2="440" y2="246" class="ln" marker-end="url(#a)"/>
+      <rect x="446" y="232" width="150" height="28" rx="2" class="bxd"/>
+      <text x="521" y="251" text-anchor="middle" class="m3">pointer = v3</text>
+      <line x1="596" y1="246" x2="806" y2="246" class="ln" marker-end="url(#a)"/>
+      <rect x="812" y="232" width="150" height="28" rx="2" class="bxo"/>
+      <text x="887" y="251" text-anchor="middle" class="m3">pointer = v4</text>
+      <path d="M 520 120 L 520 228" class="ln-d dash" marker-end="url(#ad)"/>
+      <text x="532" y="180" class="eb-d">A WINS THE RACE</text>
+
+      <!-- writer B lane -->
+      <text x="20" y="326" class="eb-o">WRITER B — streaming micro-batch, started at the same instant</text>
+      <rect x="20" y="336" width="150" height="44" rx="3" class="bx"/>
+      <text x="34" y="356" class="m3">read pointer</text>
+      <text x="34" y="372" class="m3">base = <tspan style="fill:var(--data)">v2</tspan></text>
+      <line x1="170" y1="358" x2="204" y2="358" class="ln-o" marker-end="url(#ao)"/>
+      <rect x="208" y="336" width="196" height="44" rx="3" class="bxo"/>
+      <text x="222" y="356" class="m3">write data files + manifests</text>
+      <text x="222" y="372" class="m3">+ its own v3.metadata.json</text>
+      <line x1="404" y1="358" x2="438" y2="358" class="ln-o" marker-end="url(#ao)"/>
+      <rect x="442" y="336" width="180" height="44" rx="3" class="bxc"/>
+      <text x="456" y="356" class="lbl-c">✕ CAS FAILS</text>
+      <text x="456" y="372" class="m3">current is v3, not v2</text>
+      <path d="M 520 332 L 520 272" class="ln-c dash" marker-end="url(#ac)"/>
+      <line x1="622" y1="358" x2="656" y2="358" class="ln-o" marker-end="url(#ao)"/>
+      <rect x="660" y="336" width="150" height="44" rx="3" class="bxo"/>
+      <text x="674" y="356" class="m3">re-read v3, revalidate:</text>
+      <text x="674" y="372" class="m3">do my rows still apply?</text>
+      <line x1="810" y1="358" x2="844" y2="358" class="ln-o" marker-end="url(#ao)"/>
+      <rect x="848" y="336" width="132" height="44" rx="3" style="fill:var(--accent-soft);stroke:var(--good);stroke-width:1.4"/>
+      <text x="862" y="356" class="t2" style="fill:var(--good)">✓ RETRY → v4</text>
+      <text x="862" y="372" class="m3">data files reused</text>
+
+      <rect x="20" y="410" width="960" height="70" rx="3" class="bxs"/>
+      <text x="36" y="432" class="eb-o">WHY B'S WORK IS NOT WASTED</text>
+      <text x="36" y="454" class="t3">The Parquet files B already wrote are still valid — they were written to their final paths and nothing referenced them yet. Only the <tspan class="m3">metadata</tspan> is rebuilt on top of v3.</text>
+      <text x="36" y="472" class="t3">Retries are bounded by <tspan class="m3">commit.retry.num-retries</tspan> (default 4), with backoff between <tspan class="m3">commit.retry.min-wait-ms</tspan> and <tspan class="m3">commit.retry.max-wait-ms</tspan>.</text>
+    </svg>
+    <figcaption><b>This is why the catalog's only hard requirement is atomicity.</b> Everything else about Iceberg works on plain object storage; the one thing S3 alone cannot give you is "swap this pointer if and only if nobody else did." That single guarantee, borrowed from the catalog, is what makes the format ACID.</figcaption>
+  </figure>
+
+  <div class="grid g2">
+    <div class="card ok"><div class="tag">Why the crash case is safe</div><h3>Data files first, pointer last</h3><p>If the job dies after writing Parquet but before the swap, no reader ever saw those files — the table is exactly as it was. The cost is orphan files, cleaned by <code>remove_orphan_files</code>.</p></div>
+    <div class="card warn"><div class="tag">Where it can genuinely fail</div><h3>Conflicting row-level changes</h3><p>If B's <code>MERGE</code> touches files A just replaced, revalidation detects it and B must redo the row-level work, not just the metadata. Hot tables with many concurrent writers should partition writes so they touch disjoint files.</p></div>
+  </div>
+</div></section>
+
+<!-- ==================== 05 ==================== -->
+<section id="c5"><div class="wrap">
+  <div class="kick"><span class="n">05</span><span class="t">The read path</span></div>
+  <h2>A pruning cascade, not a scan</h2>
+  <p class="lede">A query never asks "what files exist?" — it asks the metadata "which files <i>can possibly</i> contain rows matching this predicate?" and gets a short list. Each level throws away more work than the one below it, and the number of Parquet files actually opened is usually a rounding error against the table's size.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 470" role="img" aria-label="A read query descends five levels: one catalog request, one metadata file read, one manifest list that prunes manifests by partition range, manifests that prune data files by column min-max bounds, and finally a handful of Parquet files opened, with row groups further pruned inside each file.">
+      <rect x="20" y="18" width="620" height="42" rx="3" class="cbg"/>
+      <text x="36" y="44" class="ct"><tspan class="ct-k">SELECT</tspan> * <tspan class="ct-k">FROM</tspan> orders <tspan class="ct-k">WHERE</tspan> order_ts <tspan class="ct-k">BETWEEN</tspan> <tspan class="ct-s">'2026-01-01'</tspan> <tspan class="ct-k">AND</tspan> <tspan class="ct-s">'2026-01-31'</tspan></text>
+
+      <!-- step 1 -->
+      <rect x="20" y="86" width="180" height="70" rx="3" class="bxa"/>
+      <text x="34" y="108" class="eb">1 · CATALOG</text>
+      <text x="34" y="128" class="t3">"where is the pointer?"</text>
+      <text x="34" y="146" class="m3">1 request</text>
+      <line x1="200" y1="121" x2="234" y2="121" class="ln-a" marker-end="url(#aa)"/>
+
+      <rect x="238" y="86" width="190" height="70" rx="3" class="bxo"/>
+      <text x="252" y="108" class="eb-o">2 · METADATA.JSON</text>
+      <text x="252" y="128" class="t3">schema · spec · which snapshot</text>
+      <text x="252" y="146" class="m3">current-snapshot-id → s2</text>
+      <line x1="428" y1="121" x2="462" y2="121" class="ln-o" marker-end="url(#ao)"/>
+
+      <rect x="466" y="86" width="230" height="70" rx="3" class="bxsn"/>
+      <text x="480" y="108" class="eb-s">3 · MANIFEST LIST</text>
+      <text x="480" y="128" class="t3">partition ranges per manifest</text>
+      <text x="480" y="146" class="m3">40 manifests → <tspan style="fill:var(--snap)">3 survive</tspan></text>
+      <line x1="696" y1="121" x2="730" y2="121" class="ln-s" marker-end="url(#as)"/>
+
+      <rect x="734" y="86" width="246" height="70" rx="3" class="bxd"/>
+      <text x="748" y="108" class="eb-d">4 · MANIFEST FILES</text>
+      <text x="748" y="128" class="t3">min/max + null counts per file</text>
+      <text x="748" y="146" class="m3">8,000 files → <tspan style="fill:var(--data)">12 survive</tspan></text>
+
+      <!-- funnel visual -->
+      <text x="20" y="196" class="eb">WHAT EACH LEVEL DISCARDS</text>
+      <rect x="20" y="208" width="920" height="34" rx="2" class="bx2"/>
+      <text x="30" y="230" class="m3">8,000 data files in the table</text>
+      <rect x="20" y="248" width="345" height="34" rx="2" class="bxsn"/>
+      <text x="30" y="270" class="m3">3,000 — after partition-range pruning at the manifest-list level</text>
+      <rect x="20" y="288" width="120" height="34" rx="2" class="bxd"/>
+      <text x="30" y="310" class="m3">12 — after min/max</text>
+      <rect x="20" y="328" width="52" height="34" rx="2" class="bxa"/>
+      <text x="30" y="350" class="m3">12</text>
+      <text x="84" y="350" class="t3">Parquet files actually opened — then row groups pruned <i>inside</i> each file by Parquet's own footer stats</text>
+
+      <line x1="380" y1="265" x2="936" y2="265" class="ln dash"/>
+      <text x="944" y="269" text-anchor="end" class="t4">discarded without opening a single byte of Parquet</text>
+      <line x1="152" y1="305" x2="936" y2="305" class="ln dash"/>
+      <line x1="86" y1="345" x2="936" y2="345" class="ln dash"/>
+
+      <rect x="20" y="386" width="460" height="70" rx="3" class="bxs"/>
+      <text x="36" y="408" class="eb">THE COST OF PLANNING</text>
+      <text x="36" y="430" class="t3">4 metadata reads. Zero S3 LIST calls.</text>
+      <text x="36" y="448" class="t3">On a wide Hive table, listing alone can exceed the read.</text>
+
+      <rect x="500" y="386" width="480" height="70" rx="3" class="bxc"/>
+      <text x="516" y="408" class="eb-c">WHAT DEFEATS IT</text>
+      <text x="516" y="430" class="t3">Predicates the stats can't use: <tspan class="m3">WHERE lower(email) = …</tspan>, <tspan class="m3">LIKE '%x'</tspan>,</text>
+      <text x="516" y="448" class="t3">or a column with no metrics collected. Then 8,000 files open.</text>
+    </svg>
+    <figcaption><b>Two independent pruning systems stack here.</b> Iceberg prunes <i>files</i> using manifest statistics before the reader touches storage; Parquet then prunes <i>row groups</i> inside each surviving file using its own footer statistics. The counts shown are illustrative, but the shape — orders of magnitude at the manifest level, then again inside the file — is what you should expect on a well-laid-out table.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">PySpark · prove the pruning</span><span>run this before blaming the cluster</span></div>
+<pre>df = (spark.read.table(<span class="s">"glue_catalog.silver_db.orders"</span>)
+           .filter(<span class="s">"order_ts &gt;= '2026-01-01' AND order_ts &lt; '2026-02-01'"</span>))
+
+df.explain(<span class="s">"formatted"</span>)
+<span class="c"># Look for these two lines in the scan node:</span>
+<span class="c">#   PushedFilters:     [GreaterThanOrEqual(order_ts,…), LessThan(order_ts,…)]</span>
+<span class="c">#   number of partitions read / files: should be a small fraction of .files</span>
+
+<span class="c"># Compare against the whole table — that ratio IS your pruning</span>
+total = spark.sql(<span class="s">"SELECT count(*) FROM glue_catalog.silver_db.orders.files"</span>)
+total.show()   <span class="c"># every data file the current snapshot tracks</span></pre>
+  </div>
+  <p class="body">If <code>PushedFilters</code> comes back empty, the predicate never reached the metadata and Iceberg is reading everything — the single cheapest performance win available, and the first thing to check on a slow job.</p>
+</div></section>
+
+<!-- ==================== 06 ==================== -->
+<section id="c6"><div class="wrap">
+  <div class="kick"><span class="n">06</span><span class="t">Time travel &amp; rollback</span></div>
+  <h2>The same tree, entered at a different door</h2>
+  <p class="lede">Time travel needs no backup, no restore and no copy, because <b>every past snapshot is still a complete, valid tree</b> — it was never deleted, only superseded as "current". Reading last Tuesday is the ordinary read path with a different starting snapshot. Rollback is the same trick pointed forward: make an old snapshot current again.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 430" role="img" aria-label="The metadata file holds a snapshots array; a normal query enters at current-snapshot-id s3 while a time-travel query enters at s1, and each snapshot's manifest list still references its own complete set of data files, with files shared between snapshots rather than copied.">
+      <rect x="20" y="20" width="290" height="140" rx="3" class="bxo"/>
+      <text x="36" y="42" class="eb-o">v4.metadata.json — snapshots[]</text>
+      <rect x="36" y="52" width="258" height="24" rx="2" class="bxdash"/>
+      <text x="46" y="69" class="m3">s0  create        2026-03-06 21:28</text>
+      <rect x="36" y="80" width="258" height="24" rx="2" class="bxsn"/>
+      <text x="46" y="97" class="m3">s1  append        2026-03-07 20:45</text>
+      <rect x="36" y="108" width="258" height="24" rx="2" class="bxdash"/>
+      <text x="46" y="125" class="m3">s2  overwrite     2026-03-09 19:58</text>
+      <rect x="36" y="136" width="258" height="24" rx="2" class="bxa"/>
+      <text x="46" y="153" class="m3">s3  append  ← current-snapshot-id</text>
+
+      <path d="M 310 148 C 360 148, 370 120, 420 120" class="ln-a" marker-end="url(#aa)"/>
+      <text x="330" y="112" class="lbl-a">ordinary read</text>
+      <path d="M 310 92 C 360 92, 370 250, 420 250" class="ln-s" marker-end="url(#as)"/>
+      <text x="330" y="222" class="eb-s">VERSION AS OF s1</text>
+
+      <rect x="424" y="96" width="230" height="52" rx="3" class="bxa"/>
+      <text x="438" y="118" class="m3">manifest list for s3</text>
+      <text x="438" y="136" class="t4">the tree you get by default</text>
+      <rect x="424" y="226" width="230" height="52" rx="3" class="bxsn"/>
+      <text x="438" y="248" class="m3">manifest list for s1</text>
+      <text x="438" y="266" class="t4">complete and still valid</text>
+
+      <line x1="654" y1="122" x2="700" y2="122" class="ln-a" marker-end="url(#aa)"/>
+      <line x1="654" y1="252" x2="700" y2="252" class="ln-s" marker-end="url(#as)"/>
+
+      <rect x="704" y="60" width="276" height="240" rx="3" class="bxd"/>
+      <text x="720" y="82" class="eb-d">DATA FILES ON S3 — SHARED, NOT COPIED</text>
+      <rect x="720" y="94" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="114" class="m3">A.parquet</text>
+      <text x="900" y="114" text-anchor="end" class="m3" style="fill:var(--snap)">s1 · s3</text>
+      <rect x="720" y="130" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="150" class="m3">B.parquet</text>
+      <text x="900" y="150" text-anchor="end" class="m3" style="fill:var(--snap)">s1</text>
+      <rect x="720" y="166" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="186" class="m3">C.parquet</text>
+      <text x="900" y="186" text-anchor="end" class="m3" style="fill:var(--accent-ink)">s2 · s3</text>
+      <rect x="720" y="202" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="222" class="m3">D.parquet</text>
+      <text x="900" y="222" text-anchor="end" class="m3" style="fill:var(--accent-ink)">s3</text>
+      <text x="720" y="256" class="t4">One physical copy. A file lives as long as the</text>
+      <text x="720" y="272" class="t4">last snapshot referencing it — which is exactly</text>
+      <text x="720" y="288" class="t4">what makes expire_snapshots a delete operation.</text>
+
+      <rect x="20" y="326" width="960" height="86" rx="3" class="bxs"/>
+      <text x="36" y="348" class="eb">THE FOUR WAYS IN</text>
+      <text x="36" y="370" class="m2">SELECT * FROM orders <tspan style="fill:var(--ink)">TIMESTAMP AS OF</tspan> '2026-03-07 20:45:08.914'</text>
+      <text x="36" y="390" class="m2">SELECT * FROM orders <tspan style="fill:var(--ink)">VERSION AS OF</tspan> 8333017788700497002        <tspan class="m3">-- snapshot id</tspan></text>
+      <text x="520" y="370" class="m2">SELECT * FROM orders <tspan style="fill:var(--ink)">VERSION AS OF</tspan> 'audit_branch'       <tspan class="m3">-- branch/tag name</tspan></text>
+      <text x="520" y="390" class="m2">CALL sys.<tspan style="fill:var(--ink)">rollback_to_snapshot</tspan>('silver_db.orders', 8333…)  <tspan class="m3">-- undo</tspan></text>
+    </svg>
+    <figcaption><b>Time travel is nearly free because nothing is duplicated.</b> Snapshots share data files; only the metadata differs. The corollary is the trap: an old snapshot <i>pins</i> every file it references, so a table that is never expired keeps paying storage for data it logically deleted years ago.</figcaption>
+  </figure>
+
+  <div class="note warn"><span class="ic">TRAP</span><div>If you give <code>TIMESTAMP AS OF</code> a moment with no exact snapshot, Iceberg picks the newest snapshot <i>older</i> than it. Ask for a time before the table existed and you get <code>IllegalArgumentException: Cannot find a snapshot older than …</code> — not an empty result. And you can never travel to an <b>expired</b> snapshot.</div></div>
+</div></section>
+
+<!-- ==================== 07 ==================== -->
+<section id="c7"><div class="wrap">
+  <div class="kick"><span class="n">07</span><span class="t">Hidden partitioning &amp; evolution</span></div>
+  <h2>The partition column that isn't there</h2>
+  <p class="lede">Hive made you invent a <code>month</code> column, populate it, and then <b>remember to filter on it</b> — and anyone who filtered only the timestamp silently got a full table scan. Iceberg records the <i>transform</i> in metadata instead, so the natural query prunes. And because partitioning lives in metadata rather than in directory names, <b>you can change it without rewriting a single file.</b></p>
+
+  <figure>
+    <svg viewBox="0 0 1000 500" role="img" aria-label="In Hive a derived month column must be created and filtered explicitly or the query full-scans; in Iceberg the months transform is recorded in metadata so filtering the timestamp alone prunes. Below, partition evolution keeps old data under the years spec and writes new data under the months spec, and the engine builds a separate plan per spec and unions them.">
+      <text x="20" y="22" class="eb-c">HIVE — THE DERIVED COLUMN YOU MUST REMEMBER</text>
+      <rect x="20" y="34" width="460" height="150" rx="3" class="bx"/>
+      <rect x="36" y="48" width="428" height="26" rx="2" class="cbg"/>
+      <text x="46" y="66" class="ct-d">CREATE TABLE t (…, <tspan class="ct-h">month INT</tspan>) PARTITIONED BY month;</text>
+      <rect x="36" y="80" width="428" height="26" rx="2" class="cbg"/>
+      <text x="46" y="98" class="ct-d">INSERT … SELECT <tspan class="ct-h">MONTH(time) AS month</tspan>, … FROM src;</text>
+      <rect x="36" y="114" width="209" height="56" rx="2" class="bxc"/>
+      <text x="46" y="132" class="eb-c">WHAT USERS WRITE</text>
+      <text x="46" y="150" class="m3">WHERE time BETWEEN …</text>
+      <text x="46" y="165" class="lbl-c">→ FULL TABLE SCAN</text>
+      <rect x="255" y="114" width="209" height="56" rx="2" class="bx2"/>
+      <text x="265" y="132" class="eb">WHAT THEY MUST WRITE</text>
+      <text x="265" y="150" class="m3">… AND month = 7</text>
+      <text x="265" y="165" class="t4">requires knowing the layout</text>
+
+      <text x="520" y="22" class="eb">ICEBERG — THE TRANSFORM LIVES IN METADATA</text>
+      <rect x="520" y="34" width="460" height="150" rx="3" class="bxa"/>
+      <rect x="536" y="48" width="428" height="26" rx="2" class="cbg"/>
+      <text x="546" y="66" class="ct-d">CREATE TABLE t (…) PARTITIONED BY <tspan class="ct-h">months(time)</tspan>;</text>
+      <rect x="536" y="80" width="428" height="26" rx="2" class="bx"/>
+      <text x="546" y="98" class="m3">partition-specs[0] = {transform: month, source-id: 4}</text>
+      <rect x="536" y="114" width="428" height="56" rx="2" class="bxa"/>
+      <text x="546" y="132" class="eb">WHAT USERS WRITE — AND IT PRUNES</text>
+      <text x="546" y="150" class="m3">WHERE time BETWEEN '2026-07-01' AND '2026-07-31'</text>
+      <text x="546" y="165" class="t4">the engine applies the same transform to the predicate, then matches partition values</text>
+
+      <line x1="20" y1="206" x2="980" y2="206" class="ln dash"/>
+
+      <text x="20" y="238" class="eb-o">PARTITION EVOLUTION — ONE TABLE, TWO SPECS, ONE PLAN</text>
+      <rect x="20" y="250" width="300" height="120" rx="3" class="bx"/>
+      <text x="36" y="272" class="eb">SPEC 0 · years(registration_ts)</text>
+      <text x="36" y="292" class="t4">data written before the change</text>
+      <rect x="36" y="302" width="128" height="26" rx="2" class="bx2"/><text x="46" y="320" class="m3">2024/ …</text>
+      <rect x="172" y="302" width="128" height="26" rx="2" class="bx2"/><text x="182" y="320" class="m3">2025/ …</text>
+      <text x="36" y="352" class="t4">never rewritten · never touched</text>
+
+      <rect x="352" y="250" width="300" height="120" rx="3" class="bxo"/>
+      <text x="368" y="272" class="eb-o">SPEC 1 · months(registration_ts)</text>
+      <text x="368" y="292" class="t4">everything written after ALTER TABLE</text>
+      <rect x="368" y="302" width="90" height="26" rx="2" class="bx2"/><text x="378" y="320" class="m3">2026-07</text>
+      <rect x="466" y="302" width="90" height="26" rx="2" class="bx2"/><text x="476" y="320" class="m3">2026-08</text>
+      <rect x="564" y="302" width="76" height="26" rx="2" class="bx2"/><text x="574" y="320" class="m3">…</text>
+      <text x="368" y="352" class="t4">manifest records which spec_id it used</text>
+
+      <line x1="170" y1="370" x2="300" y2="404" class="ln" marker-end="url(#a)"/>
+      <line x1="500" y1="370" x2="440" y2="404" class="ln-o" marker-end="url(#ao)"/>
+      <rect x="240" y="408" width="260" height="34" rx="3" class="bxa"/>
+      <text x="370" y="430" text-anchor="middle" class="t2">plan A ∪ plan B → one scan</text>
+      <text x="240" y="462" class="t4">The engine builds a separate plan per partition spec and unions the results — which is why the change costs nothing.</text>
+
+      <rect x="684" y="250" width="296" height="192" rx="3" class="bxs"/>
+      <text x="700" y="272" class="eb">THE SIX TRANSFORMS</text>
+      <text x="700" y="294" class="m2"><tspan style="fill:var(--ink)">year(ts)</tspan> · <tspan style="fill:var(--ink)">month(ts)</tspan> — month+year</text>
+      <text x="700" y="312" class="m2"><tspan style="fill:var(--ink)">day(ts)</tspan> · <tspan style="fill:var(--ink)">hour(ts)</tspan> — cumulative, so</text>
+      <text x="700" y="330" class="t4">never stack them: day already implies year+month</text>
+      <text x="700" y="354" class="m2"><tspan style="fill:var(--ink)">truncate(L, col)</tspan> — first L chars/digits</text>
+      <text x="700" y="372" class="m2"><tspan style="fill:var(--ink)">bucket(N, col)</tspan> — hash % N</text>
+      <text x="700" y="394" class="t4">bucket is the answer to high cardinality:</text>
+      <text x="700" y="410" class="t4">900 M zip codes ⇒ bucket(24, zip), so a lookup</text>
+      <text x="700" y="426" class="t4">scans 1 bucket instead of the whole table.</text>
+    </svg>
+    <figcaption><b>Evolution applies to new writes only.</b> Existing data stays under the old spec and is never rewritten — but note the interaction with maintenance: <code>rewrite_data_files</code> always honours the <i>current</i> spec, so a compaction job that touches old partitions will silently re-partition them. If you want history left alone, put a <code>where</code> filter on the compaction.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">Spark SQL · evolving a live table</span><span>metadata-only — no files move</span></div>
+<pre><span class="c">-- start coarse</span>
+<span class="k">CREATE TABLE</span> glue_catalog.silver_db.members (…)
+<span class="k">USING</span> iceberg <span class="k">PARTITIONED BY</span> (years(registration_ts));
+
+<span class="c">-- volume grew: go finer. Old data stays under years(), new data lands under months()</span>
+<span class="k">ALTER TABLE</span> glue_catalog.silver_db.members <span class="hl">ADD PARTITION FIELD</span> months(registration_ts);
+
+<span class="c">-- drop a field you no longer want to partition on (schema is untouched)</span>
+<span class="k">ALTER TABLE</span> glue_catalog.silver_db.members <span class="hl">DROP PARTITION FIELD</span> bucket(24, id);
+
+<span class="c">-- migrated a Hive table partitioned on a derived column? Re-express it as a transform:</span>
+<span class="k">ALTER TABLE</span> glue_catalog.silver_db.members
+  <span class="hl">REPLACE PARTITION FIELD</span> registration_day <span class="k">WITH</span> days(registration_ts) <span class="k">AS</span> day_of_registration;
+
+<span class="c">-- and set a sort order so every writer clusters the data the same way</span>
+<span class="k">ALTER TABLE</span> glue_catalog.silver_db.members <span class="hl">WRITE ORDERED BY</span> region <span class="k">ASC</span>, registration_ts <span class="k">DESC</span>;</pre>
+  </div>
+  <div class="note ochre"><span class="ic">SEE</span><div>Which spec produced which files? <code>SELECT spec_id, COUNT(*) FROM …orders.partitions GROUP BY spec_id</code> shows the split across specs — the fastest way to confirm an evolution actually took effect.</div></div>
+</div></section>
+
+<!-- ==================== 08 ==================== -->
+<section id="c8"><div class="wrap">
+  <div class="kick"><span class="n">08</span><span class="t">Schema evolution</span></div>
+  <h2>Columns have IDs, so renaming is free</h2>
+  <p class="lede">In Hive, a column is a <i>name</i> in a position — rename it and old files no longer line up; drop a middle column and everything after it shifts. Iceberg assigns every column a permanent <b>integer ID</b> at creation and tracks <code>last-column-id</code> in the metadata so an ID is <b>never reused</b>. Every read resolves by ID, not by name or position, which makes add, rename, drop and reorder pure metadata operations.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 450" role="img" aria-label="Iceberg maps schema fields to permanent integer IDs; renaming a column changes its name but keeps its ID so existing Parquet files still resolve, adding a column allocates a fresh ID from last-column-id and old files return null for it, and dropping a column retires its ID permanently so it is never reused.">
+      <text x="20" y="22" class="eb">THE SCHEMA IS A MAP OF IDs — NOT NAMES, NOT POSITIONS</text>
+      <rect x="20" y="34" width="300" height="150" rx="3" class="bx"/>
+      <text x="36" y="56" class="t2">schemas[0]  ·  last-column-id: 4</text>
+      <rect x="36" y="68" width="268" height="26" rx="2" class="bx2"/>
+      <text x="46" y="86" class="m3"><tspan style="fill:var(--accent-ink)">id:1</tspan>  order_id      long</text>
+      <rect x="36" y="98" width="268" height="26" rx="2" class="bx2"/>
+      <text x="46" y="116" class="m3"><tspan style="fill:var(--accent-ink)">id:2</tspan>  customer_id   long</text>
+      <rect x="36" y="128" width="268" height="26" rx="2" class="bx2"/>
+      <text x="46" y="146" class="m3"><tspan style="fill:var(--accent-ink)">id:3</tspan>  <tspan style="fill:var(--ochre)">role</tspan>          string</text>
+      <rect x="36" y="158" width="268" height="26" rx="2" class="bx2"/>
+      <text x="46" y="176" class="m3"><tspan style="fill:var(--accent-ink)">id:4</tspan>  order_ts      timestamptz</text>
+
+      <line x1="320" y1="110" x2="360" y2="110" class="ln-a" marker-end="url(#aa)"/>
+      <text x="340" y="100" text-anchor="middle" class="m3">by id</text>
+      <rect x="364" y="60" width="240" height="100" rx="3" class="bxd"/>
+      <text x="380" y="82" class="eb-d">PARQUET FILE ON DISK</text>
+      <text x="380" y="104" class="m3">field_id 1 → column chunk</text>
+      <text x="380" y="122" class="m3">field_id 3 → column chunk</text>
+      <text x="380" y="144" class="t4">files carry ids, not just names</text>
+
+      <rect x="644" y="34" width="336" height="150" rx="3" class="bxc"/>
+      <text x="660" y="56" class="eb-c">WHAT HIVE DOES INSTEAD</text>
+      <text x="660" y="78" class="t3">Resolution is by name, or worse, by ordinal position.</text>
+      <text x="660" y="98" class="t3">Rename <tspan class="m3">role</tspan> → <tspan class="m3">title</tspan> and old files stop matching.</text>
+      <text x="660" y="118" class="t3">Drop a middle column and every column after it</text>
+      <text x="660" y="134" class="t3">shifts by one — data silently reads into the</text>
+      <text x="660" y="150" class="t3">wrong field. No error. Wrong numbers.</text>
+      <text x="660" y="172" class="lbl-c">This is the bug Iceberg's column IDs delete.</text>
+
+      <line x1="20" y1="206" x2="980" y2="206" class="ln dash"/>
+      <text x="20" y="236" class="eb">THE FOUR CHANGES, AND WHAT ACTUALLY MOVES</text>
+
+      <rect x="20" y="250" width="232" height="176" rx="3" class="bx"/>
+      <text x="36" y="272" class="t2">RENAME COLUMN</text>
+      <rect x="36" y="284" width="200" height="24" rx="2" class="bx2"/>
+      <text x="46" y="301" class="m3"><tspan style="fill:var(--accent-ink)">id:3</tspan> role → <tspan style="fill:var(--ochre)">title</tspan></text>
+      <text x="36" y="330" class="t4">ID unchanged, so every existing</text>
+      <text x="36" y="346" class="t4">file still resolves. No rewrite.</text>
+      <rect x="36" y="360" width="200" height="24" rx="2" class="cbg"/>
+      <text x="44" y="377" class="ct-d">RENAME COLUMN role TO title</text>
+      <text x="36" y="406" class="lbl-a">metadata only · instant</text>
+
+      <rect x="264" y="250" width="232" height="176" rx="3" class="bx"/>
+      <text x="280" y="272" class="t2">ADD COLUMN</text>
+      <rect x="280" y="284" width="200" height="24" rx="2" class="bxa"/>
+      <text x="290" y="301" class="m3"><tspan style="fill:var(--accent-ink)">id:5</tspan> manager  string</text>
+      <text x="280" y="330" class="t4">gets a fresh ID from last-column-id.</text>
+      <text x="280" y="346" class="t4">Old files have no id 5 → read NULL.</text>
+      <rect x="280" y="360" width="200" height="24" rx="2" class="cbg"/>
+      <text x="288" y="377" class="ct-d">ADD COLUMN manager STRING</text>
+      <text x="280" y="406" class="lbl-a">also: FIRST / AFTER col</text>
+
+      <rect x="508" y="250" width="232" height="176" rx="3" class="bx"/>
+      <text x="524" y="272" class="t2">DROP COLUMN</text>
+      <rect x="524" y="284" width="200" height="24" rx="2" class="bxdash"/>
+      <text x="534" y="301" class="m3"><tspan style="fill:var(--muted)">id:2</tspan> customer_id  ✕</text>
+      <text x="524" y="330" class="t4">ID 2 is retired forever — never</text>
+      <text x="524" y="346" class="t4">reissued, so no stale file can</text>
+      <text x="524" y="362" class="t4">resurrect as the wrong column.</text>
+      <rect x="524" y="374" width="200" height="24" rx="2" class="cbg"/>
+      <text x="532" y="391" class="ct-d">DROP COLUMN customer_id</text>
+      <text x="524" y="418" class="lbl-a">metadata only</text>
+
+      <rect x="752" y="250" width="228" height="176" rx="3" class="bx"/>
+      <text x="768" y="272" class="t2">PROMOTE TYPE</text>
+      <text x="768" y="296" class="m3">int → bigint</text>
+      <text x="768" y="314" class="m3">float → double</text>
+      <text x="768" y="332" class="m3">decimal(P,S) → decimal(P2,S)</text>
+      <text x="768" y="350" class="t4">— widening only, scale fixed</text>
+      <rect x="768" y="362" width="196" height="24" rx="2" class="cbg"/>
+      <text x="776" y="379" class="ct-d">ALTER COLUMN id TYPE BIGINT</text>
+      <text x="768" y="408" class="t4">Narrowing is refused — it would</text>
+      <text x="768" y="422" class="t4">lose or misread existing data.</text>
+    </svg>
+    <figcaption><b>Every one of these is a metadata write.</b> No Parquet is rewritten, no job runs over the data, and the change is committed by the same atomic pointer swap as any other transaction — so readers see the old schema or the new one, never a mixture.</figcaption>
+  </figure>
+
+  <div class="grid g2">
+    <div class="card"><div class="tag">Requires the SQL extensions</div><h3>What needs <code>IcebergSparkSessionExtensions</code></h3><ul><li><code>ADD/DROP/REPLACE PARTITION FIELD</code></li><li><code>WRITE ORDERED BY</code> / <code>WRITE DISTRIBUTED BY PARTITION</code></li><li><code>SET/DROP IDENTIFIER FIELDS</code></li><li>every <code>CALL …system.*</code> procedure</li></ul></div>
+    <div class="card"><div class="tag">Works without them</div><h3>Plain Spark SQL is enough for</h3><ul><li><code>RENAME TO</code>, <code>SET TBLPROPERTIES</code></li><li><code>ADD/RENAME/ALTER/DROP COLUMN</code></li><li>all DML: <code>INSERT</code>, <code>MERGE</code>, <code>UPDATE</code>, <code>DELETE</code></li></ul><p>Add the extensions anyway — you will want the procedures on day two.</p></div>
+  </div>
+</div></section>
+
+<!-- ==================== 09 ==================== -->
+<section id="c9"><div class="wrap">
+  <div class="kick"><span class="n">09</span><span class="t">Row-level operations</span></div>
+  <h2>Copy-on-write, merge-on-read, and the two kinds of delete</h2>
+  <p class="lede">Data files are immutable, so "update 10 rows" always means writing something new. The only question is <b>what</b> you write: a fresh copy of every file those rows lived in (copy-on-write), or a small side-file recording what to ignore (merge-on-read). You are trading write latency against read latency, and the choice is per-operation.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 530" role="img" aria-label="Three strategies compared: copy-on-write rewrites the entire data file so reads are clean but writes are slow; merge-on-read with position deletes records file path and row number, needing a read at write time; merge-on-read with equality deletes records a predicate and sequence number, cheapest to write but every read must compare all candidate rows.">
+      <text x="20" y="22" class="eb">UPDATE ONE ROW IN A 512 MB FILE — THREE WAYS</text>
+
+      <!-- COW -->
+      <rect x="20" y="36" width="310" height="248" rx="3" class="bxa"/>
+      <text x="36" y="58" class="eb">COPY-ON-WRITE · THE DEFAULT</text>
+      <rect x="36" y="70" width="278" height="34" rx="2" class="bx2"/>
+      <text x="46" y="92" class="m3">old file · 1,000,000 rows</text>
+      <line x1="175" y1="104" x2="175" y2="126" class="ln-a" marker-end="url(#aa)"/>
+      <text x="186" y="120" class="t4">read all, change 1, write all</text>
+      <rect x="36" y="130" width="278" height="34" rx="2" class="bxa"/>
+      <text x="46" y="152" class="m3">new file · 1,000,000 rows ✎</text>
+      <text x="36" y="184" class="t3">Read path: open the file. Done.</text>
+      <text x="36" y="204" class="t3">Nothing to reconcile, ever.</text>
+      <rect x="36" y="216" width="130" height="20" rx="3" style="fill:var(--good)"/>
+      <text x="176" y="231" class="m3">read: fastest</text>
+      <rect x="36" y="242" width="30" height="20" rx="3" style="fill:var(--coral)"/>
+      <text x="76" y="257" class="m3">write: slowest</text>
+
+      <!-- MOR positional -->
+      <rect x="346" y="36" width="310" height="248" rx="3" class="bxo"/>
+      <text x="362" y="58" class="eb-o">MERGE-ON-READ · POSITION DELETES</text>
+      <rect x="362" y="70" width="278" height="34" rx="2" class="bx2"/>
+      <text x="372" y="92" class="m3">old file — untouched</text>
+      <line x1="501" y1="104" x2="501" y2="126" class="ln-o" marker-end="url(#ao)"/>
+      <text x="512" y="120" class="t4">write a tiny delete file</text>
+      <rect x="362" y="130" width="278" height="52" rx="2" class="bxc"/>
+      <text x="372" y="150" class="m3">file_path       | pos</text>
+      <text x="372" y="168" class="m3">001.parquet     | 5</text>
+      <text x="362" y="202" class="t3">"skip row 5 of that exact file"</text>
+      <text x="362" y="220" class="t4">Write cost: must READ the file first to</text>
+      <text x="362" y="236" class="t4">learn the position. Read cost: small.</text>
+      <rect x="362" y="246" width="96" height="20" rx="3" style="fill:var(--good)"/>
+      <text x="468" y="261" class="m3">read: fast</text>
+      <rect x="362" y="270" width="96" height="12" rx="3" style="fill:var(--good)"/>
+      <text x="468" y="280" class="m3">write: fast</text>
+
+      <!-- MOR equality -->
+      <rect x="672" y="36" width="308" height="248" rx="3" class="bxc"/>
+      <text x="688" y="58" class="eb-c">MERGE-ON-READ · EQUALITY DELETES</text>
+      <rect x="688" y="70" width="276" height="34" rx="2" class="bx2"/>
+      <text x="698" y="92" class="m3">old file — not even opened</text>
+      <line x1="826" y1="104" x2="826" y2="126" class="ln-c" marker-end="url(#ac)"/>
+      <text x="837" y="120" class="t4">write a predicate</text>
+      <rect x="688" y="130" width="276" height="52" rx="2" class="bxc"/>
+      <text x="698" y="150" class="m3">order_id | seq_no</text>
+      <text x="698" y="168" class="m3">1234     | 2</text>
+      <text x="688" y="202" class="t3">"ignore any row where order_id=1234"</text>
+      <text x="688" y="220" class="t4">Write cost: none — no file is read.</text>
+      <text x="688" y="236" class="t4">Read cost: compare EVERY candidate row.</text>
+      <rect x="688" y="246" width="30" height="20" rx="3" style="fill:var(--coral)"/>
+      <text x="728" y="261" class="m3">read: slow</text>
+      <rect x="688" y="270" width="130" height="12" rx="3" style="fill:var(--good)"/>
+      <text x="828" y="280" class="m3">write: fastest</text>
+
+      <!-- sequence numbers -->
+      <line x1="20" y1="306" x2="980" y2="306" class="ln dash"/>
+      <text x="20" y="336" class="eb-c">WHY EQUALITY DELETES NEED SEQUENCE NUMBERS</text>
+      <rect x="20" y="348" width="230" height="76" rx="3" class="bx2"/>
+      <text x="36" y="370" class="m3">seq 1 · data file</text>
+      <text x="36" y="390" class="t4">contains order_id = 1234</text>
+      <text x="36" y="410" class="t4">(the original row)</text>
+      <line x1="250" y1="386" x2="284" y2="386" class="ln" marker-end="url(#a)"/>
+      <rect x="288" y="348" width="230" height="76" rx="3" class="bxc"/>
+      <text x="304" y="370" class="m3">seq 2 · equality delete</text>
+      <text x="304" y="390" class="t4">"order_id = 1234 is deleted"</text>
+      <text x="304" y="410" class="t4">applies to seq &lt; 2 only</text>
+      <line x1="518" y1="386" x2="552" y2="386" class="ln" marker-end="url(#a)"/>
+      <rect x="556" y="348" width="230" height="76" rx="3" class="bxa"/>
+      <text x="572" y="370" class="m3">seq 3 · data file</text>
+      <text x="572" y="390" class="t4">order_id = 1234 re-inserted</text>
+      <text x="572" y="410" class="lbl-a">survives — seq 3 &gt; 2</text>
+      <rect x="812" y="348" width="168" height="76" rx="3" class="bxs"/>
+      <text x="828" y="370" class="eb">THE RULE</text>
+      <text x="828" y="392" class="t4">A delete file applies only</text>
+      <text x="828" y="408" class="t4">to data files with a LOWER</text>
+      <text x="828" y="424" class="t4">sequence number.</text>
+
+      <rect x="20" y="446" width="960" height="70" rx="3" class="bxs"/>
+      <text x="36" y="468" class="eb-o">WHO DECIDES WHICH DELETE KIND IS WRITTEN</text>
+      <text x="36" y="490" class="t3">Not you, usually. The table properties select CoW vs MoR; <tspan style="fill:var(--ink)">the engine chooses positional vs equality</tspan> based on the operation —</text>
+      <text x="36" y="508" class="t3">Spark batch writes position deletes; streaming upserts (Flink) typically write equality deletes. Check before you promise an SLA.</text>
+    </svg>
+    <figcaption><b>Read the bars, not the labels.</b> Copy-on-write pays once, at write time, and never again. Equality deletes pay nothing at write time and then pay on every single read until compaction reconciles them — which is why the guidance for equality-delete tables is <i>aggressive</i> compaction, not occasional.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">Spark SQL · set it per operation</span><span>all three default to copy-on-write</span></div>
+<pre><span class="k">CREATE TABLE</span> glue_catalog.silver_db.people (id <span class="k">int</span>, first_name <span class="k">string</span>, last_name <span class="k">string</span>)
+<span class="k">USING</span> iceberg
+<span class="k">TBLPROPERTIES</span> (
+  <span class="s">'write.delete.mode'</span> = <span class="s">'copy-on-write'</span>,   <span class="c">-- rare, big deletes → keep reads clean</span>
+  <span class="s">'write.update.mode'</span> = <span class="s">'merge-on-read'</span>,   <span class="c">-- frequent small updates → keep writes fast</span>
+  <span class="s">'write.merge.mode'</span>  = <span class="s">'merge-on-read'</span>
+);
+
+<span class="c">-- change your mind later; it only affects future operations</span>
+<span class="k">ALTER TABLE</span> glue_catalog.silver_db.people <span class="k">SET TBLPROPERTIES</span> (
+  <span class="s">'write.merge.mode'</span> = <span class="s">'copy-on-write'</span>
+);
+
+<span class="c">-- how much delete-file debt am I carrying right now?</span>
+<span class="k">SELECT</span> partition,
+       position_delete_file_count,
+       equality_delete_file_count,
+       file_count
+<span class="k">FROM</span> glue_catalog.silver_db.people.<span class="hl">partitions</span>
+<span class="k">ORDER BY</span> equality_delete_file_count <span class="k">DESC</span>;</pre>
+  </div>
+
+  <div class="note warn"><span class="ic">MoR</span><div>Two operational rules before you turn merge-on-read on: <b>every engine that reads the table must understand delete files</b> (older readers will silently return deleted rows), and you must schedule compaction — <code>rewrite_data_files</code> is what reconciles deletes back into the data and stops read cost from growing forever.</div></div>
+</div></section>
+
+<!-- ==================== 10 ==================== -->
+<section id="c10"><div class="wrap">
+  <div class="kick"><span class="n">10</span><span class="t">Compaction &amp; layout</span></div>
+  <h2>Fixed costs you must pay, variable costs you shouldn't</h2>
+  <p class="lede">Reading the rows your query needs is a <b>fixed cost</b>. Opening, seeking and closing thousands of tiny files to get at them is a <b>variable cost</b> — pure overhead, and the one you can engineer away. Compaction rewrites many small files into few large ones; sorting and Z-ordering decide <i>which rows land together</i> so that pruning has something to bite on.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 520" role="img" aria-label="Compaction consolidates many small files into target-sized files; binpack merely combines them, sort clusters rows hierarchically by field priority so a query for one team touches four files instead of fifty-three, and z-order weights two fields equally so a two-dimensional filter eliminates three quadrants.">
+      <text x="20" y="22" class="eb">THE SMALL FILES PROBLEM — SAME BYTES, DIFFERENT COST</text>
+      <rect x="20" y="34" width="460" height="106" rx="3" class="bxc"/>
+      <text x="36" y="56" class="eb-c">BEFORE — 40 FILES × 4 MB</text>
+      <g fill="var(--coral)" opacity=".75">
+        <rect x="36" y="68" width="14" height="18" rx="2"/><rect x="54" y="68" width="14" height="18" rx="2"/><rect x="72" y="68" width="14" height="18" rx="2"/><rect x="90" y="68" width="14" height="18" rx="2"/><rect x="108" y="68" width="14" height="18" rx="2"/><rect x="126" y="68" width="14" height="18" rx="2"/><rect x="144" y="68" width="14" height="18" rx="2"/><rect x="162" y="68" width="14" height="18" rx="2"/><rect x="180" y="68" width="14" height="18" rx="2"/><rect x="198" y="68" width="14" height="18" rx="2"/>
+        <rect x="36" y="90" width="14" height="18" rx="2"/><rect x="54" y="90" width="14" height="18" rx="2"/><rect x="72" y="90" width="14" height="18" rx="2"/><rect x="90" y="90" width="14" height="18" rx="2"/><rect x="108" y="90" width="14" height="18" rx="2"/><rect x="126" y="90" width="14" height="18" rx="2"/><rect x="144" y="90" width="14" height="18" rx="2"/><rect x="162" y="90" width="14" height="18" rx="2"/><rect x="180" y="90" width="14" height="18" rx="2"/><rect x="198" y="90" width="14" height="18" rx="2"/>
+      </g>
+      <text x="230" y="82" class="t4">40 × (open + seek + close)</text>
+      <text x="230" y="100" class="t4">40 × file metadata to read</text>
+      <text x="230" y="118" class="t4">40 × entries to clean up later</text>
+      <line x1="480" y1="87" x2="516" y2="87" class="ln-a" marker-end="url(#aa)"/>
+      <text x="498" y="76" text-anchor="middle" class="m3">compact</text>
+      <rect x="520" y="34" width="460" height="106" rx="3" class="bxa"/>
+      <text x="536" y="56" class="eb">AFTER — 1 FILE × 160 MB</text>
+      <rect x="536" y="68" width="176" height="40" rx="2" style="fill:var(--accent);opacity:.75"/>
+      <text x="730" y="84" class="t4">1 open. 1 footer. Same rows.</text>
+      <text x="730" y="104" class="t4">Job ends sooner → cluster ends sooner.</text>
+      <text x="536" y="128" class="t4">default target 512 MB file · 128 MB row group = 4 row groups/file</text>
+
+      <line x1="20" y1="160" x2="980" y2="160" class="ln dash"/>
+
+      <!-- three strategies -->
+      <text x="20" y="190" class="eb">THREE STRATEGIES — WHAT ENDS UP NEXT TO WHAT</text>
+
+      <rect x="20" y="202" width="300" height="200" rx="3" class="bx"/>
+      <text x="36" y="224" class="t2">binpack <tspan class="m3" style="fill:var(--muted)">— the default</tspan></text>
+      <text x="36" y="244" class="t4">Combines files. No global ordering.</text>
+      <g>
+        <rect x="36" y="256" width="268" height="26" rx="2" class="bx2"/>
+        <text x="46" y="274" class="m3">Lions · Packers · Bears · Jets …</text>
+        <rect x="36" y="286" width="268" height="26" rx="2" class="bx2"/>
+        <text x="46" y="304" class="m3">Bears · Lions · Rams · Lions …</text>
+        <rect x="36" y="316" width="268" height="26" rx="2" class="bx2"/>
+        <text x="46" y="334" class="m3">Jets · Lions · Packers · Bears …</text>
+      </g>
+      <text x="36" y="364" class="lbl-c">"all Lions players" → touches every file</text>
+      <text x="36" y="384" class="t4">Fastest job. Use it when you need compaction</text>
+      <text x="36" y="398" class="t4">to keep up with streaming SLAs.</text>
+
+      <rect x="346" y="202" width="300" height="200" rx="3" class="bxo"/>
+      <text x="362" y="224" class="t2">sort <tspan class="m3" style="fill:var(--muted)">— hierarchical, weighted</tspan></text>
+      <text x="362" y="244" class="t4">Sorts across tasks before allocating files.</text>
+      <g>
+        <rect x="362" y="256" width="268" height="26" rx="2" class="bx2"/>
+        <text x="372" y="274" class="m3">Bears · Bears · Bears · Bengals …</text>
+        <rect x="362" y="286" width="268" height="26" rx="2" class="bxo"/>
+        <text x="372" y="304" class="m3">Lions · Lions · Lions · Lions …</text>
+        <rect x="362" y="316" width="268" height="26" rx="2" class="bx2"/>
+        <text x="372" y="334" class="m3">Packers · Packers · Rams …</text>
+      </g>
+      <text x="362" y="364" class="lbl-o">"all Lions players" → 53 files becomes ~4</text>
+      <text x="362" y="384" class="t4">100 files ÷ 32 teams ≈ 3.1 — plus the two</text>
+      <text x="362" y="398" class="t4">boundary files that straddle neighbours.</text>
+
+      <rect x="672" y="202" width="308" height="200" rx="3" class="bxsn"/>
+      <text x="688" y="224" class="t2">zorder <tspan class="m3" style="fill:var(--muted)">— equally weighted</tspan></text>
+      <text x="688" y="244" class="t4">For filters on two+ fields at once.</text>
+      <rect x="700" y="256" width="112" height="44" rx="2" class="bx2"/>
+      <text x="710" y="274" class="m3">A: age 1–50</text>
+      <text x="710" y="292" class="m3">   ht 1–5</text>
+      <rect x="818" y="256" width="112" height="44" rx="2" class="bx2"/>
+      <text x="828" y="274" class="m3">B: age 51–100</text>
+      <text x="828" y="292" class="m3">   ht 1–5</text>
+      <rect x="700" y="304" width="112" height="44" rx="2" class="bx2"/>
+      <text x="710" y="322" class="m3">C: age 1–50</text>
+      <text x="710" y="340" class="m3">   ht 5–10</text>
+      <rect x="818" y="304" width="112" height="44" rx="2" class="bxsn"/>
+      <text x="828" y="322" class="m3">D: age 51–100</text>
+      <text x="828" y="340" class="m3">   ht 5–10</text>
+      <text x="688" y="372" class="eb-s">AGE 60, HEIGHT 6 → ONLY D. 75% ELIMINATED.</text>
+      <text x="688" y="392" class="t4">Even filtering age alone still kills two quadrants.</text>
+
+      <rect x="20" y="416" width="960" height="90" rx="3" class="bxs"/>
+      <text x="36" y="438" class="eb">THE DISTINCTION THAT MATTERS</text>
+      <text x="36" y="460" class="t3">A table's <tspan class="m2" style="fill:var(--ink)">WRITE ORDERED BY</tspan> sort order is applied <tspan style="fill:var(--ink)">within a single task</tspan> — a local sort — even under binpack.</text>
+      <text x="36" y="480" class="t3"><tspan class="m2" style="fill:var(--ink)">sort</tspan> and <tspan class="m2" style="fill:var(--ink)">zorder</tspan> strategies sort <tspan style="fill:var(--ink)">before</tspan> the engine allocates rows to tasks — a global sort, which is what clusters data <i>across</i> files.</text>
+      <text x="36" y="500" class="t4">Sort by team then name helps "Lions players starting with A". It does <i>not</i> help "all players starting with A" — that is what zorder is for.</text>
+    </svg>
+    <figcaption><b>Sorting is a bet on your query patterns.</b> Get the bet right and a scan drops by an order of magnitude; get it wrong and you paid for a longer compaction job and gained nothing. Know the two or three predicates your users actually filter on before choosing a sort order.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">Spark SQL · the real compaction call</span><span>named arguments, with a where filter</span></div>
+<pre><span class="c">-- Hourly job for streaming ingest: binpack only the last hour, commit as it goes</span>
+<span class="k">CALL</span> glue_catalog.system.<span class="hl">rewrite_data_files</span>(
+  table    =&gt; <span class="s">'silver_db.orders'</span>,
+  strategy =&gt; <span class="s">'binpack'</span>,
+  where    =&gt; <span class="s">'order_ts between "2026-09-01 09:00:00" and "2026-09-01 09:59:59"'</span>,
+  options  =&gt; map(
+    <span class="s">'target-file-size-bytes'</span>,   <span class="s">'1073741824'</span>,   <span class="c">-- 1 GB</span>
+    <span class="s">'max-file-group-size-bytes'</span>,<span class="s">'10737418240'</span>,  <span class="c">-- 10 GB: split huge partitions</span>
+    <span class="s">'rewrite-job-order'</span>,       <span class="s">'bytes-asc'</span>,
+    <span class="s">'partial-progress-enabled'</span>,<span class="s">'true'</span>          <span class="c">-- commit per file group; readers benefit early</span>
+  ));
+
+<span class="c">-- Weekend job: globally re-sort the table so reads cluster</span>
+<span class="k">CALL</span> glue_catalog.system.rewrite_data_files(
+  table      =&gt; <span class="s">'silver_db.orders'</span>,
+  strategy   =&gt; <span class="s">'sort'</span>,
+  sort_order =&gt; <span class="s">'region ASC NULLS LAST, order_ts DESC'</span>);
+
+<span class="c">-- Multi-dimensional filters instead? z-order, passed as a sort_order</span>
+<span class="k">CALL</span> glue_catalog.system.rewrite_data_files(
+  table      =&gt; <span class="s">'silver_db.orders'</span>,
+  strategy   =&gt; <span class="s">'sort'</span>,
+  sort_order =&gt; <span class="s">'zorder(customer_id, order_amount)'</span>);</pre>
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><div class="tag">where</div><h3>Always scope the job</h3><p>Without <code>where</code>, the whole table is a candidate. Scoping to one hour or one partition is the difference between a 3-minute job and a 6-hour one.</p></div>
+    <div class="card"><div class="tag">partial-progress-enabled</div><h3>Commit as you go</h3><p>Each finished file group becomes a snapshot, so long jobs deliver value early and survive OOM. Cost: more snapshots — cap with <code>partial-progress-max-commits</code>.</p></div>
+    <div class="card warn"><div class="tag">Interaction to remember</div><h3>Compaction re-partitions</h3><p>Rewritten files adopt the <b>current</b> partition spec. After a partition evolution, filter your compaction so it doesn't quietly restructure history.</p></div>
+  </div>
+</div></section>
+
+<!-- ==================== 11 ==================== -->
+<section id="c11"><div class="wrap">
+  <div class="kick"><span class="n">11</span><span class="t">Maintenance &amp; observability</span></div>
+  <h2>Metadata tables are your monitoring system</h2>
+  <p class="lede">Iceberg exposes its own internals as ordinary SQL tables, so "which partitions need compacting?" and "is this table accumulating delete debt?" are queries, not guesswork. Every maintenance procedure below should be driven by one of them — <b>diagnose first, then run the procedure with a filter</b>, never blanket maintenance on a schedule you never tuned.</p>
+
+  <div class="tw"><table class="mono-col">
+    <tr><th>metadata table</th><th>what it answers</th><th>the field that matters</th></tr>
+    <tr><td>.history</td><td>Every time the current snapshot changed, and its lineage</td><td><code>parent_id</code> + <code>is_current_ancestor</code> — two snapshots sharing a parent where only one is a current ancestor means <b>somebody rolled back</b></td></tr>
+    <tr><td>.snapshots</td><td>What each commit did and how much it added</td><td><code>operation</code> (append / overwrite / delete), <code>summary['added-records']</code></td></tr>
+    <tr><td>.files</td><td>Current data files with full statistics</td><td><code>content</code>: <b>0</b>=data, <b>1</b>=position delete, <b>2</b>=equality delete; plus <code>file_size_in_bytes</code>, <code>null_value_counts</code></td></tr>
+    <tr><td>.manifests</td><td>The pruning layer's own health</td><td><code>length</code>, <code>added_data_files_count</code>, <code>partition_summaries</code></td></tr>
+    <tr><td>.partitions</td><td>Per-partition file counts and delete debt</td><td><code>file_count</code>, <code>position_delete_file_count</code>, <code>equality_delete_file_count</code>, <code>spec_id</code></td></tr>
+    <tr><td>.entries</td><td>Per-file add/exist/delete events across snapshots</td><td><code>status</code>: <b>0</b>=existing, <b>1</b>=added, <b>2</b>=deleted; <code>sequence_number</code></td></tr>
+    <tr><td>.refs</td><td>Branches and tags with their retention</td><td><code>type</code> BRANCH (mutable) vs TAG (immutable), <code>min_snapshots_to_keep</code></td></tr>
+    <tr><td>.metadata_log_entries</td><td>Which metadata.json was current, when</td><td><code>file</code>, <code>latest_schema_id</code> — how to find the last snapshot under a previous schema</td></tr>
+    <tr><td>.all_data_files / .all_manifests</td><td>The same, across <b>every</b> valid snapshot</td><td>A file appears once per snapshot it belongs to — always <code>SELECT DISTINCT file_path</code> first</td></tr>
+  </table></div>
+
+  <div class="code">
+    <div class="hd"><span class="lang">Spark SQL · the three diagnostics worth scheduling</span><span>cheap — metadata only, no data scanned</span></div>
+<pre><span class="c">-- ① Which partitions need compaction? Many files, small average size.</span>
+<span class="k">SELECT</span> partition, <span class="k">COUNT</span>(*) <span class="k">AS</span> num_files, <span class="k">AVG</span>(file_size_in_bytes) <span class="k">AS</span> avg_size
+<span class="k">FROM</span> glue_catalog.silver_db.orders.<span class="hl">files</span>
+<span class="k">GROUP BY</span> partition
+<span class="k">ORDER BY</span> num_files <span class="k">DESC</span>, avg_size <span class="k">ASC</span>;
+
+<span class="c">-- ② Which manifests are below average size? Feed these to rewrite_manifests.</span>
+<span class="k">WITH</span> avg_len <span class="k">AS</span> (<span class="k">SELECT</span> <span class="k">AVG</span>(length) <span class="k">AS</span> a <span class="k">FROM</span> glue_catalog.silver_db.orders.manifests)
+<span class="k">SELECT</span> path, length <span class="k">FROM</span> glue_catalog.silver_db.orders.<span class="hl">manifests</span>
+<span class="k">WHERE</span> length &lt; (<span class="k">SELECT</span> a <span class="k">FROM</span> avg_len);
+
+<span class="c">-- ③ Which snapshots contain deletes? These are the ones to expire for real GDPR erasure.</span>
+<span class="k">SELECT</span> added_snapshot_id <span class="k">FROM</span> glue_catalog.silver_db.orders.manifests
+<span class="k">WHERE</span> deleted_data_files_count &gt; 0;</pre>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 320" role="img" aria-label="Three maintenance procedures act on different parts of the tree: rewrite_data_files consolidates data files, rewrite_manifests consolidates manifests, expire_snapshots removes old snapshots and the data files only they referenced, and remove_orphan_files deletes files on storage that no metadata references at all.">
+      <rect x="20" y="30" width="230" height="230" rx="3" class="bx"/>
+      <text x="36" y="52" class="eb-d">rewrite_data_files</text>
+      <text x="36" y="74" class="t3">acts on: the data layer</text>
+      <text x="36" y="96" class="t4">many small files → few big ones,</text>
+      <text x="36" y="112" class="t4">optionally sorted or z-ordered.</text>
+      <text x="36" y="134" class="t4">Also the ONLY thing that reconciles</text>
+      <text x="36" y="150" class="t4">merge-on-read delete files back</text>
+      <text x="36" y="166" class="t4">into the data.</text>
+      <rect x="36" y="182" width="196" height="24" rx="2" class="bxd"/>
+      <text x="46" y="199" class="m3">read cost ↓</text>
+      <text x="36" y="228" class="lbl-a">run: hourly (streaming) or nightly</text>
+
+      <rect x="266" y="30" width="230" height="230" rx="3" class="bx"/>
+      <text x="282" y="52" class="eb-o">rewrite_manifests</text>
+      <text x="282" y="74" class="t3">acts on: the metadata layer</text>
+      <text x="282" y="96" class="t4">Files are already well sized, but</text>
+      <text x="282" y="112" class="t4">they were written across many</text>
+      <text x="282" y="128" class="t4">snapshots, so 10 data files may be</text>
+      <text x="282" y="144" class="t4">listed across 5 manifests.</text>
+      <rect x="282" y="160" width="196" height="24" rx="2" class="bxo"/>
+      <text x="292" y="177" class="m3">planning cost ↓</text>
+      <text x="282" y="206" class="t4">2nd arg <tspan class="m3">false</tspan> disables Spark caching</text>
+      <text x="282" y="222" class="t4">if executors hit memory pressure.</text>
+      <text x="282" y="246" class="lbl-a">run: weekly</text>
+
+      <rect x="512" y="30" width="230" height="230" rx="3" class="bx"/>
+      <text x="528" y="52" class="eb-s">expire_snapshots</text>
+      <text x="528" y="74" class="t3">acts on: snapshots + their files</text>
+      <text x="528" y="96" class="t4">Deletes snapshots older than a</text>
+      <text x="528" y="112" class="t4">timestamp AND the data files no</text>
+      <text x="528" y="128" class="t4">surviving snapshot references.</text>
+      <rect x="528" y="144" width="196" height="24" rx="2" class="bxsn"/>
+      <text x="538" y="161" class="m3">storage cost ↓</text>
+      <text x="528" y="190" class="t4">Retains the last 5 days by default.</text>
+      <text x="528" y="206" class="t4">It is itself a transaction — a new</text>
+      <text x="528" y="222" class="t4">metadata.json is written.</text>
+      <text x="528" y="246" class="lbl-c">this is what ends time travel</text>
+
+      <rect x="758" y="30" width="222" height="230" rx="3" class="bxc"/>
+      <text x="774" y="52" class="eb-c">remove_orphan_files</text>
+      <text x="774" y="74" class="t3">acts on: raw storage</text>
+      <text x="774" y="96" class="t4">Files written by <i>failed</i> jobs that</text>
+      <text x="774" y="112" class="t4">no metadata ever referenced.</text>
+      <text x="774" y="134" class="t4">Expiring snapshots will NEVER</text>
+      <text x="774" y="150" class="t4">clean these — nothing points at</text>
+      <text x="774" y="166" class="t4">them to begin with.</text>
+      <text x="774" y="190" class="lbl-c">Lists every file in the table</text>
+      <text x="774" y="206" class="lbl-c">location. Expensive.</text>
+      <text x="774" y="230" class="t4">Always <tspan class="m3">dry_run =&gt; true</tspan> first.</text>
+      <text x="774" y="252" class="lbl-a">run: sporadically</text>
+    </svg>
+    <figcaption><b>They are not interchangeable and none of them subsumes another.</b> A table that is compacted but never expired grows storage forever; a table that is expired but never has orphans removed leaks every failed job's output; a table with neither becomes slow and expensive at the same time.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">Spark SQL · the maintenance set</span><span>schedule these, filtered</span></div>
+<pre><span class="c">-- Expire: older than 90 days, but always keep the most recent 100 snapshots</span>
+<span class="k">CALL</span> glue_catalog.system.<span class="hl">expire_snapshots</span>(
+  table =&gt; <span class="s">'silver_db.orders'</span>,
+  older_than =&gt; <span class="k">TIMESTAMP</span> <span class="s">'2026-06-01 00:00:00.000'</span>,
+  retain_last =&gt; 100,
+  max_concurrent_deletes =&gt; 8,
+  stream_results =&gt; <span class="k">true</span>);        <span class="c">-- avoids driver OOM on huge deletions</span>
+
+<span class="c">-- Expire ONE snapshot — e.g. you accidentally committed sensitive data</span>
+<span class="k">CALL</span> glue_catalog.system.expire_snapshots(
+  table =&gt; <span class="s">'silver_db.orders'</span>, snapshot_ids =&gt; <span class="k">ARRAY</span>(8333017788700497002));
+
+<span class="c">-- Manifests</span>
+<span class="k">CALL</span> glue_catalog.system.<span class="hl">rewrite_manifests</span>(<span class="s">'silver_db.orders'</span>);
+
+<span class="c">-- Orphans — ALWAYS dry run first, then drop the flag</span>
+<span class="k">CALL</span> glue_catalog.system.<span class="hl">remove_orphan_files</span>(
+  table =&gt; <span class="s">'silver_db.orders'</span>, dry_run =&gt; <span class="k">true</span>);</pre>
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><div class="tag">write.metadata.metrics.column.*</div><h3>Stop collecting stats you never use</h3><p>Default is <code>truncate(16)</code> per column. On a 100+ column table that metadata becomes a burden — set <code>none</code> or <code>counts</code> on columns nobody filters, <code>full</code> on the ones they do.</p></div>
+    <div class="card"><div class="tag">write.object-storage.enabled</div><h3>Defeat S3 prefix throttling</h3><p>Injects a hash into the path so files in one partition no longer share a prefix. On big partitions this is the difference between throughput and 503s.</p></div>
+    <div class="card"><div class="tag">write.distribution-mode</div><h3>Stop making small files at write time</h3><p><code>none</code> is arbitrary — 10 rows for one partition spread over 10 tasks becomes 10 files. <code>hash</code> distributes by partition key; <code>range</code> by sort order.</p></div>
+  </div>
+</div></section>
+
+<!-- ==================== 12 ==================== -->
+<section id="c12"><div class="wrap">
+  <div class="kick"><span class="n">12</span><span class="t">Catalogs</span></div>
+  <h2>Six ways to store one pointer</h2>
+  <p class="lede">A catalog does exactly one job: map <code>db.table</code> to the path of its current metadata file. Everything that distinguishes them is <b>where they keep that string</b> and <b>whether they can update it atomically</b>. The second requirement is the one that separates a dev toy from a production catalog.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 420" role="img" aria-label="Each catalog stores the current metadata pointer differently: Hadoop uses a version-hint file or directory listing, Hive a location table property, Glue and JDBC a metadata_location property, Nessie a metadataLocation property, and REST delegates to whatever the service implements.">
+      <rect x="330" y="24" width="340" height="56" rx="3" class="bxa"/>
+      <text x="500" y="46" text-anchor="middle" class="t1">"where is silver_db.orders?"</text>
+      <text x="500" y="66" text-anchor="middle" class="t4">every engine, every read, every write starts here</text>
+
+      <line x1="420" y1="80" x2="140" y2="122" class="ln" marker-end="url(#a)"/>
+      <line x1="460" y1="80" x2="330" y2="122" class="ln" marker-end="url(#a)"/>
+      <line x1="490" y1="80" x2="500" y2="122" class="ln-a" marker-end="url(#aa)"/>
+      <line x1="530" y1="80" x2="670" y2="122" class="ln" marker-end="url(#a)"/>
+      <line x1="570" y1="80" x2="860" y2="122" class="ln" marker-end="url(#a)"/>
+
+      <rect x="20" y="126" width="220" height="128" rx="3" class="bxc"/>
+      <text x="36" y="148" class="eb-c">HADOOP / FILESYSTEM</text>
+      <rect x="36" y="158" width="188" height="24" rx="2" class="cbg"/>
+      <text x="44" y="175" class="ct-d">version-hint.text → "3"</text>
+      <text x="36" y="200" class="t4">…or just list the metadata dir</text>
+      <text x="36" y="216" class="t4">and take the newest file.</text>
+      <text x="36" y="238" class="lbl-c">NOT FOR PRODUCTION</text>
+
+      <rect x="256" y="126" width="220" height="128" rx="3" class="bx"/>
+      <text x="272" y="148" class="eb">HIVE METASTORE</text>
+      <rect x="272" y="158" width="188" height="24" rx="2" class="cbg"/>
+      <text x="280" y="175" class="ct-d">location = s3://…json</text>
+      <text x="272" y="200" class="t4">Widest engine support of all.</text>
+      <text x="272" y="216" class="t4">You run the service (or EMR does).</text>
+      <text x="272" y="238" class="t4">No multi-table transactions.</text>
+
+      <rect x="492" y="126" width="220" height="128" rx="3" class="bxa"/>
+      <text x="508" y="148" class="eb">AWS GLUE  ← EMR DEFAULT</text>
+      <rect x="508" y="158" width="188" height="24" rx="2" class="cbg"/>
+      <text x="516" y="175" class="ct-d">metadata_location = s3://…</text>
+      <text x="508" y="200" class="t4">Managed, nothing to provision,</text>
+      <text x="508" y="216" class="t4">shared by Athena / EMR / Redshift.</text>
+      <text x="508" y="238" class="t4">AWS-only. No multi-table txns.</text>
+
+      <rect x="728" y="126" width="252" height="128" rx="3" class="bx"/>
+      <text x="744" y="148" class="eb-s">NESSIE  ·  REST  ·  JDBC</text>
+      <rect x="744" y="158" width="220" height="24" rx="2" class="cbg"/>
+      <text x="752" y="175" class="ct-d">metadataLocation / impl-defined</text>
+      <text x="744" y="200" class="t4">Nessie: git-like branches at the</text>
+      <text x="744" y="216" class="t4">CATALOG level + multi-table txns.</text>
+      <text x="744" y="238" class="t4">REST: an interface, not a store.</text>
+
+      <line x1="20" y1="278" x2="980" y2="278" class="ln dash"/>
+      <text x="20" y="306" class="eb-c">WHY THE FILESYSTEM CATALOG IS A TRAP ON S3</text>
+      <rect x="20" y="318" width="470" height="88" rx="3" class="bxc"/>
+      <text x="36" y="340" class="t3">It needs an <b>atomic rename</b> to avoid losing a concurrent write.</text>
+      <text x="36" y="360" class="m3">HDFS ✓   ADLS ✓   <tspan style="fill:var(--coral)">S3 ✗</tspan></text>
+      <text x="36" y="382" class="t4">The workaround is a DynamoDB lock table — at which point you</text>
+      <text x="36" y="398" class="t4">are running an external system anyway, so use a real catalog.</text>
+      <rect x="510" y="318" width="470" height="88" rx="3" class="bxs"/>
+      <text x="526" y="340" class="eb">THREE MORE REASONS</text>
+      <text x="526" y="360" class="t4">• One warehouse directory per catalog — one bucket, no more.</text>
+      <text x="526" y="378" class="t4">• Listing namespaces/tables is a storage LIST — slow at scale.</text>
+      <text x="526" y="396" class="t4">• No real <tspan class="m3">DROP TABLE</tspan>: the directory <i>is</i> the catalog, so the table</text>
+      <text x="536" y="412" class="t4">   comes back from a metadata listing even after you delete the hint.</text>
+    </svg>
+    <figcaption><b>Migration between catalogs is cheap</b> — you are only moving a pointer, not data — which is exactly why starting on the Hadoop catalog for a workshop and moving to Glue for production is a reasonable plan. Use the Iceberg catalog-migrator CLI, or <code>register_table()</code> / <code>snapshot()</code> from Spark, and never write to the same table through two catalogs at once.</figcaption>
+  </figure>
+
+  <div class="tw"><table class="mono-col">
+    <tr><th>catalog</th><th>production</th><th>pointer stored as</th><th>multi-table txns</th><th>the catch</th></tr>
+    <tr><td>Hadoop</td><td>No</td><td><code>version-hint.text</code> / dir listing</td><td>No</td><td>No atomic rename on S3 → data loss under concurrent writes</td></tr>
+    <tr><td>Hive</td><td>Yes</td><td><code>location</code> property</td><td>No</td><td>You operate the Metastore (EMR can host it)</td></tr>
+    <tr><td>AWS Glue</td><td>Yes</td><td><code>metadata_location</code></td><td>No</td><td>AWS-only; awkward in multicloud</td></tr>
+    <tr><td>Nessie</td><td>Yes</td><td><code>metadataLocation</code></td><td><b>Yes</b></td><td>Self-hosted; narrower engine support</td></tr>
+    <tr><td>REST</td><td>Yes</td><td>implementation-defined</td><td><b>Yes</b></td><td>An interface — you supply or buy the backend</td></tr>
+    <tr><td>JDBC</td><td>Yes</td><td><code>metadata_location</code> in the DB</td><td>No</td><td>Every engine must ship a JDBC driver</td></tr>
+  </table></div>
+  <p class="body">Two config styles follow from that table, and mixing them up is the most common setup error: <b>shorthand</b> catalogs use <code>type=hadoop|hive|rest</code>, while <b>class-backed</b> catalogs (Glue, Nessie, JDBC) use <code>catalog-impl=&lt;fully-qualified class&gt;</code> and no <code>type</code> at all.</p>
+</div></section>
+
+<!-- ==================== 13 ==================== -->
+<section id="c13"><div class="wrap">
+  <div class="kick"><span class="n">13</span><span class="t">Branches, tags &amp; write-audit-publish</span></div>
+  <h2>Never let unvalidated data reach production</h2>
+  <p class="lede">A <b>branch</b> is a named, mutable pointer to its own chain of snapshots; a <b>tag</b> is an immutable one. Together they let you do the thing every data team wants and few achieve: <b>write into the real table, audit it there, and publish only if it passes</b> — with no staging table, no data copy, and no window where bad rows are visible.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 430" role="img" aria-label="The write-audit-publish flow: main branch continues serving readers while an etl branch receives the new data, audits run against the branch, and on success cherrypick_snapshot moves the validated snapshot onto main; on failure the branch is simply dropped.">
+      <text x="20" y="24" class="eb">MAIN — WHAT EVERY CONSUMER SEES, THE WHOLE TIME</text>
+      <line x1="20" y1="70" x2="980" y2="70" class="ln-a" stroke-width="3"/>
+      <circle cx="90" cy="70" r="8" fill="var(--accent)"/><text x="90" y="98" text-anchor="middle" class="m3">s1</text>
+      <circle cx="240" cy="70" r="8" fill="var(--accent)"/><text x="240" y="98" text-anchor="middle" class="m3">s2</text>
+      <circle cx="860" cy="70" r="10" fill="var(--accent)"/><text x="860" y="98" text-anchor="middle" class="m3">s5 published</text>
+      <text x="500" y="56" text-anchor="middle" class="t4">readers see s2 for this entire period — clean, complete, unchanged</text>
+
+      <path d="M 240 70 C 300 70, 300 180, 360 180" class="ln-o dash" marker-end="url(#ao)"/>
+      <text x="252" y="140" class="eb-o">CREATE BRANCH</text>
+
+      <text x="360" y="160" class="eb-o">ETL_BRANCH — ISOLATED, INSIDE THE SAME TABLE</text>
+      <line x1="360" y1="180" x2="800" y2="180" class="ln-o" stroke-width="3"/>
+      <circle cx="420" cy="180" r="8" fill="var(--ochre)"/><text x="420" y="206" text-anchor="middle" class="m3">s3</text>
+      <text x="420" y="224" text-anchor="middle" class="t4">INSERT</text>
+      <circle cx="600" cy="180" r="8" fill="var(--ochre)"/><text x="600" y="206" text-anchor="middle" class="m3">s4</text>
+      <text x="600" y="224" text-anchor="middle" class="t4">fixes applied</text>
+      <circle cx="780" cy="180" r="8" fill="var(--ochre)"/><text x="780" y="206" text-anchor="middle" class="m3">audited ✓</text>
+
+      <path d="M 780 180 C 830 180, 830 90, 858 82" class="ln-a" stroke-width="2.4" marker-end="url(#aa)"/>
+      <text x="676" y="128" class="lbl-a">cherrypick_snapshot</text>
+      <text x="676" y="144" class="t4">metadata-only · no data moves</text>
+
+      <rect x="360" y="244" width="440" height="76" rx="3" class="bx"/>
+      <text x="376" y="266" class="eb">THE AUDIT — ORDINARY PYSPARK, AGAINST THE BRANCH</text>
+      <text x="376" y="288" class="t4">null counts per column · duplicate groups · date-range sanity ·</text>
+      <text x="376" y="306" class="t4">row-count deltas vs. main. Split valid rows from remediation rows.</text>
+
+      <path d="M 500 320 C 500 360, 400 360, 330 366" class="ln-c dash" marker-end="url(#ac)"/>
+      <rect x="20" y="344" width="300" height="66" rx="3" class="bxc"/>
+      <text x="36" y="366" class="eb-c">IF THE AUDIT FAILS</text>
+      <text x="36" y="388" class="t3">Drop the branch. Re-run the job.</text>
+      <text x="36" y="404" class="t4">Production never saw a single bad row.</text>
+
+      <rect x="828" y="244" width="152" height="76" rx="3" class="bxsn"/>
+      <text x="844" y="266" class="eb-s">TAGS</text>
+      <text x="844" y="288" class="t4">immutable pointer —</text>
+      <text x="844" y="304" class="t4">"Q3FY26 close", kept</text>
+      <text x="844" y="318" class="t4">for reproducibility</text>
+    </svg>
+    <figcaption><b>The key move is <code>spark.wap.branch</code>.</b> Once that session config is set, every read <i>and</i> write in the session is redirected to the branch — so the same unmodified ETL code writes to the branch instead of main, and your audit queries read what it wrote. Unset it when you're done or the next job in that session will quietly keep writing to the branch.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">PySpark · the full WAP cycle</span><span>branch-based; works on EMR + Glue Catalog</span></div>
+<pre><span class="c"># ① branch off the current state of the production table</span>
+spark.sql(<span class="s">"ALTER TABLE glue_catalog.silver_db.orders CREATE BRANCH etl_branch"</span>)
+
+<span class="c"># ② turn WAP on for the table, then bind THIS SESSION to the branch</span>
+spark.sql(<span class="s">"""ALTER TABLE glue_catalog.silver_db.orders
+             SET TBLPROPERTIES ('write.wap.enabled'='true')"""</span>)
+spark.conf.set(<span class="s">'spark.wap.branch'</span>, <span class="s">'etl_branch'</span>)     <span class="c"># reads AND writes now go to the branch</span>
+
+<span class="c"># ③ run the unchanged production ETL — it lands on the branch</span>
+spark.sql(<span class="s">"INSERT INTO glue_catalog.silver_db.orders SELECT * FROM new_data"</span>)
+
+<span class="c"># ④ prove the isolation held</span>
+spark.sql(<span class="s">"SELECT count(*) FROM glue_catalog.silver_db.orders VERSION AS OF 'etl_branch'"</span>).show()
+spark.sql(<span class="s">"SELECT count(*) FROM glue_catalog.silver_db.orders VERSION AS OF 'main'"</span>).show()
+
+<span class="c"># ⑤ audit — nulls, duplicates, ranges</span>
+df = spark.table(<span class="s">"glue_catalog.silver_db.orders"</span>)
+df.select([count(when(col(c).isNull(), c)).alias(c) <span class="k">for</span> c <span class="k">in</span> df.columns]).show()
+dupes = df.groupBy(df.columns).count().filter(col(<span class="s">"count"</span>) &gt; 1).drop(<span class="s">"count"</span>)
+
+<span class="c"># ⑥ publish: move the validated snapshot onto main. Metadata only — no data moves.</span>
+snap = spark.sql(<span class="s">"""SELECT snapshot_id FROM glue_catalog.silver_db.orders.refs
+                       WHERE name = 'etl_branch'"""</span>).first()[0]
+spark.sql(<span class="s">f"CALL glue_catalog.system.<span class="hl">cherrypick_snapshot</span>('silver_db.orders', {snap})"</span>).show()
+
+<span class="c"># ⑦ release the session — otherwise the next job still writes to the branch</span>
+spark.conf.unset(<span class="s">'spark.wap.branch'</span>)</pre>
+  </div>
+
+  <div class="grid g2">
+    <div class="card ok"><div class="tag">Four ways to move the pointer</div><h3>Rollback vs. set vs. cherry-pick</h3><ul><li><code>rollback_to_snapshot</code> / <code>rollback_to_timestamp</code> — back to a snapshot <b>in this table's history</b>; non-destructive, safe to run concurrently</li><li><code>set_current_snapshot</code> — to <b>any</b> snapshot, including one on another branch or tag</li><li><code>cherrypick_snapshot</code> — creates a <b>new</b> snapshot applying another one's changes; single commit only</li></ul></div>
+    <div class="card"><div class="tag">Tags</div><h3>Reproducibility you can name</h3><p>A tag freezes a snapshot behind a human name, with its own retention. Quarter-end closes, model training sets, the state a report was published from — anything you may need to reproduce exactly.</p><div class="code" style="margin-top:12px"><pre style="font-size:12px;padding:12px 14px">ALTER TABLE …orders
+  CREATE TAG 'Q3FY26_close'
+  AS OF VERSION 8
+  RETAIN 14 DAYS;</pre></div></div>
+  </div>
+</div></section>
+
+<!-- ==================== 14 ==================== -->
+<section id="c14"><div class="wrap">
+  <div class="kick"><span class="n">14</span><span class="t">Migration</span></div>
+  <h2>Into Iceberg: keep the files, or rewrite them</h2>
+  <p class="lede">Two strategies, and the choice is really about risk appetite. <b>In-place migration</b> writes new Iceberg metadata <i>around</i> your existing Parquet — nothing is copied, so it's fast and cheap, but there's no easy undo. <b>Shadow migration</b> writes a brand-new table and cuts over in phases — more storage, more time, and you can walk away from it at any point.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 470" role="img" aria-label="In-place migration builds Iceberg metadata around existing data files using snapshot, migrate or add_files; shadow migration rewrites data into a new table via CTAS and cuts over across four phases of dual writes and reads.">
+      <text x="20" y="22" class="eb">IN-PLACE — THE DATA FILES NEVER MOVE</text>
+      <rect x="20" y="34" width="460" height="180" rx="3" class="bx"/>
+      <rect x="36" y="48" width="428" height="42" rx="2" class="bxo"/>
+      <text x="46" y="66" class="eb-o">NEW ICEBERG METADATA</text>
+      <text x="46" y="82" class="m3">metadata.json · manifest list · manifests</text>
+      <line x1="250" y1="90" x2="250" y2="112" class="ln-o" marker-end="url(#ao)"/>
+      <text x="262" y="106" class="t4">written around what already exists</text>
+      <rect x="36" y="116" width="428" height="42" rx="2" class="bxd"/>
+      <text x="46" y="134" class="eb-d">EXISTING PARQUET — UNTOUCHED, UNCOPIED</text>
+      <text x="46" y="150" class="m3">s3://lake/legacy/orders/dt=…/part-*.parquet</text>
+      <text x="36" y="180" class="t4">Fast, no storage doubling.</text>
+      <text x="36" y="198" class="lbl-c">No easy rollback. Parquet / ORC / Avro only.</text>
+
+      <text x="520" y="22" class="eb">SHADOW — A NEW TABLE, WRITTEN FRESH</text>
+      <rect x="520" y="34" width="460" height="180" rx="3" class="bx"/>
+      <rect x="536" y="48" width="200" height="42" rx="2" class="bx2"/>
+      <text x="546" y="66" class="m3">old table</text>
+      <text x="546" y="82" class="t4">stays exactly as it is</text>
+      <line x1="736" y1="69" x2="770" y2="69" class="ln-a" marker-end="url(#aa)"/>
+      <text x="753" y="58" text-anchor="middle" class="m3">CTAS</text>
+      <rect x="774" y="48" width="190" height="42" rx="2" class="bxa"/>
+      <text x="784" y="66" class="m3">new Iceberg table</text>
+      <text x="784" y="82" class="t4">new files, new layout</text>
+      <text x="536" y="116" class="t3">Because you rewrite anyway, you can fix things:</text>
+      <text x="536" y="136" class="t4">• repartition properly (transforms instead of derived columns)</text>
+      <text x="536" y="154" class="t4">• change the schema, promote types, drop dead columns</text>
+      <text x="536" y="172" class="t4">• sort or z-order the data on the way in</text>
+      <text x="536" y="198" class="lbl-a">Safe and reversible. Costs storage twice, for a while.</text>
+
+      <line x1="20" y1="238" x2="980" y2="238" class="ln dash"/>
+      <text x="20" y="266" class="eb-o">SHADOW CUTOVER — FOUR PHASES, ONE VARIABLE AT A TIME</text>
+      <rect x="20" y="278" width="228" height="104" rx="3" class="bx"/>
+      <text x="36" y="300" class="t2">1 · write old · read old</text>
+      <text x="36" y="322" class="t4">Build the Iceberg table and</text>
+      <text x="36" y="338" class="t4">backfill ALL history into it</text>
+      <text x="36" y="354" class="t4">before phase 2 begins.</text>
+      <text x="36" y="374" class="t4">No behaviour change yet.</text>
+      <rect x="264" y="278" width="228" height="104" rx="3" class="bx"/>
+      <text x="280" y="300" class="t2">2 · write both · read old</text>
+      <text x="280" y="322" class="t4">Dual-write. Storage doubles.</text>
+      <text x="280" y="338" class="t4">Compare row counts and</text>
+      <text x="280" y="354" class="t4">aggregates every run.</text>
+      <rect x="508" y="278" width="228" height="104" rx="3" class="bxo"/>
+      <text x="524" y="300" class="t2">3 · write both · read new</text>
+      <text x="524" y="322" class="t4">Flip reads to Iceberg. The</text>
+      <text x="524" y="338" class="t4">old system is now your</text>
+      <text x="524" y="354" class="t4">rollback plan, still warm.</text>
+      <rect x="752" y="278" width="228" height="104" rx="3" class="bxa"/>
+      <text x="768" y="300" class="t2">4 · write new · read new</text>
+      <text x="768" y="322" class="t4">Retire the old pipeline.</text>
+      <text x="768" y="338" class="t4">Storage returns to 1×.</text>
+      <text x="768" y="354" class="lbl-a">Migration complete.</text>
+
+      <rect x="20" y="396" width="960" height="60" rx="3" class="bxs"/>
+      <text x="36" y="418" class="eb">THE IN-PLACE VERIFICATION LOOP — REPEAT PER PARTITION</text>
+      <text x="36" y="440" class="t3">1. count files + records in the source partition → 2. import that partition → 3. count files + records in Iceberg and <tspan style="fill:var(--ink)">assert they match</tspan>. Then the next partition.</text>
+    </svg>
+    <figcaption><b>Migrate large tables one partition at a time.</b> A whole-table transaction is fine for something small, but at scale the incremental loop above is what lets you stop, verify, and resume — and it gives you a real answer to "how far along are we?"</figcaption>
+  </figure>
+
+  <div class="tw"><table class="mono-col">
+    <tr><th>procedure</th><th>what it creates</th><th>the source table afterwards</th><th>reach for it when</th></tr>
+    <tr><td>snapshot()</td><td>A temporary Iceberg table over the same data files</td><td><b>Still fully usable</b> — Hive and Iceberg coexist</td><td>You want to <b>test</b> Iceberg against real data with zero risk</td></tr>
+    <tr><td>migrate()</td><td>An Iceberg table replacing the source, copying schema, partitioning, properties and location</td><td><b>Hive access path is gone</b> — it is an Iceberg table now (optional backup namespace, removable with <code>drop_backup</code>)</td><td>The real production cutover, once testing passed</td></tr>
+    <tr><td>add_files()</td><td>Nothing — imports files <b>into an existing</b> Iceberg table</td><td>Untouched, but the files are now also owned by Iceberg</td><td>Loose Parquet with no metastore, or incremental per-partition import</td></tr>
+  </table></div>
+
+  <div class="code">
+    <div class="hd"><span class="lang">Spark SQL · the three migration procedures</span><span>none of them copy data</span></div>
+<pre><span class="c">-- Test drive: Hive table stays alive, you get an Iceberg twin over the same files</span>
+<span class="k">CALL</span> glue_catalog.system.<span class="hl">snapshot</span>(<span class="s">'hive.db.orders'</span>, <span class="s">'silver_db.orders_test'</span>);
+
+<span class="c">-- Commit: the table becomes Iceberg. There is no going back through Hive.</span>
+<span class="k">CALL</span> glue_catalog.system.<span class="hl">migrate</span>(<span class="s">'hive.db.orders'</span>, map(<span class="s">'write.format.default'</span>, <span class="s">'parquet'</span>));
+
+<span class="c">-- Incremental: pull ONE partition of loose Parquet into an existing Iceberg table</span>
+<span class="k">CALL</span> glue_catalog.system.<span class="hl">add_files</span>(
+  table                 =&gt; <span class="s">'silver_db.orders'</span>,
+  source_table          =&gt; <span class="s">'`parquet`.`s3://lake/legacy/orders`'</span>,
+  partition_filter      =&gt; map(<span class="s">'dt'</span>, <span class="s">'2026-08-31'</span>),
+  check_duplicate_files =&gt; <span class="k">true</span>);</pre>
+  </div>
+
+  <div class="note warn"><span class="ic">RISK</span><div><code>add_files</code> <b>does not validate schema</b> — files that don't match the target table's schema and partitioning produce silently wrong reads. Worse, once imported, <b>later Iceberg operations can physically delete those files</b>. Never point it at a directory another live system still owns.</div></div>
+</div></section>
+
+<!-- ==================== 15 ==================== -->
+<section id="c15"><div class="wrap">
+  <div class="kick"><span class="n">15</span><span class="t">Streaming</span></div>
+  <h2>Every micro-batch is a commit</h2>
+  <p class="lede">Structured Streaming into Iceberg works exactly as you'd hope — and that is the problem. <b>Each micro-batch commits a snapshot</b>, so a one-second trigger produces 86,400 snapshots and a blizzard of tiny files per day. Streaming Iceberg is a tuning exercise between three dials: trigger interval, fanout, and compaction.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 360" role="img" aria-label="Streaming writes commit one snapshot per micro-batch producing many small files and rapid metadata growth; a longer trigger interval, hourly binpack compaction and frequent snapshot expiry keep the table healthy, while fanout-enabled trades more small files for lower write latency on partitioned tables.">
+      <rect x="20" y="30" width="180" height="70" rx="3" class="bx"/>
+      <text x="36" y="52" class="eb">SOURCE</text>
+      <text x="36" y="74" class="t3">Kafka · Kinesis</text>
+      <text x="36" y="92" class="t4">continuous arrival</text>
+      <line x1="200" y1="65" x2="240" y2="65" class="ln-a" marker-end="url(#aa)"/>
+
+      <rect x="244" y="30" width="230" height="70" rx="3" class="bxa"/>
+      <text x="260" y="52" class="eb">SPARK STRUCTURED STREAMING</text>
+      <text x="260" y="74" class="m3">trigger = 1 minute</text>
+      <text x="260" y="92" class="t4">outputMode: append | complete</text>
+
+      <line x1="474" y1="65" x2="514" y2="65" class="ln-a" marker-end="url(#aa)"/>
+      <text x="494" y="52" text-anchor="middle" class="m3">commit</text>
+
+      <rect x="518" y="18" width="462" height="94" rx="3" class="bxo"/>
+      <text x="534" y="40" class="eb-o">ONE SNAPSHOT PER MICRO-BATCH</text>
+      <g>
+        <rect x="534" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="548" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="562" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="576" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="590" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="604" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="618" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="632" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="646" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="660" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="674" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/><rect x="688" y="50" width="10" height="22" rx="1" fill="var(--ochre)"/>
+      </g>
+      <text x="712" y="66" class="t4">1,440 snapshots/day at a 1-minute trigger</text>
+      <text x="534" y="94" class="t4">each carrying its own tiny data files, manifest and manifest list</text>
+
+      <line x1="750" y1="112" x2="750" y2="140" class="ln-c" marker-end="url(#ac)"/>
+      <rect x="518" y="144" width="462" height="52" rx="3" class="bxc"/>
+      <text x="534" y="166" class="eb-c">UNMANAGED: METADATA OVERWHELMS THE DATA</text>
+      <text x="534" y="186" class="t4">planning slows, storage grows, every read opens thousands of files</text>
+
+      <line x1="20" y1="220" x2="980" y2="220" class="ln dash"/>
+      <text x="20" y="248" class="eb">THE THREE DIALS</text>
+      <rect x="20" y="260" width="300" height="86" rx="3" class="bx"/>
+      <text x="36" y="282" class="t2">trigger interval</text>
+      <text x="36" y="302" class="t4">Longer = fewer, larger files and</text>
+      <text x="36" y="318" class="t4">fewer snapshots. This is the</text>
+      <text x="36" y="334" class="t4">commit-rate dial. Pay in latency.</text>
+      <rect x="336" y="260" width="300" height="86" rx="3" class="bxo"/>
+      <text x="352" y="282" class="t2">fanout-enabled</text>
+      <text x="352" y="302" class="t4">Partitioned tables otherwise need</text>
+      <text x="352" y="318" class="t4">data sorted by spec. Fanout skips</text>
+      <text x="352" y="334" class="lbl-o">that — latency ↓, small files ↑</text>
+      <rect x="652" y="260" width="328" height="86" rx="3" class="bxa"/>
+      <text x="668" y="282" class="t2">compaction + expiry</text>
+      <text x="668" y="302" class="t4">Hourly <tspan class="m3">binpack</tspan> over the last hour with</text>
+      <text x="668" y="318" class="t4"><tspan class="m3">partial-progress-enabled</tspan>, plus aggressive</text>
+      <text x="668" y="334" class="t4"><tspan class="m3">expire_snapshots</tspan>. Non-optional here.</text>
+    </svg>
+    <figcaption><b>Streaming reads have a restriction worth knowing:</b> Iceberg supports streaming <i>from</i> a table only over <b>append</b> snapshots. A table that gets overwrites, deletes or compaction commits will not feed a naive stream reader cleanly — plan the source table's write pattern around that.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">PySpark · stream in, stream out</span><span>checkpointLocation is mandatory</span></div>
+<pre><span class="c"># ---- WRITE a stream INTO an Iceberg table -------------------------------</span>
+(events
+  .writeStream
+  .format(<span class="s">"iceberg"</span>)
+  .outputMode(<span class="s">"append"</span>)                          <span class="c"># or "complete" to replace each batch</span>
+  .trigger(processingTime=<span class="s">"1 minute"</span>)             <span class="c"># ← the commit-rate dial</span>
+  .option(<span class="s">"path"</span>, <span class="s">"glue_catalog.silver_db.orders"</span>)
+  .option(<span class="s">"<span class="hl">fanout-enabled</span>"</span>, <span class="s">"true"</span>)               <span class="c"># partitioned target: skip the sort requirement</span>
+  .option(<span class="s">"checkpointLocation"</span>, <span class="s">"s3://lake/_checkpoints/orders"</span>)
+  .start())
+
+<span class="c"># ---- READ a stream FROM an Iceberg table (append snapshots only) --------</span>
+df = (spark.readStream
+        .format(<span class="s">"iceberg"</span>)
+        .option(<span class="s">"<span class="hl">stream-from-timestamp</span>"</span>, str(start_ms))
+        .load(<span class="s">"glue_catalog.silver_db.orders"</span>))
+
+<span class="c"># ---- and the maintenance that makes it survivable -----------------------</span>
+<span class="c"># run hourly, scoped to the hour just completed</span>
+spark.sql(<span class="s">"""CALL glue_catalog.system.rewrite_data_files(
+     table   =&gt; 'silver_db.orders',
+     strategy=&gt; 'binpack',
+     where   =&gt; 'order_ts &gt;= current_timestamp() - INTERVAL 1 HOUR',
+     options =&gt; map('partial-progress-enabled','true'))"""</span>)</pre>
+  </div>
+</div></section>
+
+<!-- ==================== 16 ==================== -->
+<section id="c16"><div class="wrap">
+  <div class="kick"><span class="n">16</span><span class="t">Running it on AWS</span></div>
+  <h2>The wiring: EMR, Glue Catalog, S3</h2>
+  <p class="lede">Every configuration in this atlas comes down to four properties: <b>load the runtime</b>, <b>register the SQL extensions</b>, <b>point a catalog name at an implementation</b>, and <b>tell it which S3 prefix is the warehouse</b>. Get those right and the rest of the format is just SQL.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 330" role="img" aria-label="The four configuration properties map onto the runtime jar loaded into the Spark session, the SQL extensions that enable CALL procedures and ALTER PARTITION FIELD, the catalog implementation pointing at Glue, and the warehouse plus S3FileIO pointing at the S3 bucket.">
+      <rect x="20" y="26" width="290" height="272" rx="3" class="bx"/>
+      <text x="36" y="48" class="eb">SPARK SESSION ON EMR</text>
+      <rect x="36" y="60" width="258" height="52" rx="2" class="bxa"/>
+      <text x="46" y="80" class="m3">spark.jars.packages</text>
+      <text x="46" y="98" class="t4">iceberg-spark-runtime-&lt;spark&gt;_&lt;scala&gt;</text>
+      <rect x="36" y="120" width="258" height="52" rx="2" class="bxo"/>
+      <text x="46" y="140" class="m3">spark.sql.extensions</text>
+      <text x="46" y="158" class="t4">unlocks CALL + ALTER PARTITION FIELD</text>
+      <rect x="36" y="180" width="258" height="52" rx="2" class="bxd"/>
+      <text x="46" y="200" class="m3">spark.sql.catalog.glue_catalog</text>
+      <text x="46" y="218" class="t4">= …spark.SparkCatalog</text>
+      <rect x="36" y="240" width="258" height="46" rx="2" class="bxsn"/>
+      <text x="46" y="260" class="m3">…catalog-impl / …warehouse</text>
+      <text x="46" y="277" class="t4">GlueCatalog + s3://bucket/warehouse</text>
+
+      <line x1="310" y1="146" x2="368" y2="120" class="ln-a" marker-end="url(#aa)"/>
+      <line x1="310" y1="200" x2="368" y2="212" class="ln-d" marker-end="url(#ad)"/>
+
+      <rect x="372" y="86" width="270" height="72" rx="3" class="bxa"/>
+      <text x="388" y="108" class="t1">AWS Glue Data Catalog</text>
+      <text x="388" y="128" class="t4">metadata_location per table</text>
+      <text x="388" y="146" class="t4">shared with Athena, Redshift, SageMaker</text>
+
+      <rect x="372" y="186" width="270" height="86" rx="3" class="bxd"/>
+      <text x="388" y="208" class="t1">Amazon S3</text>
+      <text x="388" y="228" class="m3">s3://bucket/warehouse/</text>
+      <text x="388" y="248" class="t4">data/ + metadata/ — via S3FileIO,</text>
+      <text x="388" y="264" class="t4">not the s3a Hadoop filesystem</text>
+
+      <line x1="642" y1="122" x2="700" y2="122" class="ln" marker-end="url(#a)"/>
+      <line x1="642" y1="228" x2="700" y2="228" class="ln" marker-end="url(#a)"/>
+      <rect x="704" y="86" width="276" height="186" rx="3" class="bxs"/>
+      <text x="720" y="108" class="eb">EVERYTHING ELSE THAT SEES THE TABLE</text>
+      <rect x="720" y="120" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="140" class="m3">Athena — SQL, $5/TB, no cluster</text>
+      <rect x="720" y="156" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="176" class="m3">Glue ETL — --datalake-formats=iceberg</text>
+      <rect x="720" y="192" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="212" class="m3">EMR Serverless / EMR on EKS</text>
+      <rect x="720" y="228" width="244" height="30" rx="2" class="bx"/>
+      <text x="732" y="248" class="m3">Redshift Spectrum · SageMaker</text>
+    </svg>
+    <figcaption><b>One table, every engine.</b> Because the pointer lives in Glue and the bytes live in S3, a table EMR writes is immediately queryable in Athena with no export step — which is the whole argument for the lakehouse, made concrete.</figcaption>
+  </figure>
+
+  <div class="code">
+    <div class="hd"><span class="lang">PySpark · EMR + Glue Catalog</span><span>the session every example in this atlas assumes</span></div>
+<pre><span class="k">import</span> pyspark
+<span class="k">from</span> pyspark.sql <span class="k">import</span> SparkSession
+
+conf = (pyspark.SparkConf().setAppName(<span class="s">'iceberg_on_emr'</span>)
+  <span class="c"># ① the runtime — MUST match your Spark and Scala versions</span>
+  .set(<span class="s">'spark.jars.packages'</span>,
+       <span class="s">'org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.10.0'</span>)
+  <span class="c"># ② the SQL extensions — CALL procedures, ALTER … PARTITION FIELD, WRITE ORDERED BY</span>
+  .set(<span class="s">'spark.sql.extensions'</span>,
+       <span class="s">'org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions'</span>)
+  <span class="c"># ③ name a catalog and back it with Glue</span>
+  .set(<span class="s">'spark.sql.catalog.glue_catalog'</span>, <span class="s">'org.apache.iceberg.spark.SparkCatalog'</span>)
+  .set(<span class="s">'spark.sql.catalog.glue_catalog.<span class="hl">catalog-impl</span>'</span>,
+       <span class="s">'org.apache.iceberg.aws.glue.GlueCatalog'</span>)
+  <span class="c"># ④ where the bytes go, and how to talk to S3</span>
+  .set(<span class="s">'spark.sql.catalog.glue_catalog.warehouse'</span>, <span class="s">'s3://my-lakehouse/warehouse/'</span>)
+  .set(<span class="s">'spark.sql.catalog.glue_catalog.io-impl'</span>,
+       <span class="s">'org.apache.iceberg.aws.s3.S3FileIO'</span>)
+  <span class="c"># sensible defaults for any real job</span>
+  .set(<span class="s">'spark.sql.adaptive.enabled'</span>, <span class="s">'true'</span>)
+  .set(<span class="s">'spark.sql.session.timeZone'</span>, <span class="s">'UTC'</span>))
+
+spark = SparkSession.builder.config(conf=conf).getOrCreate()</pre>
+  </div>
+
+  <div class="grid g3">
+    <div class="card"><div class="tag">AWS Glue ETL job</div><h3>Two job parameters</h3><p>Set <code>--datalake-formats</code> to <code>iceberg</code>, then pass the same four catalog settings through <code>--conf</code>. Watch for line breaks silently swallowing a setting.</p></div>
+    <div class="card"><div class="tag">Local laptop</div><h3>Same code, one flag</h3><p>Swap <code>catalog-impl</code> for <code>type=hadoop</code> and point <code>warehouse</code> at a local path. Not one line of the example SQL changes — which is exactly the promise the format makes.</p></div>
+    <div class="card warn"><div class="tag">Version matching</div><h3>The one that bites</h3><p>The runtime artifact encodes <b>both</b> Spark and Scala versions. A mismatch fails with <code>IncompatibleClassChangeError</code> at session start, not at query time — check the Iceberg compatibility matrix first.</p></div>
+  </div>
+
+  <div class="note"><span class="ic">END</span><div><b>The through-line of all sixteen chapters:</b> Iceberg replaced "a table is a set of directories" with "a table is a list of files, described by metadata." Atomic commits, time travel, hidden partitioning, schema evolution, row-level deletes and branch-based auditing are not six features — they are six consequences of that one sentence.</div></div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>The Iceberg Atlas</b> — companion to Module 02, <i>Mindset: EMR 101</i>. Surender Sara · NorthBay Solutions.<br>
+  Diagrams and code traced from <b>Apache Iceberg: The Definitive Guide</b> (Aakulov, Merced &amp; Gidon, O'Reilly), chapters 1–14, plus the Apache Iceberg documentation for defaults the book does not state.
+</div></footer>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav a'));
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  function spy(){
+    var pos = window.scrollY + 150, idx = 0;
+    for (var i = 0; i < secs.length; i++){ if (secs[i] && secs[i].offsetTop <= pos) idx = i; }
+    links.forEach(function(a, i){ a.classList.toggle('on', i === idx); });
+  }
+  window.addEventListener('scroll', spy, {passive:true});
+  spy();
+})();
+</script>
