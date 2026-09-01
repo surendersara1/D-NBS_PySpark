@@ -37,7 +37,16 @@ Both are theme-aware (light/dark) and print cleanly to one figure per page for h
 
 ## 3 · Labs
 
-[3_labs/pyspark30/](3_labs/pyspark30/) — the runnable companion to deck 3.
+Two suites. Run `pyspark30` alongside deck 3, then `iceberg_deep` alongside
+deck 2's Iceberg sections and the Iceberg atlas.
+
+| Suite | Covers | Checks |
+|---|---|---|
+| [pyspark30/](3_labs/pyspark30/) | The 30 DataFrame functions — the daily vocabulary. Companion to deck 3. | 44 |
+| [iceberg_deep/](3_labs/iceberg_deep/) | **Spark × Iceberg interactions** — MERGE, snapshots, time travel, rollback, schema and partition evolution, delete files, CoW vs MoR, compaction, expiry, orphans, write-audit-publish. | 59 |
+
+### pyspark30 — the 30 functions
+
 Every output printed in the handbook was captured from a real run of these files.
 
 ```bash
@@ -78,6 +87,21 @@ and DELETE against the local Iceberg catalog.
   path fails with `NotFoundException: Failed to open input stream for file: …`.
   That is the format behaving correctly, and it is a good live demo of why the
   metadata tree points at real locations rather than relative directories.
+
+### iceberg_deep — Spark × Iceberg internals
+
+```bash
+cd 3_labs/iceberg_deep
+call windows_env.bat        # Windows, once per shell
+./run_all.sh                # 59 checks, six files, in order
+```
+
+Six labs that make the Iceberg atlas concrete — see
+[its README](3_labs/iceberg_deep/README.md) for the file-by-file map and for
+**five behaviours these labs surfaced that the documentation glosses over**,
+including the big one: a plain `rewrite_data_files` does **not** reconcile
+merge-on-read delete files, so a naive compaction schedule silently lets read
+cost grow forever.
 
 ## 4 · Reference
 
