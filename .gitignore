@@ -1,4 +1,5 @@
 __pycache__/
 *.pyc
-3_pyspark30_practice/warehouse/
+3_labs/pyspark30/warehouse/
 .playwright-mcp/
+*.jpeg
