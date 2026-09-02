@@ -1,0 +1,735 @@
+<meta charset="utf-8">
+<title>S3 Tables Deep Dive</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F8;--surface:#FFFFFF;--surface2:#E9EDF2;--sunken:#DFE5EC;
+  --ink:#111820;--muted:#5A6875;--line:#CFD8E1;--line2:#B3C0CD;
+  --accent:#0E7490;--accent-ink:#0A5A70;--accent-soft:rgba(14,116,144,.11);
+  --ok:#2E7D4F;--ok-soft:rgba(46,125,79,.12);
+  --warn:#B45309;--warn-soft:rgba(180,83,9,.12);
+  --bad:#B3261E;--bad-soft:rgba(179,38,30,.10);
+  --code-bg:#0E1720;--code-ink:#D6E2EA;--code-dim:#6D8494;
+  --hero-bg:#0E1720;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#22323F;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}}
+:root[data-theme="dark"]{
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;font:16px/1.62 'Public Sans',system-ui,sans-serif}
+h1,h2,h3{font-family:'Chivo',system-ui,sans-serif;margin:0;text-wrap:balance}
+code,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.wrap{max-width:1100px;margin:0 auto;padding:0 28px}
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:70px 0 52px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{font-size:clamp(36px,6vw,62px);font-weight:800;letter-spacing:-.025em;line-height:1.02}
+.hero .thesis{font-size:clamp(18px,2.4vw,23px);font-weight:600;margin:20px 0 6px;font-family:'Chivo',sans-serif}
+.hero .thesis em{font-style:normal;color:var(--accent)}
+.hero p.sub{color:var(--hero-mute);max-width:66ch;margin:12px 0 0}
+.vbadge{display:inline-flex;align-items:center;gap:7px;background:rgba(46,125,79,.18);border:1px solid var(--ok);
+  color:#8FE0B0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+  padding:6px 12px;border-radius:3px;margin-top:26px}
+.stats{display:flex;flex-wrap:wrap;margin-top:30px;border-top:1px solid var(--hero-line);border-left:1px solid var(--hero-line)}
+.stats div{flex:1 1 158px;padding:14px 16px;border-right:1px solid var(--hero-line);border-bottom:1px solid var(--hero-line)}
+.stats b{display:block;font-family:'Chivo',sans-serif;font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--hero-mute);margin-top:5px}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 93%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;overflow-x:auto}
+nav a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;padding:12px 10px;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}nav a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+section{padding:66px 0 34px;border-bottom:1px solid var(--line)}
+.kick{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:10px}
+section h2{font-size:clamp(25px,3.5vw,36px);font-weight:700;letter-spacing:-.015em}
+.lede{max-width:70ch;color:var(--muted);font-size:17px;margin:14px 0 0}
+.lede b,p.body b{color:var(--ink);font-weight:600}
+p.body{max-width:70ch;color:var(--muted);margin:14px 0 0}
+.lede code,p.body code,li code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+figure{margin:30px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px 22px 12px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:640px;margin:0 auto}
+figcaption{font-size:14px;color:var(--muted);max-width:84ch;margin:14px auto 4px;padding-top:12px;border-top:1px solid var(--line)}
+figcaption b{color:var(--ink)}
+figcaption code{font-size:.9em;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+.grid{display:grid;gap:13px;margin-top:20px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(228px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:17px}
+.card .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:8px}
+.card h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;color:var(--muted);margin:6px 0 0}
+.card ul{margin:8px 0 0;padding-left:17px;font-size:14px;color:var(--muted)}
+.card li{margin:4px 0}
+.card code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink)}
+.card.ok{border-color:var(--ok)}.card.ok .tag{color:var(--ok)}
+.card.warn{border-color:var(--warn)}.card.warn .tag{color:var(--warn)}
+.card.bad{border-color:var(--bad)}.card.bad .tag{color:var(--bad)}
+.code{background:var(--code-bg);border-radius:6px;margin:20px 0 0;overflow:hidden}
+.code .hd{display:flex;justify-content:space-between;padding:8px 15px;border-bottom:1px solid rgba(255,255,255,.08)}
+.code .hd span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--code-dim)}
+.code .hd span.lang{color:var(--accent)}
+.code pre{margin:0;padding:15px 17px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12.6px;line-height:1.68;color:var(--code-ink)}
+.code .c{color:var(--code-dim)}.code .k{color:#7FD7E3}.code .s{color:#E8C07D}.code .hl{color:#F0B860;font-weight:600}
+.note{display:flex;gap:12px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 5px 5px 0;padding:14px 16px;margin-top:20px;font-size:14.5px;max-width:90ch}
+.note b{color:var(--accent-ink)}
+.note.warn{background:var(--warn-soft);border-left-color:var(--warn)}.note.warn b{color:var(--warn)}
+.note.bad{background:var(--bad-soft);border-left-color:var(--bad)}.note.bad b{color:var(--bad)}
+.note.ok{background:var(--ok-soft);border-left-color:var(--ok)}.note.ok b{color:var(--ok)}
+.note .ic{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11.5px;flex-shrink:0;letter-spacing:.06em}
+table{width:100%;border-collapse:collapse;margin-top:20px;font-size:14px;background:var(--surface);border:1px solid var(--line)}
+th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2);background:var(--surface2);vertical-align:bottom}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)}
+td b{color:var(--ink)}
+.tw{overflow-x:auto}
+.mono1 td:first-child{font-family:'JetBrains Mono',monospace;font-size:12.2px;white-space:nowrap}
+.v{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.07em;padding:2px 6px;border-radius:2px;vertical-align:middle}
+.v-ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+.v-fix{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.v-no{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+footer{padding:44px 0 64px;color:var(--muted);font-size:13.5px}
+footer b{color:var(--ink)}
+svg text{font-family:'Public Sans',system-ui,sans-serif}
+.t1{font-size:13.5px;font-weight:700;fill:var(--ink)}
+.t2{font-size:12.5px;font-weight:600;fill:var(--ink)}
+.t3{font-size:12px;fill:var(--muted)}
+.t4{font-size:11px;fill:var(--muted)}
+.m1{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:var(--ink)}
+.m2{font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--muted)}
+.m3{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+.eb{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--accent-ink)}
+.eb-o{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--warn)}
+.eb-b{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--bad)}
+.eb-g{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--ok)}
+.la{fill:var(--accent-ink);font-size:11.5px;font-weight:600}
+.lb{fill:var(--bad);font-size:11.5px;font-weight:600}
+.lg{fill:var(--ok);font-size:11.5px;font-weight:600}
+.bx{fill:var(--surface);stroke:var(--line2);stroke-width:1.1}
+.bx2{fill:var(--surface2);stroke:var(--line2);stroke-width:1}
+.bxs{fill:var(--sunken);stroke:var(--line2);stroke-width:1}
+.bxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+.bxo{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.3}
+.bxb{fill:var(--bad-soft);stroke:var(--bad);stroke-width:1.3}
+.bxg{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.3}
+.bxd{fill:none;stroke:var(--line2);stroke-width:1.1;stroke-dasharray:5 4}
+.ln{stroke:var(--line2);stroke-width:1.5;fill:none}
+.lna{stroke:var(--accent);stroke-width:1.9;fill:none}
+.lnb{stroke:var(--bad);stroke-width:1.7;fill:none}
+.lng{stroke:var(--ok);stroke-width:1.7;fill:none}
+.dash{stroke-dasharray:5 4}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media print{nav{display:none}section{break-inside:avoid-page}figure{break-inside:avoid}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line2)"/></marker>
+<marker id="aa" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker>
+</defs></svg>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">S3 Tables trilogy · part 1 of 3</div>
+  <h1>S3 Tables<br>Deep Dive</h1>
+  <p class="thesis">Managed Iceberg where the <em>maintenance runs itself</em> — and the exact defaults that govern it.</p>
+  <p class="sub">Architecture, the three automatic maintenance jobs with their real default values, the DDL that actually works in Athena and Spark, metadata tables, and the limitations AWS documents but nobody reads until a query fails.</p>
+  <div class="vbadge">✓ EVERY NUMBER ON THIS PAGE READ FROM AWS DOCS, NOT INFERRED</div>
+  <div class="stats">
+    <div><b>512 MB</b><span>compaction target, default</span></div>
+    <div><b>120 h</b><span>max snapshot age, default</span></div>
+    <div><b>1</b><span>min snapshots kept</span></div>
+    <div><b>3 + 10</b><span>unreferenced / noncurrent days</span></div>
+    <div><b>4</b><span>compaction strategies</span></div>
+    <div><b>128 MB</b><span>parquet row group</span></div>
+  </div>
+</div></header>
+
+<nav aria-label="Chapters"><div class="wrap">
+<a href="#c1">01 What it is</a><a href="#c2">02 Architecture</a><a href="#c3">03 Table types</a><a href="#c4">04 Maintenance</a><a href="#c5">05 The trap</a><a href="#c6">06 DDL</a><a href="#c7">07 Metadata</a><a href="#c8">08 Limits</a><a href="#c9">09 Views</a><a href="#c10">10 Verification</a>
+</div></nav>
+
+<!-- ============ 01 ============ -->
+<section id="c1"><div class="wrap">
+  <div class="kick">01 · The proposition</div>
+  <h2>Iceberg, minus the cron jobs</h2>
+  <p class="lede">A self-managed Iceberg table on S3 works fine until you have a thousand of them. Then somebody has to schedule compaction, expire snapshots, and hunt orphan files — forever, per table. <b>S3 Tables is a bucket type that does all three continuously, on its own, and exposes the table through the Iceberg REST Catalog API</b> so any engine can read it.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 330" role="img" aria-label="Self-managed Iceberg requires you to schedule compaction, snapshot expiry and orphan removal per table, while S3 Tables runs all three continuously as a managed service.">
+      <text x="20" y="24" class="eb-o">SELF-MANAGED ICEBERG ON A GENERAL-PURPOSE BUCKET</text>
+      <rect x="20" y="36" width="460" height="120" rx="6" class="bxo"/>
+      <rect x="36" y="52" width="428" height="30" rx="4" class="bx"/>
+      <text x="48" y="72" class="m2">your table on s3://lake/…</text>
+      <rect x="36" y="88" width="136" height="26" rx="3" class="bx2"/><text x="46" y="106" class="m3">Airflow DAG</text>
+      <rect x="180" y="88" width="136" height="26" rx="3" class="bx2"/><text x="190" y="106" class="m3">cron / Lambda</text>
+      <rect x="324" y="88" width="140" height="26" rx="3" class="bx2"/><text x="334" y="106" class="m3">a Spark job you own</text>
+      <text x="36" y="136" class="t4">rewrite_data_files · expire_snapshots · remove_orphan_files</text>
+      <text x="36" y="152" class="t4">…scheduled, tuned and paid for by you. Per table. Forever.</text>
+
+      <text x="520" y="24" class="eb-g">S3 TABLES — A PURPOSE-BUILT BUCKET TYPE</text>
+      <rect x="520" y="36" width="460" height="120" rx="6" class="bxg"/>
+      <rect x="536" y="52" width="428" height="30" rx="4" class="bx"/>
+      <text x="548" y="72" class="m2">your table in a table bucket</text>
+      <rect x="536" y="88" width="136" height="26" rx="3" class="bxg"/><text x="546" y="106" class="m3">compaction</text>
+      <rect x="680" y="88" width="136" height="26" rx="3" class="bxg"/><text x="690" y="106" class="m3">snapshot mgmt</text>
+      <rect x="824" y="88" width="140" height="26" rx="3" class="bxg"/><text x="834" y="106" class="m3">orphan removal</text>
+      <text x="536" y="136" class="t4">All three ON BY DEFAULT, running continuously, no scheduler.</text>
+      <text x="536" y="152" class="lg">you configure them; you never trigger them</text>
+
+      <line x1="20" y1="184" x2="980" y2="184" class="ln dash"/>
+      <text x="20" y="212" class="eb">WHAT YOU STILL OWN EITHER WAY</text>
+      <rect x="20" y="224" width="300" height="86" rx="6" class="bx"/>
+      <text x="36" y="248" class="t2">Table design</text>
+      <text x="36" y="270" class="t4">partition transforms, sort order,</text>
+      <text x="36" y="286" class="t4">bucket counts, schema</text>
+      <text x="36" y="302" class="t4">— S3 Tables will not fix a bad layout</text>
+      <rect x="350" y="224" width="300" height="86" rx="6" class="bx"/>
+      <text x="366" y="248" class="t2">Query engine choice</text>
+      <text x="366" y="270" class="t4">Athena, EMR Spark, Glue, Redshift,</text>
+      <text x="366" y="286" class="t4">Trino, Flink — all read the same table</text>
+      <text x="366" y="302" class="t4">through the Iceberg REST catalog</text>
+      <rect x="680" y="224" width="300" height="86" rx="6" class="bx"/>
+      <text x="696" y="248" class="t2">Shuffle behaviour</text>
+      <text x="696" y="270" class="t4">hash / range / broadcast / coalesce</text>
+      <text x="696" y="286" class="t4">live in the ENGINE, not the storage</text>
+      <text x="696" y="302" class="la">that is part 2 of this trilogy</text>
+    </svg>
+    <figcaption><b>The pitch is operational, not analytical.</b> S3 Tables does not make a query engine faster by magic — it keeps the file layout in a state where the engine can be fast, without anybody remembering to run maintenance.</figcaption>
+  </figure>
+</div></section>
+
+<!-- ============ 02 ============ -->
+<section id="c2"><div class="wrap">
+  <div class="kick">02 · Architecture</div>
+  <h2>Two doors into the same table</h2>
+  <p class="lede">Every engine reaches an S3 Table one of two ways: through the <b>Glue Data Catalog integration</b> (which is what makes it appear in Athena, Redshift and QuickSight), or directly through the <b>Iceberg REST Catalog endpoint</b> (which is how Spark, Flink and Trino connect). Same table, same files, two front doors.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 400" role="img" aria-label="Engines reach an S3 Table either through the Glue Data Catalog integration, which surfaces it as the catalog s3tablescatalog slash bucket-name, or through the Iceberg REST catalog endpoint used by Spark, Flink and Trino.">
+      <rect x="20" y="26" width="180" height="66" rx="6" class="bx"/>
+      <text x="36" y="50" class="t2">Athena</text><text x="36" y="70" class="t4">picks the catalog in a dropdown</text>
+      <rect x="212" y="26" width="180" height="66" rx="6" class="bx"/>
+      <text x="228" y="50" class="t2">Redshift · QuickSight</text><text x="228" y="70" class="t4">via the same Glue catalog</text>
+      <rect x="608" y="26" width="180" height="66" rx="6" class="bx"/>
+      <text x="624" y="50" class="t2">EMR Spark · Glue ETL</text><text x="624" y="70" class="t4">REST catalog config</text>
+      <rect x="800" y="26" width="180" height="66" rx="6" class="bx"/>
+      <text x="816" y="50" class="t2">Trino · Flink</text><text x="816" y="70" class="t4">REST catalog config</text>
+
+      <line x1="110" y1="92" x2="210" y2="140" class="lna" marker-end="url(#aa)"/>
+      <line x1="302" y1="92" x2="270" y2="140" class="lna" marker-end="url(#aa)"/>
+      <line x1="698" y1="92" x2="740" y2="140" class="ln" marker-end="url(#a)"/>
+      <line x1="890" y1="92" x2="790" y2="140" class="ln" marker-end="url(#a)"/>
+
+      <rect x="90" y="144" width="300" height="82" rx="6" class="bxa"/>
+      <text x="106" y="168" class="eb">DOOR 1 · GLUE DATA CATALOG INTEGRATION</text>
+      <text x="106" y="190" class="m2">s3tablescatalog/&lt;table-bucket&gt;</text>
+      <text x="106" y="210" class="t4">a child catalog per table bucket, auto-populated</text>
+
+      <rect x="610" y="144" width="300" height="82" rx="6" class="bx"/>
+      <text x="626" y="168" class="eb">DOOR 2 · ICEBERG REST CATALOG</text>
+      <text x="626" y="190" class="m2">RESTCatalog + SigV4 signing</text>
+      <text x="626" y="210" class="t4">the open API — nothing AWS-specific about the protocol</text>
+
+      <line x1="240" y1="226" x2="420" y2="270" class="lna" marker-end="url(#aa)"/>
+      <line x1="760" y1="226" x2="580" y2="270" class="ln" marker-end="url(#a)"/>
+
+      <rect x="300" y="274" width="400" height="46" rx="6" class="bxs"/>
+      <text x="500" y="303" text-anchor="middle" class="t1">ONE TABLE BUCKET · ONE SET OF FILES</text>
+
+      <line x1="500" y1="320" x2="500" y2="346" class="ln" marker-end="url(#a)"/>
+      <rect x="150" y="350" width="700" height="42" rx="6" class="bx"/>
+      <text x="170" y="376" class="m2">table bucket → namespace → table → Iceberg metadata + Parquet</text>
+      <text x="830" y="376" text-anchor="end" class="t4">managed location, no LOCATION clause</text>
+    </svg>
+    <figcaption><b>The naming that trips everyone up:</b> the Glue catalog for a table bucket is literally <code>s3tablescatalog/&lt;bucket-name&gt;</code> — a catalog name containing a slash. In Athena you select it in the Catalogue dropdown; if you ever write it inline you must double-quote it.</figcaption>
+  </figure>
+
+  <div class="note"><span class="ic">TIP</span><div>Once Catalogue and Database are set in the Athena editor, <b>use bare table names</b> — <code>orders</code>, not the three-part quoted form. That is exactly what the AWS walkthrough does, and it removes an entire class of quoting errors.</div></div>
+</div></section>
+
+<!-- ============ 03 ============ -->
+<section id="c3"><div class="wrap">
+  <div class="kick">03 · What you can store</div>
+  <h2>Three kinds of table</h2>
+  <div class="grid g3">
+    <div class="card ok"><div class="tag">Standard</div><h3>Iceberg tables</h3><p>The normal case. Full Iceberg semantics: ACID commits, schema and partition evolution, time travel, row-level updates.</p><p>Compaction supports <b>Parquet, Avro and ORC</b> file types.</p></div>
+    <div class="card bad"><div class="tag">Iceberg V3 <span class="v v-no">ATHENA CANNOT READ</span></div><h3>Variant, deletion vectors, row lineage</h3><p>V3 adds the <code>variant</code> type (dynamic JSON shredded into typed Parquet columns), deletion vectors and row lineage.</p><p><b>Athena/Trino support for V3 is "No" in the AWS matrix</b> — not just variant, the whole spec. Upgrade a table to V3 and your Athena users lose it.</p></div>
+    <div class="card"><div class="tag">System</div><h3>Metadata tables</h3><p>Six of them: <code>$snapshots</code>, <code>$files</code>, <code>$history</code>, <code>$manifests</code>, <code>$partitions</code>, <code>$refs</code>. Chapter 07.</p><p>These are standard <b>Iceberg</b> metadata tables surfaced by the engine — not something S3 Tables generates.</p></div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 1000 250" role="img" aria-label="Iceberg V3 engine support matrix: EMR Spark 7.12 and Glue 5.1 support V3, with variant needing EMR 8.0 and Glue 6.0; Redshift and SageMaker notebooks support V3 but not variant; Athena supports neither.">
+      <text x="20" y="24" class="eb">ICEBERG V3 SUPPORT — READ THIS BEFORE UPGRADING A TABLE</text>
+      <rect x="20" y="36" width="960" height="30" rx="4" class="bx2"/>
+      <text x="36" y="56" class="m3">ENGINE</text>
+      <text x="470" y="56" class="m3">V3 (deletion vectors, row lineage)</text>
+      <text x="760" y="56" class="m3">VARIANT TYPE</text>
+
+      <rect x="20" y="70" width="960" height="28" rx="3" class="bxg"/>
+      <text x="36" y="89" class="m2" style="fill:var(--ink)">EMR Spark</text>
+      <text x="470" y="89" class="m2" style="fill:var(--ok)">release 7.12+</text>
+      <text x="760" y="89" class="m2" style="fill:var(--ok)">release 8.0+</text>
+
+      <rect x="20" y="102" width="960" height="28" rx="3" class="bxg"/>
+      <text x="36" y="121" class="m2" style="fill:var(--ink)">AWS Glue ETL</text>
+      <text x="470" y="121" class="m2" style="fill:var(--ok)">version 5.1+</text>
+      <text x="760" y="121" class="m2" style="fill:var(--ok)">version 6.0+</text>
+
+      <rect x="20" y="134" width="960" height="28" rx="3" class="bxo"/>
+      <text x="36" y="153" class="m2" style="fill:var(--ink)">Amazon Redshift</text>
+      <text x="470" y="153" class="m2" style="fill:var(--ok)">Yes</text>
+      <text x="760" y="153" class="m2" style="fill:var(--warn)">No</text>
+
+      <rect x="20" y="166" width="960" height="28" rx="3" class="bxo"/>
+      <text x="36" y="185" class="m2" style="fill:var(--ink)">SageMaker Unified Studio notebooks</text>
+      <text x="470" y="185" class="m2" style="fill:var(--ok)">Yes</text>
+      <text x="760" y="185" class="m2" style="fill:var(--warn)">No</text>
+
+      <rect x="20" y="198" width="960" height="28" rx="3" class="bxb"/>
+      <text x="36" y="217" class="m2" style="fill:var(--ink)">Amazon Athena (Trino)</text>
+      <text x="470" y="217" class="m2" style="fill:var(--bad)">No</text>
+      <text x="760" y="217" class="m2" style="fill:var(--bad)">No</text>
+
+      <text x="20" y="244" class="lb">V3 is a ONE-WAY upgrade — a V3 table cannot be downgraded to V2 through standard operations.</text>
+    </svg>
+    <figcaption><b>This is the trap to say out loud.</b> Upgrading a table to format-version 3 to get deletion vectors is irreversible, and it removes that table from Athena entirely. Variant is additionally limited to 15 named Regions. If Athena users depend on the table, stay on V2.</figcaption>
+  </figure>
+
+  <p class="body">All three rows above are the same physical thing: an Iceberg table in a managed bucket. "Variant" is a column type rather than a table type, and the metadata tables are views over the Iceberg metadata tree rather than stored data. Deletion vectors also need opting in — they require <code>format-version=3</code> <i>plus</i> <code>write.delete.mode</code>/<code>write.update.mode</code>/<code>write.merge.mode</code> set to <code>merge-on-read</code>.</p>
+</div></section>
+
+<!-- ============ 04 ============ -->
+<section id="c4"><div class="wrap">
+  <div class="kick">04 · The headline feature</div>
+  <h2>Three maintenance jobs, and their real defaults</h2>
+  <p class="lede">This is the part worth memorising, because these numbers decide your storage bill and how far back you can time travel. <b>Two jobs are configured per table; one is configured per bucket and applies to every table in it.</b> All are on by default.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 420" role="img" aria-label="Three maintenance jobs: compaction and snapshot management are configured per table, unreferenced file removal is configured per bucket; each has documented default values and a defined effect on storage and time travel.">
+      <rect x="20" y="26" width="620" height="30" rx="4" class="bxa"/>
+      <text x="330" y="46" text-anchor="middle" class="eb">CONFIGURED PER TABLE — PutTableMaintenanceConfiguration</text>
+      <rect x="660" y="26" width="320" height="30" rx="4" class="bxo"/>
+      <text x="820" y="46" text-anchor="middle" class="eb-o">PER BUCKET — PutTableBucketMaintenanceConfiguration</text>
+
+      <rect x="20" y="66" width="300" height="200" rx="6" class="bx"/>
+      <text x="36" y="90" class="t1">1 · Compaction</text>
+      <text x="36" y="110" class="t4">merges small objects into fewer large ones,</text>
+      <text x="36" y="126" class="t4">AND applies pending row-level deletes</text>
+      <rect x="36" y="138" width="268" height="24" rx="3" class="bx2"/>
+      <text x="46" y="155" class="m3">target size: 512 MB default</text>
+      <rect x="36" y="166" width="268" height="24" rx="3" class="bx2"/>
+      <text x="46" y="183" class="m3">configurable range: 64–512 MB</text>
+      <rect x="36" y="194" width="268" height="24" rx="3" class="bx2"/>
+      <text x="46" y="211" class="m3">parquet row group: 128 MB</text>
+      <text x="36" y="238" class="t4">Parquet · Avro · ORC</text>
+      <text x="36" y="256" class="la">type = icebergCompaction</text>
+
+      <rect x="340" y="66" width="300" height="200" rx="6" class="bx"/>
+      <text x="356" y="90" class="t1">2 · Snapshot management</text>
+      <text x="356" y="110" class="t4">expires old snapshots, marking objects only</text>
+      <text x="356" y="126" class="t4">they referenced as noncurrent</text>
+      <rect x="356" y="138" width="268" height="24" rx="3" class="bx2"/>
+      <text x="366" y="155" class="m3">minSnapshotsToKeep: 1</text>
+      <rect x="356" y="166" width="268" height="24" rx="3" class="bx2"/>
+      <text x="366" y="183" class="m3">maxSnapshotAgeHours: 120  (5 days)</text>
+      <rect x="356" y="194" width="268" height="24" rx="3" class="bxb"/>
+      <text x="366" y="211" class="m3">this is what LIMITS your time travel</text>
+      <text x="356" y="238" class="t4">noncurrent objects then wait for job 3</text>
+      <text x="356" y="256" class="la">type = icebergSnapshotManagement</text>
+
+      <rect x="660" y="66" width="320" height="200" rx="6" class="bxo"/>
+      <text x="676" y="90" class="t1">3 · Unreferenced file removal</text>
+      <text x="676" y="110" class="t4">deletes objects no snapshot references —</text>
+      <text x="676" y="126" class="t4">the output of crashed jobs</text>
+      <rect x="676" y="138" width="288" height="24" rx="3" class="bx"/>
+      <text x="686" y="155" class="m3">unreferencedDays: 3   → mark noncurrent</text>
+      <rect x="676" y="166" width="288" height="24" rx="3" class="bx"/>
+      <text x="686" y="183" class="m3">nonCurrentDays: 10    → then delete</text>
+      <rect x="676" y="194" width="288" height="24" rx="3" class="bxb"/>
+      <text x="686" y="211" class="m3">deletion is PERMANENT — support only</text>
+      <text x="676" y="238" class="t4">applies to EVERY table in the bucket</text>
+      <text x="676" y="256" class="la">type = icebergUnreferencedFileRemoval</text>
+
+      <text x="20" y="298" class="eb">THE LIFECYCLE OF A FILE NOBODY NEEDS ANY MORE</text>
+      <rect x="20" y="310" width="180" height="52" rx="5" class="bx"/>
+      <text x="36" y="332" class="m3">referenced by</text><text x="36" y="350" class="m3">a live snapshot</text>
+      <line x1="200" y1="336" x2="238" y2="336" class="ln" marker-end="url(#a)"/>
+      <rect x="242" y="310" width="180" height="52" rx="5" class="bx2"/>
+      <text x="258" y="332" class="m3">snapshot expires</text><text x="258" y="350" class="m3">(age &gt; 120 h)</text>
+      <line x1="422" y1="336" x2="460" y2="336" class="ln" marker-end="url(#a)"/>
+      <rect x="464" y="310" width="180" height="52" rx="5" class="bxo"/>
+      <text x="480" y="332" class="m3">marked NONCURRENT</text><text x="480" y="350" class="m3">still on disk, still billed</text>
+      <line x1="644" y1="336" x2="682" y2="336" class="lnb" marker-end="url(#ab)"/>
+      <rect x="686" y="310" width="180" height="52" rx="5" class="bxb"/>
+      <text x="702" y="332" class="m3">deleted after</text><text x="702" y="350" class="m3">nonCurrentDays</text>
+      <text x="880" y="342" class="lb">unrecoverable</text>
+
+      <text x="20" y="392" class="t4">So the true "how far back can I go" number is maxSnapshotAgeHours, and the true "when does my bill drop" number is that plus nonCurrentDays.</text>
+      <text x="20" y="410" class="t4">Under defaults: time travel reaches back 5 days; storage is actually released roughly 10 days after a snapshot expires.</text>
+    </svg>
+    <figcaption><b>Compaction doing double duty is the detail to notice:</b> AWS documents that it "also applies the effects of row-level deletes in your table". On a merge-on-read table that is exactly the reconciliation work you would otherwise schedule yourself — here it just happens.</figcaption>
+  </figure>
+
+  <h3 style="margin-top:34px;font-size:19px">The four compaction strategies</h3>
+  <div class="tw"><table class="mono1">
+    <tr><th>strategy</th><th>what it does</th><th>when S3 picks it / when to pick it</th></tr>
+    <tr><td>auto <span class="v v-ok">DEFAULT</span></td><td>S3 chooses for you based on the table's sort order</td><td>Applies <b>sort</b> if the table has a sort order in its metadata; <b>binpack</b> if it does not.</td></tr>
+    <tr><td>binpack</td><td>Combines small files into larger ones, typically targeting sizes over 100 MB, applying pending deletes</td><td>The default for unsorted tables. Cheapest.</td></tr>
+    <tr><td>sort</td><td>Hierarchical sort on the columns in <code>sort_order</code> during compaction</td><td>When queries frequently filter on specific columns. <b>Requires a sort order</b> in table properties.</td></tr>
+    <tr><td>z-order</td><td>Blends multiple attributes into one scalar for sorting, so several dimensions prune at once</td><td>When you filter across multiple dimensions simultaneously. <b>Requires a sort order.</b></td></tr>
+  </table></div>
+  <div class="note warn"><span class="ic">COST</span><div>AWS states plainly that <b>compaction incurs additional cost, and <code>z-order</code> and <code>sort</code> may cost more than <code>binpack</code></b>. Setting <code>sort</code> or <code>z-order</code> also requires the <code>s3tables:GetTableData</code> permission, because the job must read your data to order it.</div></div>
+
+  <h3 style="margin-top:30px;font-size:19px">Every knob, with its minimum</h3>
+  <div class="tw"><table class="mono1">
+    <tr><th>property</th><th>scope</th><th>default</th><th>minimum</th><th>equivalent Iceberg routine</th></tr>
+    <tr><td>targetFileSizeMB</td><td>table</td><td>512 MB</td><td>64 MB</td><td><code>rewriteDataFiles</code></td></tr>
+    <tr><td>minimumSnapshots</td><td>table</td><td>1</td><td>1</td><td><code>ExpireSnapshots retainLast</code></td></tr>
+    <tr><td>maximumSnapshotAge</td><td>table</td><td>120 hours</td><td>1 hour</td><td><code>ExpireSnapshots expireOlderThan</code></td></tr>
+    <tr><td>unreferencedDays</td><td><b>bucket</b></td><td>3 days</td><td>1 day</td><td><code>deleteOrphanFiles</code></td></tr>
+    <tr><td>nonCurrentDays</td><td><b>bucket</b></td><td>10 days</td><td>1 day</td><td>—</td></tr>
+  </table></div>
+
+  <div class="note"><span class="ic">4TH</span><div>There is a <b>fourth, opt-in</b> maintenance operation the marketing rarely mentions: <b>record expiration</b>, configured per table via <code>PutTableRecordExpirationConfiguration</code>. It expires <i>rows</i> by age, not files — useful for retention policies you would otherwise implement as a scheduled <code>DELETE</code>.</div></div>
+
+  <div class="note warn"><span class="ic">TIER</span><div>If you put a table on <b>S3 Intelligent-Tiering</b>, note that <b>compaction runs only on files in the Frequent Access tier</b>. Delete files sitting on cold data are not reconciled, and files under 128 KB never tier at all. Also: Intelligent-Tiering is <b>not</b> automatic — tables are created in S3 Standard and <b>the storage class cannot be changed after creation</b>. You must specify it at <code>CreateTable</code>.</div></div>
+
+  <div class="code"><div class="hd"><span class="lang">AWS CLI · tune the maintenance</span><span>the only way to change these</span></div>
+<pre><span class="c"># compaction target file size -> 256 MB (valid range 64-512)</span>
+aws s3tables put-table-maintenance-configuration \
+   --table-bucket-arn arn:aws:s3tables:us-east-1:111122223333:bucket/my-bucket \
+   --type <span class="hl">icebergCompaction</span> --namespace mynamespace --name mytable \
+   --value='{"status":"enabled","settings":{"icebergCompaction":{"targetFileSizeMB":256}}}'
+
+<span class="c"># compaction strategy -> sort  (needs a sort_order + GetTableData permission)</span>
+aws s3tables put-table-maintenance-configuration \
+   --table-bucket-arn arn:aws:s3tables:us-east-1:111122223333:bucket/my-bucket \
+   --type icebergCompaction --namespace mynamespace --name mytable \
+   --value='{"status":"enabled","settings":{"icebergCompaction":{"strategy":"<span class="hl">sort</span>"}}}'
+
+<span class="c"># keep 10 snapshots and ~104 days of history instead of 1 and 5 days</span>
+aws s3tables put-table-maintenance-configuration \
+   --table-bucket-arn arn:aws:s3tables:us-east-1:111122223333:bucket/my-bucket \
+   --namespace my_namespace --name my_table \
+   --type <span class="hl">icebergSnapshotManagement</span> \
+   --value '{"status":"enabled","settings":{"icebergSnapshotManagement":{
+             "minSnapshotsToKeep":10,"maxSnapshotAgeHours":2500}}}'
+
+<span class="c"># orphan cleanup — BUCKET level, hits every table in the bucket</span>
+aws s3tables put-table-bucket-maintenance-configuration \
+   --table-bucket-arn arn:aws:s3tables:us-east-1:111122223333:bucket/my-bucket \
+   --type <span class="hl">icebergUnreferencedFileRemoval</span> \
+   --value '{"status":"enabled","settings":{"icebergUnreferencedFileRemoval":{
+             "unreferencedDays":4,"nonCurrentDays":10}}}'</pre></div>
+</div></section>
+
+<!-- ============ 05 ============ -->
+<section id="c5"><div class="wrap">
+  <div class="kick">05 · The trap</div>
+  <h2>Two ways to silently switch off snapshot expiry</h2>
+  <p class="lede">This is the single most important operational warning in the S3 Tables documentation, and it is easy to trigger by accident while doing something that looks like best practice. <b>If either condition below is true, snapshot management fails for the <i>entire table</i> — no snapshots expire, and storage grows without limit.</b></p>
+
+  <figure>
+    <svg viewBox="0 0 1000 300" role="img" aria-label="Snapshot management fails entirely if the table has any user-defined branch or tag, or if the Iceberg history expire table properties are set; the fix is to remove them and check the maintenance job status.">
+      <rect x="20" y="26" width="470" height="150" rx="6" class="bxb"/>
+      <text x="36" y="50" class="eb-b">TRIGGER 1 · ANY USER-DEFINED BRANCH OR TAG</text>
+      <rect x="36" y="62" width="438" height="26" rx="3" class="bx"/>
+      <text x="46" y="80" class="m3">ALTER TABLE t CREATE BRANCH etl_branch;</text>
+      <rect x="36" y="92" width="438" height="26" rx="3" class="bx"/>
+      <text x="46" y="110" class="m3">ALTER TABLE t CREATE TAG q3_close;</text>
+      <text x="36" y="136" class="t4">"If any user-defined tag or branch exists on the table, snapshot</text>
+      <text x="36" y="152" class="t4">management will fail for the entire table." Even a short retention.</text>
+      <text x="36" y="170" class="lb">write-audit-publish on S3 Tables disables your expiry</text>
+
+      <rect x="510" y="26" width="470" height="150" rx="6" class="bxb"/>
+      <text x="526" y="50" class="eb-b">TRIGGER 2 · ICEBERG RETENTION PROPERTIES</text>
+      <rect x="526" y="62" width="438" height="26" rx="3" class="bx"/>
+      <text x="536" y="80" class="m3">history.expire.max-snapshot-age-ms</text>
+      <rect x="526" y="92" width="438" height="26" rx="3" class="bx"/>
+      <text x="536" y="110" class="m3">history.expire.min-snapshots-to-keep</text>
+      <text x="526" y="136" class="t4">Setting either as a TABLE PROPERTY fails the whole job</text>
+      <text x="526" y="152" class="t4">"regardless of the configured value."</text>
+      <text x="526" y="170" class="lb">configure retention via the API, never via TBLPROPERTIES</text>
+
+      <text x="20" y="212" class="eb-g">THE FIX, AND HOW TO KNOW IT HAPPENED</text>
+      <rect x="20" y="224" width="470" height="62" rx="6" class="bxg"/>
+      <text x="36" y="248" class="m3">ALTER TABLE db.t UNSET TBLPROPERTIES</text>
+      <text x="36" y="266" class="m3">  ('history.expire.max-snapshot-age-ms');</text>
+      <text x="36" y="282" class="t4">…and drop every user-defined branch and tag.</text>
+      <rect x="510" y="224" width="470" height="62" rx="6" class="bxg"/>
+      <text x="526" y="248" class="m3">aws s3tables get-table-maintenance-job-status</text>
+      <text x="526" y="266" class="t4">Returns FAILED plus a message describing the cause.</text>
+      <text x="526" y="282" class="t4">Nothing surfaces in your query engine — you must ask.</text>
+    </svg>
+    <figcaption><b>Why this matters beyond the bill:</b> the write-audit-publish pattern from the Iceberg atlas depends on branches. On S3 Tables, keeping a permanent branch around silently disables automatic snapshot expiry for that table. Use branches transiently and drop them, or accept that you now own expiry for that table.</figcaption>
+  </figure>
+
+  <div class="note bad"><span class="ic">SILENT</span><div>Nothing in Athena or Spark tells you this happened. The only signal is <code>GetTableMaintenanceJobStatus</code> returning <code>FAILED</code>. If you run S3 Tables in production, <b>alarm on that API</b> — it is the difference between a managed table and an unbounded storage bill.</div></div>
+</div></section>
+
+<!-- ============ 06 ============ -->
+<section id="c6"><div class="wrap">
+  <div class="kick">06 · DDL that actually works</div>
+  <h2>Athena and Spark, side by side</h2>
+  <p class="lede">These two dialects are <b>not</b> interchangeable, and mixing them is the most common source of "mismatched input" errors. The rule: <b>Athena quotes with <code>"</code> and needs <code>table_type</code>; Spark quotes with <code>`</code> and needs <code>USING iceberg</code>.</b></p>
+
+  <div class="grid g2">
+    <div class="card ok"><div class="tag">Athena — CREATE TABLE</div><h3>Three rules</h3><ul><li><code>TBLPROPERTIES ('table_type'='iceberg')</code> is <b>required</b></li><li><b>No</b> <code>LOCATION</code> — storage is managed</li><li><b>No</b> <code>USING iceberg</code> — that is Spark</li></ul></div>
+    <div class="card"><div class="tag">Athena — CTAS</div><h3>Three omissions</h3><ul><li>Omit <code>location</code> — managed</li><li>Omit <code>table_type</code> — already defaults to ICEBERG</li><li>Omit <code>format</code> — already defaults to PARQUET</li><li>Never pass <code>is_external</code> — not an S3 Tables property</li></ul></div>
+  </div>
+
+  <div class="code"><div class="hd"><span class="lang">Athena SQL</span><span>set Catalogue + Database in the editor, then use bare names</span></div>
+<pre><span class="c">-- namespace. Unqualified, with the Catalogue dropdown set.</span>
+<span class="k">CREATE DATABASE</span> ecom_namespace;
+
+<span class="c">-- hidden partitioning + bucketing, declared in the Iceberg schema</span>
+<span class="k">CREATE TABLE</span> orders (
+    order_id        string,
+    user_id         string,
+    order_timestamp timestamp,
+    total_amount    double,
+    country         string)
+<span class="k">PARTITIONED BY</span> (<span class="hl">day(order_timestamp)</span>, <span class="hl">bucket(128, user_id)</span>)
+<span class="k">TBLPROPERTIES</span> (<span class="s">'table_type'</span> = <span class="s">'iceberg'</span>);
+
+<span class="c">-- CTAS: the WITH clause is usually just partitioning</span>
+<span class="k">CREATE TABLE</span> high_value_orders
+<span class="k">WITH</span> (partitioning = <span class="k">ARRAY</span>[<span class="s">'day(order_timestamp)'</span>, <span class="s">'bucket(64, user_id)'</span>])
+<span class="k">AS SELECT</span> order_id, user_id, order_timestamp, total_amount
+   <span class="k">FROM</span> orders <span class="k">WHERE</span> total_amount &gt; 500.00;
+
+<span class="c">-- full ACID DML</span>
+<span class="k">UPDATE</span> orders <span class="k">SET</span> country = <span class="s">'USA'</span> <span class="k">WHERE</span> country = <span class="s">'US'</span>;
+<span class="k">DELETE FROM</span> orders <span class="k">WHERE</span> total_amount &lt; 1;
+<span class="k">MERGE INTO</span> orders t <span class="k">USING</span> staging s <span class="k">ON</span> t.order_id = s.order_id
+  <span class="k">WHEN MATCHED THEN UPDATE SET</span> total_amount = s.total_amount
+  <span class="k">WHEN NOT MATCHED THEN INSERT</span> *;
+
+<span class="c">-- time travel</span>
+<span class="k">SELECT</span> * <span class="k">FROM</span> orders <span class="hl">FOR TIMESTAMP AS OF</span> (current_timestamp - <span class="k">INTERVAL</span> <span class="s">'1'</span> <span class="k">HOUR</span>);
+<span class="k">SELECT</span> * <span class="k">FROM</span> orders <span class="hl">FOR VERSION AS OF</span> 8333017788700497002;</pre></div>
+
+  <div class="code"><div class="hd"><span class="lang">Spark SQL — EMR / Glue</span><span>backticks, USING iceberg, dotted metadata tables</span></div>
+<pre><span class="c">-- note the backticks and USING iceberg — both WRONG in Athena</span>
+<span class="k">CREATE TABLE</span> `my_catalog`.`ecom_namespace`.`orders` (
+    order_id        STRING,
+    user_id         STRING,
+    order_timestamp TIMESTAMP,
+    total_amount    DOUBLE,
+    country         STRING)
+<span class="hl">USING iceberg</span>
+<span class="k">PARTITIONED BY</span> (days(order_timestamp), bucket(128, user_id));
+
+<span class="c">-- things ONLY Spark can do on an S3 Table:</span>
+<span class="k">ALTER TABLE</span> ... <span class="hl">RENAME COLUMN</span> country <span class="k">TO</span> country_code;
+<span class="k">ALTER TABLE</span> ... <span class="hl">ADD PARTITION FIELD</span> hours(order_timestamp);
+<span class="k">ALTER TABLE</span> ... <span class="hl">WRITE ORDERED BY</span> country_code <span class="k">ASC</span>;   <span class="c">-- unlocks sort/z-order compaction</span>
+
+<span class="c">-- metadata tables use a DOT in Spark, a $ in Athena</span>
+<span class="k">SELECT</span> * <span class="k">FROM</span> `my_catalog`.`ecom_namespace`.`orders`.snapshots;</pre></div>
+
+  <div class="note warn"><span class="ic">WHY</span><div>The dialect difference is not cosmetic. Athena is Trino-derived; EMR/Glue run Spark SQL. A SageMaker Unified Studio editor can be wired to <i>either</i>, which is why the same file can produce two completely different parser errors in two tabs. <b>Read the "expecting" list in the error</b>: if it mentions <code>BACKQUOTED_IDENTIFIER</code>, <code>CODEGEN</code> or <code>MSCK</code>, you are on Spark.</div></div>
+</div></section>
+
+<!-- ============ 07 ============ -->
+<section id="c7"><div class="wrap">
+  <div class="kick">07 · Metadata tables</div>
+  <h2>The table's own telemetry, as SQL</h2>
+  <p class="lede">Everything the maintenance jobs act on is visible to you first. These queries cost almost nothing — they read metadata, not data — and they are how you audit whether the managed maintenance is actually keeping up.</p>
+
+  <div class="tw"><table class="mono1">
+    <tr><th>metadata table</th><th>answers</th><th>the field that matters</th></tr>
+    <tr><td>$snapshots</td><td>What each commit did, and when</td><td><code>operation</code>, <code>summary['added-records']</code>, <code>committed_at</code></td></tr>
+    <tr><td>$files</td><td>Current data files and their statistics</td><td><code>file_size_in_bytes</code> — compare against the 512 MB compaction target</td></tr>
+    <tr><td>$history</td><td>When each snapshot became current, and its lineage</td><td><code>parent_id</code> + <code>is_current_ancestor</code> — two sharing a parent with one false means a rollback happened</td></tr>
+    <tr><td>$manifests</td><td>The pruning layer's own health</td><td><code>added_data_files_count</code>, <code>partition_summaries</code></td></tr>
+    <tr><td>$partitions</td><td>Per-partition file counts and delete debt</td><td><code>file_count</code>, <code>spec_id</code> (two spec_ids = a partition evolution happened)</td></tr>
+    <tr><td>$refs</td><td>Branches and tags</td><td><code>type</code> — <b>any row here that you created disables snapshot expiry (ch 05)</b></td></tr>
+  </table></div>
+
+  <div class="code"><div class="hd"><span class="lang">Athena · the three queries worth scheduling</span><span>metadata only — near-zero cost</span></div>
+<pre><span class="c">-- 1. Is compaction keeping up? Average file size should trend toward 512 MB.</span>
+<span class="k">SELECT</span> partition,
+       count(*)                                <span class="k">AS</span> files,
+       cast(avg(file_size_in_bytes) <span class="k">AS</span> bigint) <span class="k">AS</span> avg_bytes
+<span class="k">FROM</span> <span class="s">"orders$files"</span>
+<span class="k">GROUP BY</span> partition <span class="k">ORDER BY</span> files <span class="k">DESC</span>;
+
+<span class="c">-- 2. How far back can I actually time travel? (bounded by maxSnapshotAgeHours)</span>
+<span class="k">SELECT</span> min(committed_at) <span class="k">AS</span> oldest_reachable,
+       max(committed_at) <span class="k">AS</span> newest,
+       count(*)          <span class="k">AS</span> snapshots
+<span class="k">FROM</span> <span class="s">"orders$snapshots"</span>;
+
+<span class="c">-- 3. Am I about to disable my own snapshot expiry? Anything here but 'main' is a risk.</span>
+<span class="k">SELECT</span> name, type, snapshot_id <span class="k">FROM</span> <span class="s">"orders$refs"</span>;</pre></div>
+  <p class="body">Query 3 is the one to put on a schedule. It is the cheap early warning for the chapter 05 trap: if a branch or tag shows up that nobody intended to keep, snapshot expiry has already stopped for that table.</p>
+</div></section>
+
+<!-- ============ 08 ============ -->
+<section id="c8"><div class="wrap">
+  <div class="kick">08 · Limitations</div>
+  <h2>What Athena will refuse</h2>
+  <p class="lede">AWS publishes these under "Considerations and limitations" and they are the difference between a demo that works and one that dies in front of an audience.</p>
+
+  <div class="grid g2">
+    <div class="card bad"><div class="tag">Not supported on S3 Tables via Athena</div><h3>Three DDL statements</h3><ul><li><code>ALTER TABLE … RENAME</code></li><li><code>CREATE VIEW</code></li><li><code>ALTER DATABASE</code></li></ul><p>Column renames and partition evolution must come from <b>Spark</b>. Views must live in the regular <code>awsdatacatalog</code>, or be materialised as a table.</p></div>
+    <div class="card warn"><div class="tag">Blocked by workgroup configuration</div><h3>Writes can be disabled</h3><ul><li>Workgroups with <b>SSE-KMS / CSE-KMS</b> encryption: no <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> or <code>MERGE</code> on S3 Tables</li><li>Workgroups with <b>S3 Requester Pays</b>: no DML at all</li></ul><p>If your writes fail and the SQL is right, check the workgroup before the SQL.</p></div>
+    <div class="card warn"><div class="tag">OPTIMIZE / VACUUM</div><h3>Managed, not yours</h3><p>Listed as exceptions: compaction and snapshot management happen in S3. Running them manually is not the intended path — configure the maintenance jobs instead (ch 04).</p></div>
+    <div class="card bad"><div class="tag">Failed CTAS</div><h3><code>DROP TABLE</code> will not clean up</h3><p>AWS: <i>"you cannot use the Athena DROP TABLE statements to remove the table that was partially created by the query."</i> Use <code>aws s3tables delete-table</code>.</p></div>
+    <div class="card bad"><div class="tag">EMR above 7.5</div><h3><code>DROP TABLE</code> is not supported at all</h3><p>Verbatim: <i>"Amazon EMR versions higher than 7.5: DROP TABLE is not supported. You can use the S3 Tables DeleteTable REST API to delete a table."</i> On exactly 7.5, also set <code>…cache-enabled=false</code>.</p></div>
+    <div class="card warn"><div class="tag">Over the S3 Tables REST endpoint</div><h3>No CTAS, no nested namespaces</h3><p><code>stage-create</code> is unsupported, so <b>CTAS returns 400</b> when you connect Spark straight to <code>s3tables.&lt;region&gt;.amazonaws.com/iceberg</code>. Multilevel namespaces are unsupported. A <code>metadata.json</code> over 50 MB fails outright.</p><p>CTAS <i>does</i> work in Athena via the Glue path — don't let the two blur.</p></div>
+  </div>
+
+  <h3 style="margin-top:32px;font-size:19px">Quotas and the naming rule that silently hides your table</h3>
+  <div class="grid g2">
+    <div class="card"><div class="tag">Default quotas — adjustable via Support</div><h3>Smaller than people assume</h3><ul><li><b>10</b> table buckets per Region per account</li><li><b>10,000</b> namespaces per table bucket</li><li><b>10,000</b> tables per table bucket</li></ul><p>Table buckets are <b>not</b> in a global namespace — a name only has to be unique within your Region.</p></div>
+    <div class="card bad"><div class="tag">The inverse naming rules</div><h3>Hyphens and underscores swap</h3><ul><li><b>Table buckets:</b> lowercase, numbers, <b>hyphens</b> — no underscores, no periods, 3–63 chars</li><li><b>Tables &amp; namespaces:</b> lowercase, numbers, <b>underscores</b> — no hyphens, no periods, 1–255 chars</li></ul><p><b>Capital letters break everything.</b> AWS: a table whose name or definition contains capitals "isn't supported by AWS Lake Formation or the AWS Glue Data Catalog… your table won't be visible to AWS analytics services such as Amazon Athena", failing with <code>Unsupported Federation Resource - Invalid table or column names</code>.</p></div>
+  </div>
+
+  <div class="code"><div class="hd"><span class="lang">AWS CLI · recovering from a failed CTAS</span><span>the documented path</span></div>
+<pre><span class="c"># TABLE_ALREADY_EXISTS after a failed CTAS? DROP TABLE cannot fix it.</span>
+aws s3tables <span class="hl">delete-table</span> \
+  --table-bucket-arn arn:aws:s3tables:us-east-1:&lt;ACCOUNT&gt;:bucket/&lt;TABLE_BUCKET&gt; \
+  --namespace &lt;NAMESPACE&gt; --name &lt;TABLE&gt; --region us-east-1
+
+<span class="c"># confirm it is gone</span>
+aws s3tables list-tables \
+  --table-bucket-arn arn:aws:s3tables:us-east-1:&lt;ACCOUNT&gt;:bucket/&lt;TABLE_BUCKET&gt; \
+  --namespace &lt;NAMESPACE&gt; --region us-east-1
+
+<span class="c"># every value you need is inside the Athena error text:</span>
+<span class="c">#   "catalog:&lt;ACCOUNT&gt;:s3tablescatalog/&lt;TABLE_BUCKET&gt;$schema:&lt;NAMESPACE&gt;"</span></pre></div>
+</div></section>
+
+<!-- ============ 09 ============ -->
+<section id="c9"><div class="wrap">
+  <div class="kick">09 · Views</div>
+  <h2>Where a view can and cannot live</h2>
+  <p class="lede">The distinction people miss: a <b>virtual view</b> is a stored SQL string with no data, while a <b>materialized view</b> is a real table holding precomputed rows. Only one of them is free to refresh, and neither can be created directly on an S3 Table from Athena.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 300" role="img" aria-label="A virtual view stores only a SQL definition and re-executes on every query, while a materialized view stores precomputed rows physically and must be refreshed; Athena cannot create either directly on an S3 Table.">
+      <rect x="20" y="26" width="470" height="180" rx="6" class="bx"/>
+      <text x="36" y="50" class="eb">VIRTUAL VIEW — A SAVED QUERY</text>
+      <rect x="36" y="62" width="438" height="30" rx="4" class="bx2"/>
+      <text x="46" y="82" class="m3">stored: a SQL string in the Glue Data Catalog</text>
+      <rect x="36" y="98" width="438" height="30" rx="4" class="bx2"/>
+      <text x="46" y="118" class="m3">data stored: NONE</text>
+      <rect x="36" y="134" width="438" height="30" rx="4" class="bx2"/>
+      <text x="46" y="154" class="m3">cost: the full query runs EVERY time</text>
+      <text x="36" y="184" class="t4">Use for: abstraction, column masking, granting SELECT without</text>
+      <text x="36" y="200" class="t4">exposing base tables.</text>
+
+      <rect x="510" y="26" width="470" height="180" rx="6" class="bxa"/>
+      <text x="526" y="50" class="eb">MATERIALIZED VIEW — A REAL TABLE</text>
+      <rect x="526" y="62" width="438" height="30" rx="4" class="bx"/>
+      <text x="536" y="82" class="m3">stored: precomputed rows, as an Iceberg table</text>
+      <rect x="526" y="98" width="438" height="30" rx="4" class="bx"/>
+      <text x="536" y="118" class="m3">data stored: YES — you pay for it</text>
+      <rect x="526" y="134" width="438" height="30" rx="4" class="bx"/>
+      <text x="536" y="154" class="m3">cost: cheap to read, must be REFRESHED</text>
+      <text x="526" y="184" class="t4">Use for: expensive aggregations and heavy joins that many</text>
+      <text x="526" y="200" class="t4">dashboards hit repeatedly.</text>
+
+      <rect x="20" y="222" width="470" height="62" rx="6" class="bxb"/>
+      <text x="36" y="246" class="eb-b">CREATE VIEW — NOT SUPPORTED ON S3 TABLES IN ATHENA</text>
+      <text x="36" y="268" class="t3">Create it in the regular awsdatacatalog instead, or materialise it.</text>
+      <rect x="510" y="222" width="470" height="62" rx="6" class="bxo"/>
+      <text x="526" y="246" class="eb-o">MATERIALIZED VIEW — SPARK CREATES, ATHENA ONLY READS</text>
+      <text x="526" y="268" class="t3">Athena SQL cannot CREATE, REFRESH, ALTER or DROP one. See below.</text>
+    </svg>
+    <figcaption><b>The engine-decoupling pattern is the real win here:</b> precompute an expensive aggregate with Spark on EMR where compute is cheap, land it as a table, then serve it to Athena and QuickSight where latency matters. The heavy engine and the fast engine never have to be the same one.</figcaption>
+  </figure>
+
+  <div class="note bad"><span class="ic">SPLIT</span><div><b>"Athena supports materialized views" is true and false at the same time</b>, which is why people get it wrong live. Glue Data Catalog materialized views are created with <b>Apache Spark 3.5.6+</b> running in EMR, Glue, <i>or Athena's Spark engine (notebooks)</i>. <b>Athena SQL — the Trino engine you type into — cannot</b>: <code>CREATE MATERIALIZED VIEW</code>, <code>REFRESH</code>, <code>ALTER</code>, <code>DROP</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>MERGE</code>, <code>DELETE</code>, <code>OPTIMIZE</code> and <code>VACUUM</code> are all unsupported there. It can <code>SELECT</code>, <code>DESCRIBE</code>, <code>SHOW TABLES</code> and join them.</div></div>
+
+  <div class="code"><div class="hd"><span class="lang">Spark SQL — the real materialized view</span><span>EMR / Glue / Athena notebooks, Spark 3.5.6+</span></div>
+<pre><span class="c">-- a managed table holding precomputed results, in Iceberg format</span>
+<span class="k">CREATE MATERIALIZED VIEW</span> sales_summary
+<span class="hl">SCHEDULE REFRESH EVERY 1 HOUR</span>              <span class="c">-- minimum interval is one hour</span>
+<span class="k">AS SELECT</span> country, count(*) <span class="k">AS</span> orders, sum(total_amount) <span class="k">AS</span> revenue
+   <span class="k">FROM</span> orders <span class="k">GROUP BY</span> country;
+
+<span class="k">REFRESH MATERIALIZED VIEW</span> sales_summary;                <span class="c">-- manual refresh</span>
+<span class="k">ALTER MATERIALIZED VIEW</span> sales_summary <span class="k">ADD SCHEDULE REFRESH EVERY</span> 2 <span class="k">HOURS</span>;
+<span class="k">DESCRIBE MATERIALIZED VIEW</span> sales_summary;</pre></div>
+
+  <div class="code"><div class="hd"><span class="lang">AWS CLI</span><span>refresh an MV whose base tables live in a table bucket</span></div>
+<pre>aws glue start-materialized-view-refresh-task-run \
+  --catalog-id &lt;ACCOUNT_ID&gt;:s3tablescatalog/&lt;TABLE_BUCKET&gt; \
+  --database-name &lt;NAMESPACE&gt; --table-name sales_summary</pre></div>
+  <p class="body">One constraint that decides the design: <b>a materialized view can only reference Iceberg tables registered in the Glue Data Catalog as base tables</b>, and the minimum automatic refresh interval is one hour. For anything fresher, materialise with CTAS and refresh it yourself on your own cadence — the pattern shown below.</p>
+
+  <div class="code"><div class="hd"><span class="lang">Athena</span><span>the supported stand-in, with an idempotent refresh</span></div>
+<pre><span class="c">-- materialise instead of CREATE VIEW</span>
+<span class="k">CREATE TABLE</span> mv_hourly_metrics
+<span class="k">WITH</span> (partitioning = <span class="k">ARRAY</span>[<span class="s">'day(order_hour)'</span>])
+<span class="k">AS SELECT</span> date_trunc(<span class="s">'hour'</span>, order_timestamp) <span class="k">AS</span> order_hour,
+          country, count(*) <span class="k">AS</span> orders, sum(total_amount) <span class="k">AS</span> revenue
+   <span class="k">FROM</span> orders <span class="k">GROUP BY</span> 1, 2;
+
+<span class="c">-- "refresh" = replace only the affected window. Rerun it five times,</span>
+<span class="c">-- get the same table. That idempotence is what lets you schedule it.</span>
+<span class="k">DELETE FROM</span> mv_hourly_metrics <span class="k">WHERE</span> order_hour &gt;= <span class="k">TIMESTAMP</span> <span class="s">'2026-09-01 00:00:00'</span>;
+
+<span class="k">INSERT INTO</span> mv_hourly_metrics
+<span class="k">SELECT</span> date_trunc(<span class="s">'hour'</span>, order_timestamp), country, count(*), sum(total_amount)
+<span class="k">FROM</span> orders <span class="k">WHERE</span> order_timestamp &gt;= <span class="k">TIMESTAMP</span> <span class="s">'2026-09-01 00:00:00'</span>
+<span class="k">GROUP BY</span> 1, 2;</pre></div>
+</div></section>
+
+<!-- ============ 10 ============ -->
+<section id="c10" style="border-bottom:none"><div class="wrap">
+  <div class="kick">10 · Verification log</div>
+  <h2>What was checked, and what was corrected</h2>
+  <p class="lede">Every claim on this page was checked against AWS documentation. Several things widely repeated about S3 Tables did not survive that check — those are listed here so you can correct them if you have repeated them too.</p>
+
+  <div class="tw"><table>
+    <tr><th>Claim</th><th>Status</th><th>What the docs actually say</th></tr>
+    <tr><td>Compaction default target 512 MB, range 64–512 MB</td><td><span class="v v-ok">VERIFIED</span></td><td>Stated directly, with the <code>targetFileSizeMB</code> CLI example.</td></tr>
+    <tr><td>Four compaction strategies: auto, binpack, sort, z-order</td><td><span class="v v-ok">VERIFIED</span></td><td>auto picks sort when a sort order exists, binpack otherwise.</td></tr>
+    <tr><td>Snapshot defaults: 1 snapshot, 120 hours</td><td><span class="v v-ok">VERIFIED</span></td><td><code>MinimumSnapshots</code> 1, <code>MaximumSnapshotAge</code> 120 h.</td></tr>
+    <tr><td>Unreferenced file removal 3 / 10 days</td><td><span class="v v-ok">VERIFIED</span></td><td><code>unreferencedDays</code> 3, <code>nonCurrentDays</code> 10 — and it is <b>bucket-level</b>, not table-level.</td></tr>
+    <tr><td>Branches/tags break snapshot expiry</td><td><span class="v v-ok">VERIFIED</span></td><td>"snapshot management will fail for the entire table" — the most under-known fact about S3 Tables.</td></tr>
+    <tr><td>CREATE VIEW works on S3 Tables in Athena</td><td><span class="v v-no">FALSE</span></td><td>Explicitly listed as not supported, alongside <code>ALTER TABLE RENAME</code> and <code>ALTER DATABASE</code>.</td></tr>
+    <tr><td>CTAS needs <code>table_type</code> and <code>format</code></td><td><span class="v v-no">FALSE</span></td><td>Both already default. Passing <code>is_external</code> misdirects the write entirely.</td></tr>
+    <tr><td>"Automatic S3 Intelligent-Tiering cuts storage cost up to 80%"</td><td><span class="v v-no">WRONG TWICE</span></td><td>It is <b>not automatic</b>: "all tables are created in the S3 Standard storage class and cannot be moved to S3 Intelligent-Tiering" — you must opt in at <code>CreateTable</code>, and the class is immutable afterwards. And <b>no 80% figure exists in the docs</b> at all.</td></tr>
+    <tr><td>"10× higher TPS and 3× faster queries"</td><td><span class="v v-fix">MARKETING</span></td><td>Not in the documentation. The docs-safe sentence is unquantified: table buckets "provide higher transactions per second (TPS) and better query throughput compared to self-managed tables in S3 general purpose buckets."</td></tr>
+    <tr><td>Compaction also applies row-level deletes</td><td><span class="v v-ok">VERIFIED</span></td><td>"When combining objects, compaction also applies the effects of row-level deletes in your table." This is what reconciles merge-on-read debt for you.</td></tr>
+    <tr><td>Athena can read Iceberg V3 tables</td><td><span class="v v-no">FALSE</span></td><td>The AWS V3 support matrix lists <b>Athena (Trino): No</b> for both V3 and variant. Upgrading is one-way and removes the table from Athena.</td></tr>
+    <tr><td>Athena can create materialized views</td><td><span class="v v-no">FALSE</span></td><td>Athena SQL cannot <code>CREATE</code>, <code>REFRESH</code>, <code>ALTER</code> or <code>DROP</code> them — only <code>SELECT</code>. Creation requires Spark 3.5.6+ in EMR, Glue, or Athena <i>notebooks</i>.</td></tr>
+    <tr><td>Athena CTAS on S3 Tables is unsupported</td><td><span class="v v-fix">SPLIT</span></td><td>Supported in <b>Athena</b>. Unsupported over the <b>S3 Tables REST endpoint</b>, where <code>stage-create</code> returns 400. Two different access paths, opposite answers.</td></tr>
+    <tr><td>Lake Formation is required for the Glue integration</td><td><span class="v v-fix">NO LONGER</span></td><td>IAM-based access is the default path in 32 Regions; Lake Formation is optional there and still required elsewhere.</td></tr>
+    <tr><td>Metadata tables are generated by S3 Tables</td><td><span class="v v-fix">RE-FRAMED</span></td><td>They are standard <b>Iceberg</b> metadata tables surfaced by the query engine. Not to be confused with <b>S3 Metadata</b>, a separate feature that materialises inventory tables.</td></tr>
+    <tr><td>Minimum engine versions</td><td><span class="v v-ok">VERIFIED</span></td><td><b>EMR 7.5+</b> and <b>Glue 5.0+</b>. No Athena engine-version floor is documented — do not claim one.</td></tr>
+  </table></div>
+
+  <div class="note"><span class="ic">REST</span><div><b>Two different REST endpoints exist and they are not interchangeable.</b> The S3 Tables endpoint is <code>https://s3tables.&lt;region&gt;.amazonaws.com/iceberg</code> with signing name <code>s3tables</code> and the URL-encoded <b>table bucket ARN</b> as the path prefix. The Glue endpoint is <code>https://glue.&lt;region&gt;.amazonaws.com/iceberg</code> with signing name <code>glue</code> and warehouse <code>&lt;account&gt;:s3tablescatalog/&lt;bucket&gt;</code>. AWS recommends the <b>Glue</b> one for Spark and PyIceberg clients.</div></div>
+
+  <div class="note ok"><span class="ic">METHOD</span><div>The two rejected claims above are the reason this page exists in this form. <b>When a number appears in a slide deck without a doc URL behind it, assume it is a launch-blog headline</b> until proven otherwise — especially percentage improvements and multipliers.</div></div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>S3 Tables Deep Dive</b> — part 1 of 3. Surender Sara · NorthBay Solutions.<br>
+  Next: <b>Storage vs Compute</b> (who owns the shuffle) and <b>Compute &amp; Triggers</b> (running the script that writes the table).
+</div></footer>
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('nav a')),s=l.map(function(a){return document.querySelector(a.getAttribute('href'))});
+function spy(){var p=window.scrollY+140,i=0;for(var k=0;k<s.length;k++){if(s[k]&&s[k].offsetTop<=p)i=k}l.forEach(function(a,k){a.classList.toggle('on',k===i)})}
+window.addEventListener('scroll',spy,{passive:true});spy();})();
+</script>

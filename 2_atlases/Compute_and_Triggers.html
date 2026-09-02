@@ -1,0 +1,431 @@
+<meta charset="utf-8">
+<title>Compute and Triggers</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F8;--surface:#FFFFFF;--surface2:#E9EDF2;--sunken:#DFE5EC;
+  --ink:#111820;--muted:#5A6875;--line:#CFD8E1;--line2:#B3C0CD;
+  --accent:#0E7490;--accent-ink:#0A5A70;--accent-soft:rgba(14,116,144,.11);
+  --ok:#2E7D4F;--ok-soft:rgba(46,125,79,.12);
+  --warn:#B45309;--warn-soft:rgba(180,83,9,.12);
+  --bad:#B3261E;--bad-soft:rgba(179,38,30,.10);
+  --code-bg:#0E1720;--code-ink:#D6E2EA;--code-dim:#6D8494;
+  --hero-bg:#0E1720;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#22323F;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}}
+:root[data-theme="dark"]{
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;font:16px/1.62 'Public Sans',system-ui,sans-serif}
+h1,h2,h3{font-family:'Chivo',system-ui,sans-serif;margin:0;text-wrap:balance}
+code,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.wrap{max-width:1100px;margin:0 auto;padding:0 28px}
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:70px 0 52px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{font-size:clamp(36px,6vw,62px);font-weight:800;letter-spacing:-.025em;line-height:1.02}
+.hero .thesis{font-size:clamp(18px,2.4vw,23px);font-weight:600;margin:20px 0 6px;font-family:'Chivo',sans-serif}
+.hero .thesis em{font-style:normal;color:var(--accent)}
+.hero p.sub{color:var(--hero-mute);max-width:66ch;margin:12px 0 0}
+.vbadge{display:inline-flex;align-items:center;gap:7px;background:rgba(46,125,79,.18);border:1px solid var(--ok);
+  color:#8FE0B0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+  padding:6px 12px;border-radius:3px;margin-top:26px}
+.stats{display:flex;flex-wrap:wrap;margin-top:30px;border-top:1px solid var(--hero-line);border-left:1px solid var(--hero-line)}
+.stats div{flex:1 1 158px;padding:14px 16px;border-right:1px solid var(--hero-line);border-bottom:1px solid var(--hero-line)}
+.stats b{display:block;font-family:'Chivo',sans-serif;font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--hero-mute);margin-top:5px}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 93%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;overflow-x:auto}
+nav a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;padding:12px 10px;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}nav a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+section{padding:66px 0 34px;border-bottom:1px solid var(--line)}
+.kick{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:10px}
+section h2{font-size:clamp(25px,3.5vw,36px);font-weight:700;letter-spacing:-.015em}
+.lede{max-width:70ch;color:var(--muted);font-size:17px;margin:14px 0 0}
+.lede b,p.body b{color:var(--ink);font-weight:600}
+p.body{max-width:70ch;color:var(--muted);margin:14px 0 0}
+.lede code,p.body code,li code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+figure{margin:30px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px 22px 12px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:640px;margin:0 auto}
+figcaption{font-size:14px;color:var(--muted);max-width:84ch;margin:14px auto 4px;padding-top:12px;border-top:1px solid var(--line)}
+figcaption b{color:var(--ink)}
+figcaption code{font-size:.9em;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+.grid{display:grid;gap:13px;margin-top:20px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(228px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:17px}
+.card .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:8px}
+.card h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;color:var(--muted);margin:6px 0 0}
+.card ul{margin:8px 0 0;padding-left:17px;font-size:14px;color:var(--muted)}
+.card li{margin:4px 0}
+.card code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink)}
+.card.ok{border-color:var(--ok)}.card.ok .tag{color:var(--ok)}
+.card.warn{border-color:var(--warn)}.card.warn .tag{color:var(--warn)}
+.card.bad{border-color:var(--bad)}.card.bad .tag{color:var(--bad)}
+.code{background:var(--code-bg);border-radius:6px;margin:20px 0 0;overflow:hidden}
+.code .hd{display:flex;justify-content:space-between;padding:8px 15px;border-bottom:1px solid rgba(255,255,255,.08)}
+.code .hd span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--code-dim)}
+.code .hd span.lang{color:var(--accent)}
+.code pre{margin:0;padding:15px 17px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12.6px;line-height:1.68;color:var(--code-ink)}
+.code .c{color:var(--code-dim)}.code .k{color:#7FD7E3}.code .s{color:#E8C07D}.code .hl{color:#F0B860;font-weight:600}
+.note{display:flex;gap:12px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 5px 5px 0;padding:14px 16px;margin-top:20px;font-size:14.5px;max-width:90ch}
+.note b{color:var(--accent-ink)}
+.note.warn{background:var(--warn-soft);border-left-color:var(--warn)}.note.warn b{color:var(--warn)}
+.note.bad{background:var(--bad-soft);border-left-color:var(--bad)}.note.bad b{color:var(--bad)}
+.note.ok{background:var(--ok-soft);border-left-color:var(--ok)}.note.ok b{color:var(--ok)}
+.note .ic{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11.5px;flex-shrink:0;letter-spacing:.06em}
+table{width:100%;border-collapse:collapse;margin-top:20px;font-size:14px;background:var(--surface);border:1px solid var(--line)}
+th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2);background:var(--surface2);vertical-align:bottom}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)}
+td b{color:var(--ink)}
+.tw{overflow-x:auto}
+.mono1 td:first-child{font-family:'JetBrains Mono',monospace;font-size:12.2px;white-space:nowrap}
+.v{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.07em;padding:2px 6px;border-radius:2px;vertical-align:middle}
+.v-ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+.v-fix{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.v-no{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+footer{padding:44px 0 64px;color:var(--muted);font-size:13.5px}
+footer b{color:var(--ink)}
+svg text{font-family:'Public Sans',system-ui,sans-serif}
+.t1{font-size:13.5px;font-weight:700;fill:var(--ink)}
+.t2{font-size:12.5px;font-weight:600;fill:var(--ink)}
+.t3{font-size:12px;fill:var(--muted)}
+.t4{font-size:11px;fill:var(--muted)}
+.m1{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:var(--ink)}
+.m2{font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--muted)}
+.m3{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+.eb{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--accent-ink)}
+.eb-o{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--warn)}
+.eb-b{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--bad)}
+.eb-g{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--ok)}
+.la{fill:var(--accent-ink);font-size:11.5px;font-weight:600}
+.lb{fill:var(--bad);font-size:11.5px;font-weight:600}
+.lg{fill:var(--ok);font-size:11.5px;font-weight:600}
+.bx{fill:var(--surface);stroke:var(--line2);stroke-width:1.1}
+.bx2{fill:var(--surface2);stroke:var(--line2);stroke-width:1}
+.bxs{fill:var(--sunken);stroke:var(--line2);stroke-width:1}
+.bxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+.bxo{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.3}
+.bxb{fill:var(--bad-soft);stroke:var(--bad);stroke-width:1.3}
+.bxg{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.3}
+.bxd{fill:none;stroke:var(--line2);stroke-width:1.1;stroke-dasharray:5 4}
+.ln{stroke:var(--line2);stroke-width:1.5;fill:none}
+.lna{stroke:var(--accent);stroke-width:1.9;fill:none}
+.lnb{stroke:var(--bad);stroke-width:1.7;fill:none}
+.lng{stroke:var(--ok);stroke-width:1.7;fill:none}
+.dash{stroke-dasharray:5 4}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media print{nav{display:none}section{break-inside:avoid-page}figure{break-inside:avoid}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line2)"/></marker>
+<marker id="aa" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker>
+</defs></svg>
+
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">S3 Tables trilogy · part 3 of 3</div>
+  <h1>Compute &amp;<br>Triggers</h1>
+  <p class="thesis">Where does the script run, and <em>what starts it?</em> Two questions, seven services, one 15-minute wall.</p>
+  <p class="sub">A 5-minute script and a 2-hour script are different architecture problems. Real timeout limits from the API references, the five ways to run code straight from S3, and the trigger patterns — including the Lambda you probably don't need.</p>
+  <div class="vbadge">✓ SEVEN WIDELY-REPEATED LIMITS CHECKED — FOUR WERE WRONG</div>
+  <div class="stats">
+    <div><b>900 s</b><span>lambda hard ceiling</span></div>
+    <div><b>8 h</b><span>glue 5.0+ default, not 48</span></div>
+    <div><b>7 d</b><span>glue &amp; emr serverless max</span></div>
+    <div><b>~14 d</b><span>fargate de-facto ceiling</span></div>
+    <div><b>none</b><span>batch &amp; emr step timeout</span></div>
+    <div><b>0.0625</b><span>smallest glue DPU</span></div>
+  </div>
+</div></header>
+
+<nav aria-label="Chapters"><div class="wrap">
+<a href="#c1">01 The wall</a><a href="#c2">02 Real limits</a><a href="#c3">03 Choosing</a><a href="#c4">04 Run from S3</a><a href="#c5">05 Triggers</a><a href="#c6">06 No-Lambda</a><a href="#c7">07 Corrections</a>
+</div></nav>
+
+<section id="c1"><div class="wrap">
+  <div class="kick">01 · The one line that splits the decision</div>
+  <h2>Fifteen minutes</h2>
+  <p class="lede">Almost every "where should this run?" argument resolves at one number. <b>Lambda stops at 900 seconds and there is no way to raise it.</b> Everything below the line is a packaging choice; everything above it is an infrastructure choice.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 340" role="img" aria-label="A duration axis showing Lambda capped at fifteen minutes, with Glue Python Shell, ECS Fargate, Batch, EMR Serverless and EMR on EC2 all able to run far longer, up to seven or fourteen day ceilings.">
+      <text x="20" y="24" class="eb">RUNTIME REQUIRED →</text>
+      <line x1="20" y1="52" x2="980" y2="52" class="ln"/>
+      <text x="24" y="74" class="m3">1 min</text>
+      <text x="200" y="74" class="m3">15 min</text>
+      <text x="420" y="74" class="m3">2 h</text>
+      <text x="620" y="74" class="m3">8 h</text>
+      <text x="800" y="74" class="m3">7 d</text>
+      <text x="930" y="74" class="m3">14 d</text>
+
+      <line x1="230" y1="34" x2="230" y2="300" class="lnb dash"/>
+      <text x="238" y="46" class="lb">LAMBDA'S HARD WALL — 900 s</text>
+
+      <rect x="20" y="92" width="205" height="28" rx="4" class="bxg"/>
+      <text x="32" y="111" class="m2" style="fill:var(--ink)">AWS Lambda</text>
+      <rect x="228" y="92" width="6" height="28" rx="1" class="bxb"/>
+      <text x="250" y="111" class="t4">nothing past here — repackage or move</text>
+
+      <rect x="20" y="126" width="780" height="28" rx="4" class="bxa"/>
+      <text x="32" y="145" class="m2" style="fill:var(--ink)">Glue Python Shell</text>
+      <text x="600" y="145" class="m3">default 48 h · max 7 d</text>
+
+      <rect x="20" y="160" width="780" height="28" rx="4" class="bxa"/>
+      <text x="32" y="179" class="m2" style="fill:var(--ink)">Glue Spark ETL</text>
+      <text x="560" y="179" class="m3">default 8 h on Glue 5.0+ · max 7 d</text>
+
+      <rect x="20" y="194" width="780" height="28" rx="4" class="bxa"/>
+      <text x="32" y="213" class="m2" style="fill:var(--ink)">EMR Serverless</text>
+      <text x="560" y="213" class="m3">default 12 h · max 7 d for BATCH</text>
+
+      <rect x="20" y="228" width="940" height="28" rx="4" class="bxo"/>
+      <text x="32" y="247" class="m2" style="fill:var(--ink)">ECS Fargate · AWS Batch on Fargate</text>
+      <text x="620" y="247" class="m3">no documented max — but plan for ~14 d</text>
+
+      <rect x="20" y="262" width="940" height="28" rx="4" class="bxg"/>
+      <text x="32" y="281" class="m2" style="fill:var(--ink)">AWS Batch on EC2 · EMR on EC2 step · EC2</text>
+      <text x="620" y="281" class="m3">no timeout field exists at all</text>
+
+      <text x="20" y="322" class="t4">Under 15 minutes, the question is only how you want to package the code. Over it, you are choosing infrastructure — and the ceilings stop mattering long before you reach them.</text>
+    </svg>
+    <figcaption><b>The honest reading:</b> almost nothing in analytics runs longer than a day, so for a 2-hour script every option above the line works. Choose on operational fit — packaging, cold start, cost model, who maintains it — not on the ceiling.</figcaption>
+  </figure>
+</div></section>
+
+<section id="c2"><div class="wrap">
+  <div class="kick">02 · The numbers</div>
+  <h2>Verified limits, with the surprises marked</h2>
+  <div class="tw"><table class="mono1">
+    <tr><th>service</th><th>default timeout</th><th>maximum</th><th>the detail that matters</th></tr>
+    <tr><td>Lambda</td><td colspan="2"><b>900 s (15 min)</b> — fixed</td><td>128 MB–10,240 MB memory; <code>/tmp</code> 512 MB–10,240 MB; 250 MB unzipped package, 10 GB container image</td></tr>
+    <tr><td>Glue ≤ 4.0</td><td>2,880 min (48 h)</td><td>10,080 min (7 d)</td><td>The "48 hours" everyone quotes — correct only for old Glue versions</td></tr>
+    <tr><td>Glue 5.0+</td><td><b>480 min (8 h)</b> <span class="v v-fix">SURPRISE</span></td><td>10,080 min (7 d)</td><td>New jobs default to Glue 5.1, so <b>your default is 8 hours, not 48</b></td></tr>
+    <tr><td>Glue Python Shell</td><td>2,880 min (48 h)</td><td>10,080 min (7 d)</td><td><code>--glue-version</code> is ignored for shell jobs, so it stays on the older default</td></tr>
+    <tr><td>EMR Serverless</td><td>12 h</td><td><b>7 d for BATCH</b> <span class="v v-fix">CHANGED</span></td><td>Since EMR 7.11, <code>executionTimeoutMinutes=0</code> (no timeout) is <b>rejected</b> for batch. Still valid for streaming.</td></tr>
+    <tr><td>AWS Batch</td><td><b>none</b></td><td><b>none</b></td><td>"runs until the container exits". <code>attemptDurationSeconds</code> ≥ 60 if you set one. On Fargate, expect ~14 d.</td></tr>
+    <tr><td>ECS Fargate</td><td>—</td><td>no documented max</td><td>Bounded in practice by <b>task retirement</b>; the wait time setting is 0, 7 or 14 days</td></tr>
+    <tr><td>EMR on EC2 step</td><td colspan="2"><b>no timeout field exists</b></td><td><code>StepConfig</code> has no timeout at all — implement it inside your script or call <code>CancelSteps</code></td></tr>
+    <tr><td>EKS Job</td><td colspan="2">not AWS-documented</td><td>Use Kubernetes' own <code>activeDeadlineSeconds</code> — that is upstream K8s, not an AWS limit</td></tr>
+    <tr><td>SageMaker Processing</td><td>—</td><td>777,600 s (9 d)</td><td><code>MaxRuntimeInSeconds</code> on the stopping condition</td></tr>
+  </table></div>
+
+  <div class="note warn"><span class="ic">TRAP</span><div><b>The Glue default is the one that will bite somebody in this room.</b> A job created today defaults to Glue 5.1, which means an <b>8-hour</b> timeout — not the 48 hours in every older blog post. A backfill that used to squeak through at 10 hours now dies at 8.</div></div>
+
+  <div class="note bad"><span class="ic">STALE</span><div>AWS's own EMR Serverless "considerations" page still tells you to set <code>executionTimeoutMinutes = 0</code> for no timeout. <b>That has been rejected for BATCH jobs since EMR 7.11.</b> When a doc page and an API reference disagree, the API reference wins.</div></div>
+
+  <h3 style="margin-top:30px;font-size:19px">Glue Python Shell sizing — two legal values, not a range</h3>
+  <div class="code"><div class="hd"><span class="lang">AWS CLI</span><span>the cheapest managed Python in AWS</span></div>
+<pre><span class="c"># DPU must be exactly 0.0625 or 1. Nothing in between. Default 0.0625.</span>
+<span class="c"># Either way you get 20 GB of local disk.</span>
+aws glue create-job --name python-job-cli --role Glue_DefaultRole \
+  --command '{"Name":"<span class="hl">pythonshell</span>","PythonVersion":"3.9",
+              "ScriptLocation":"s3://amzn-s3-demo-bucket/scriptname.py"}' \
+  --<span class="hl">max-capacity 0.0625</span>
+
+<span class="c"># NOTE: --allocated-capacity cannot be used for Python shell jobs.</span>
+<span class="c"># Contrast: glueetl / gluestreaming take 2-100 DPU, default 10, no fractions.</span></pre></div>
+</div></section>
+
+<section id="c3"><div class="wrap">
+  <div class="kick">03 · Choosing</div>
+  <h2>Same script, six homes</h2>
+  <div class="grid g2">
+    <div class="card ok"><div class="tag">Under 15 min · pure Python</div><h3>Lambda</h3><p>Zip or container image, terminates on completion, pay per millisecond. The right answer for glue-code, API handlers and S3-triggered small work.</p><p><b>Not</b> for anything that might grow past 15 minutes — there is no escape hatch.</p></div>
+    <div class="card ok"><div class="tag">Any duration · pure Python</div><h3>Glue Python Shell</h3><p>0.0625 DPU is roughly 1/16 of a worker — the cheapest managed way to run a long Python script on AWS. 20 GB disk, no cluster, no container to build.</p><p>Ideal for the 2-hour script that is <i>not</i> distributed work.</p></div>
+    <div class="card"><div class="tag">Any duration · distributed</div><h3>Glue Spark / EMR Serverless</h3><p>When the work is actually a Spark job. EMR Serverless gives custom vCPU/RAM ratios and open-source Spark; Glue gives tighter catalog integration and job bookmarks.</p></div>
+    <div class="card"><div class="tag">Any duration · your own image</div><h3>ECS Fargate / AWS Batch</h3><p>Containerise and run. Batch adds queueing, retries, array jobs and automatic compute provisioning; Fargate is the plain "just run this container" option.</p><p>Batch has no timeout by default — good and dangerous.</p></div>
+    <div class="card"><div class="tag">Existing fleet</div><h3>EC2 + SSM</h3><p>No new infrastructure at all — the SSM Agent on machines you already run pulls and executes the script. Chapter 04.</p></div>
+    <div class="card warn"><div class="tag">Not compute</div><h3>Amazon S3</h3><p>S3 cannot execute anything. It is where the script lives and, often, what triggers it. Worth saying explicitly because it comes up.</p></div>
+  </div>
+</div></section>
+
+<section id="c4"><div class="wrap">
+  <div class="kick">04 · Code straight from S3</div>
+  <h2>Five services that fetch and run a script for you</h2>
+  <p class="lede">No image build, no redeploy: change the file in S3 and the next run picks it up. Each of these takes an S3 URI and does the download itself.</p>
+
+  <div class="code"><div class="hd"><span class="lang">1 · AWS Glue — --scriptLocation</span><span>per-run override of the job's script</span></div>
+<pre>aws glue start-job-run --job-name <span class="s">"CSV to CSV"</span> \
+  --arguments=<span class="s">'--scriptLocation="s3://my_glue/libraries/test_lib.py"'</span></pre></div>
+
+  <div class="code"><div class="hd"><span class="lang">2 · EMR on EC2 — script-runner.jar</span><span>the path changed in EMR 7.13</span></div>
+<pre><span class="c"># EMR 7.13+ : the jar is ON THE AMI. No URI needed.</span>
+aws emr add-steps --cluster-id j-2AXXXXXXGAPLF \
+  --steps Type=CUSTOM_JAR,Name=<span class="s">"Run a script"</span>,ActionOnFailure=CONTINUE,\
+Jar=<span class="hl">script-runner.jar</span>,Args=[s3://amzn-s3-demo-bucket/my-script.sh]
+
+<span class="c"># EMR 7.12 and lower : full S3 URI, region as a PREFIX on the bucket</span>
+aws emr add-steps --cluster-id j-2AXXXXXXGAPLF \
+  --steps Type=CUSTOM_JAR,Name=<span class="s">"Run a script"</span>,ActionOnFailure=CONTINUE,\
+Jar=<span class="hl">s3://us-west-2.elasticmapreduce/libs/script-runner/script-runner.jar</span>,\
+Args=[s3://amzn-s3-demo-bucket/my-script.sh]
+
+<span class="c"># Args must be comma separated with NO whitespace between elements.</span></pre></div>
+
+  <div class="code"><div class="hd"><span class="lang">3 · EMR Serverless — entryPoint</span><span>required field, max 4096 chars</span></div>
+<pre>aws emr-serverless start-job-run --application-id &lt;id&gt; --execution-role-arn &lt;arn&gt; \
+  --job-driver '{"sparkSubmit":{"<span class="hl">entryPoint</span>":"s3://bucket/app.py",
+                  "entryPointArguments":["--date","2026-09-02"],
+                  "sparkSubmitParameters":"--conf spark.executor.cores=4"}}'</pre></div>
+
+  <div class="code"><div class="hd"><span class="lang">4 · Systems Manager — AWS-RunRemoteScript</span><span>runs on EC2 / on-prem via the SSM Agent</span></div>
+<pre>aws ssm send-command \
+    --document-name <span class="s">"AWS-RunRemoteScript"</span> \
+    --output-s3-bucket-name <span class="s">"amzn-s3-demo-bucket"</span> \
+    --output-s3-key-prefix <span class="s">"key-prefix"</span> \
+    --targets <span class="s">"Key=InstanceIds,Values=instance-id"</span> \
+    --parameters '{"<span class="hl">sourceType</span>":["S3"],
+                   "<span class="hl">sourceInfo</span>":["{\"path\":\"https://s3.aws-api-domain/script-path\"}"],
+                   "commandLine":["script-name and arguments"]}'
+
+<span class="c"># THE #1 MISTAKE: sourceInfo is a JSON STRING inside a LIST, escaped.</span>
+<span class="c"># Use the https:// virtual-hosted URL form — that is what the normative</span>
+<span class="c"># plugin reference uses. Instance profile needs s3:GetObject + s3:ListBucket.</span></pre></div>
+
+  <div class="code"><div class="hd"><span class="lang">5 · SageMaker Processing</span><span>the script is just another input</span></div>
+<pre><span class="c"># code="s3://..." is Python SDK sugar. The API models the script as an input.</span>
+app_specification={
+    <span class="s">"image_uri"</span>: <span class="s">'image_uri'</span>,
+    <span class="s">"container_entrypoint"</span>: [<span class="s">"python3"</span>, <span class="s">"<span class="hl">/opt/ml/processing/input/code/</span>preprocessing.py"</span>]},
+processing_inputs=[
+    {<span class="s">"input_name"</span>: <span class="s">"code"</span>,
+     <span class="s">"s3_input"</span>: {<span class="s">"s3_uri"</span>: <span class="s">'s3://path/to/preprocessing.py'</span>,
+                  <span class="s">"local_path"</span>: <span class="s">"/opt/ml/processing/input/code"</span>,
+                  <span class="s">"s3_data_type"</span>: <span class="s">"S3Prefix"</span>, <span class="s">"s3_input_mode"</span>: <span class="s">"File"</span>}}]
+
+<span class="c"># The MANDATED rule is only the prefix: every path must begin with</span>
+<span class="c"># /opt/ml/processing/ . The .../input/code/ location is convention.</span></pre></div>
+
+  <div class="note"><span class="ic">6TH</span><div>There is a sixth, image-free option worth knowing: a generic container whose command is <code>aws s3 cp s3://bucket/script.py . &amp;&amp; python script.py</code>. You then change behaviour by editing the S3 object instead of building and pushing a new ECR tag. Works on Batch, ECS and EKS alike.</div></div>
+</div></section>
+
+<section id="c5"><div class="wrap">
+  <div class="kick">05 · Triggers</div>
+  <h2>What starts the thing</h2>
+  <p class="lede">Three families: time, event, and orchestration. The distinction that catches people is between EventBridge <b>Rules</b> and EventBridge <b>Scheduler</b> — they target different things.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 360" role="img" aria-label="EventBridge Scheduler can invoke over 6000 API operations directly including Glue StartJobRun, while EventBridge Rules target a fixed list including ECS tasks, Batch queues and Glue workflows but not Glue job runs directly.">
+      <rect x="20" y="26" width="470" height="150" rx="6" class="bxa"/>
+      <text x="36" y="50" class="eb">EVENTBRIDGE SCHEDULER — TIME-BASED</text>
+      <text x="36" y="72" class="t3">Universal target: over 270 services, 6,000+ API operations</text>
+      <rect x="36" y="84" width="438" height="26" rx="3" class="bx"/>
+      <text x="46" y="102" class="m3">arn:aws:scheduler:::aws-sdk:{service}:{apiAction}</text>
+      <text x="36" y="128" class="t4">This is how you call glue:StartJobRun directly on a schedule.</text>
+      <text x="36" y="146" class="t4">10,000,000 schedules per Region, adjustable to billions.</text>
+      <text x="36" y="168" class="la">use ActionAfterCompletion to auto-delete one-time schedules</text>
+
+      <rect x="510" y="26" width="470" height="150" rx="6" class="bxo"/>
+      <text x="526" y="50" class="eb-o">EVENTBRIDGE RULES — EVENT-BASED</text>
+      <text x="526" y="72" class="t3">A fixed target list, not the whole SDK</text>
+      <rect x="526" y="84" width="212" height="26" rx="3" class="bx"/><text x="536" y="102" class="m3">ECS task · Batch queue</text>
+      <rect x="746" y="84" width="228" height="26" rx="3" class="bx"/><text x="756" y="102" class="m3">Lambda · Step Functions</text>
+      <rect x="526" y="114" width="448" height="26" rx="3" class="bxo"/>
+      <text x="536" y="132" class="m3">Glue WORKFLOW — not a job run</text>
+      <text x="526" y="160" class="eb-o">TO START A GLUE JOB DIRECTLY, USE SCHEDULER</text>
+
+      <line x1="20" y1="200" x2="980" y2="200" class="ln dash"/>
+      <text x="20" y="228" class="eb">S3 EVENT NOTIFICATIONS REACH EXACTLY FOUR DESTINATIONS</text>
+      <rect x="20" y="240" width="228" height="42" rx="5" class="bx"/><text x="34" y="266" class="m2" style="fill:var(--ink)">SNS topic</text>
+      <rect x="256" y="240" width="228" height="42" rx="5" class="bx"/><text x="270" y="266" class="m2" style="fill:var(--ink)">SQS queue</text>
+      <rect x="492" y="240" width="228" height="42" rx="5" class="bx"/><text x="506" y="266" class="m2" style="fill:var(--ink)">Lambda</text>
+      <rect x="728" y="240" width="252" height="42" rx="5" class="bxa"/><text x="742" y="266" class="m2" style="fill:var(--ink)">EventBridge</text>
+      <text x="20" y="304" class="t3">Only ONE destination type per notification. There is no native S3 → ECS or S3 → Glue.</text>
+      <text x="20" y="324" class="la">…but EventBridge relays to everything in the Rules list, which is how you drop the Lambda. See chapter 06.</text>
+      <text x="20" y="348" class="lb">Writing output back into the triggering bucket creates an execution loop. Use a different prefix or bucket.</text>
+    </svg>
+    <figcaption><b>Rules react to events; Scheduler fires on time.</b> Both can reach most services, but only Scheduler's universal target can invoke an arbitrary API operation — which is why a cron-driven Glue job needs Scheduler while an event-driven Glue <i>workflow</i> can use a Rule.</figcaption>
+  </figure>
+</div></section>
+
+<section id="c6"><div class="wrap">
+  <div class="kick">06 · The correction that saves you a function</div>
+  <h2>You probably don't need the Lambda shim</h2>
+  <p class="lede">The pattern everybody writes down is <b>S3 → Lambda → <code>ecs.run_task</code> / <code>glue.start_job_run</code></b>. It works, and for a 5-minute job Lambda can just <i>be</i> the compute. But when Lambda exists only to call another API, <b>EventBridge removes it entirely.</b></p>
+
+  <figure>
+    <svg viewBox="0 0 1000 300" role="img" aria-label="The Lambda shim pattern routes an S3 event through a Lambda function that calls run task or start job run, while the EventBridge pattern routes the same event directly to an ECS task, Batch queue or Glue workflow with no function to maintain.">
+      <text x="20" y="24" class="eb-o">THE PATTERN EVERYONE WRITES</text>
+      <rect x="20" y="36" width="150" height="46" rx="5" class="bx"/><text x="34" y="65" class="m2" style="fill:var(--ink)">S3 event</text>
+      <line x1="170" y1="59" x2="206" y2="59" class="ln" marker-end="url(#a)"/>
+      <rect x="210" y="36" width="200" height="46" rx="5" class="bxo"/>
+      <text x="224" y="58" class="m2" style="fill:var(--ink)">Lambda</text>
+      <text x="224" y="74" class="m3">…that only calls one API</text>
+      <line x1="410" y1="59" x2="446" y2="59" class="ln" marker-end="url(#a)"/>
+      <rect x="450" y="36" width="230" height="46" rx="5" class="bx"/>
+      <text x="464" y="65" class="m2" style="fill:var(--ink)">ecs.run_task / start_job_run</text>
+      <text x="700" y="65" class="t4">a function to own, deploy, patch and page on</text>
+
+      <text x="20" y="126" class="eb-g">THE DOCUMENTED LAMBDA-FREE PATH</text>
+      <rect x="20" y="138" width="150" height="46" rx="5" class="bx"/><text x="34" y="167" class="m2" style="fill:var(--ink)">S3 event</text>
+      <line x1="170" y1="161" x2="206" y2="161" class="lng" marker-end="url(#ag)"/>
+      <rect x="210" y="138" width="200" height="46" rx="5" class="bxg"/>
+      <text x="224" y="160" class="m2" style="fill:var(--ink)">EventBridge</text>
+      <text x="224" y="176" class="m3">enable on the bucket</text>
+      <line x1="410" y1="161" x2="446" y2="161" class="lng" marker-end="url(#ag)"/>
+      <rect x="450" y="128" width="230" height="30" rx="4" class="bx"/><text x="464" y="148" class="m3">ECS RunTask</text>
+      <rect x="450" y="162" width="230" height="30" rx="4" class="bx"/><text x="464" y="182" class="m3">Batch job queue</text>
+      <rect x="690" y="145" width="240" height="30" rx="4" class="bx"/><text x="704" y="165" class="m3">Glue workflow (EVENT trigger)</text>
+      <text x="450" y="212" class="lg">no function, no code, no deployment</text>
+
+      <rect x="20" y="234" width="960" height="56" rx="6" class="bxs"/>
+      <text x="36" y="258" class="eb">WHEN THE LAMBDA IS STILL RIGHT</text>
+      <text x="36" y="280" class="t3">When it does real work (the 5-minute script itself), when you need conditional routing, or when you must transform the event before dispatch.</text>
+    </svg>
+    <figcaption><b>One caveat from the docs:</b> S3 object-level events generally require a CloudTrail data-event trail <i>unless</i> the bucket has EventBridge notifications enabled. Turn on EventBridge for the bucket and that requirement goes away — which is a second reason to prefer this path.</figcaption>
+  </figure>
+
+  <div class="note"><span class="ic">GLUE</span><div>A Glue <b>workflow</b> start trigger accepts three types: <code>schedule</code>, <code>on-demand</code>, or <code>EVENT</code>. The EVENT type takes a batch size and batch window, so you can accumulate N files or wait M seconds before firing — which is usually what you actually want when files arrive in a trickle.</div></div>
+</div></section>
+
+<section id="c7" style="border-bottom:none"><div class="wrap">
+  <div class="kick">07 · Verification log</div>
+  <h2>Seven claims checked. Four were wrong.</h2>
+  <div class="tw"><table>
+    <tr><th>Claim as commonly stated</th><th>Status</th><th>What the docs say</th></tr>
+    <tr><td>Lambda caps at 15 minutes</td><td><span class="v v-ok">VERIFIED</span></td><td>900 seconds, plus all the memory and package limits in chapter 02.</td></tr>
+    <tr><td>Glue job timeout is "48–168 hours"</td><td><span class="v v-no">WRONG FRAMING</span></td><td>168 h is a hard <b>max</b>, not a default. Defaults split by <b>Glue version</b>: 48 h for ≤4.0, <b>8 h for 5.0+</b>. New jobs default to 5.1.</td></tr>
+    <tr><td>Glue Python Shell goes "as low as 0.0625 DPU"</td><td><span class="v v-ok">VERIFIED</span></td><td>And it is not a range — the only legal values are <b>0.0625 or 1</b>. Both give 20 GB local disk.</td></tr>
+    <tr><td>ECS Fargate has no runtime limit</td><td><span class="v v-fix">NUANCED</span></td><td>No documented maximum, but <b>task retirement</b> stops long-running tasks. The retirement wait setting is 0/7/14 days — plan for ~14.</td></tr>
+    <tr><td>EMR Serverless: set timeout 0 for no limit</td><td><span class="v v-no">NO LONGER</span></td><td>Rejected for BATCH since EMR 7.11; max is now 7 days. Still valid for STREAMING. AWS's own considerations page is stale.</td></tr>
+    <tr><td>EMR script-runner.jar lives at a per-region S3 path</td><td><span class="v v-fix">OUTDATED</span></td><td>True for <b>EMR ≤ 7.12</b>. On <b>7.13+</b> it ships on the AMI — pass bare <code>script-runner.jar</code>. Bucket form is <code>&lt;region&gt;.elasticmapreduce</code>.</td></tr>
+    <tr><td>EventBridge can trigger a Glue job</td><td><span class="v v-fix">HALF</span></td><td>Rules target a Glue <b>workflow</b>. To call <code>StartJobRun</code> directly you need <b>Scheduler's universal target</b>.</td></tr>
+    <tr><td>S3 → Lambda → ECS/Glue is required</td><td><span class="v v-no">NOT REQUIRED</span></td><td>S3 → <b>EventBridge</b> → ECS task / Batch queue / Glue workflow needs no Lambda at all.</td></tr>
+    <tr><td>SageMaker script lands in <code>/opt/ml/processing/input/</code></td><td><span class="v v-fix">IMPRECISE</span></td><td>The mandated rule is only that paths begin with <code>/opt/ml/processing/</code>. The script convention is <code>/opt/ml/processing/input/<b>code</b>/</code>.</td></tr>
+    <tr><td>EKS Jobs have an AWS runtime limit</td><td><span class="v v-no">NOT AWS</span></td><td>No AWS-documented limit. <code>activeDeadlineSeconds</code> is upstream Kubernetes — do not cite an AWS URL for it.</td></tr>
+    <tr><td>AWS Batch has a default timeout</td><td><span class="v v-no">FALSE</span></td><td>"By default, AWS Batch doesn't have a job timeout… There's no maximum timeout value." A hung job runs forever unless you set one.</td></tr>
+  </table></div>
+
+  <div class="note ok"><span class="ic">RULE</span><div><b>Two lessons that generalise beyond this page.</b> First: when a default changes with a service <i>version</i>, every blog post written before that version is now wrong — the Glue 48 h → 8 h shift is a live example. Second: when a user-guide page and an API reference disagree, <b>the API reference wins</b>; that is what caught the EMR Serverless timeout change.</div></div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>Compute &amp; Triggers</b> — part 3 of 3. Surender Sara · NorthBay Solutions.<br>
+  Part 1: <b>S3 Tables Deep Dive</b> · Part 2: <b>Storage vs Compute</b>. All limits verified against AWS documentation, September 2026.
+</div></footer>
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('nav a')),s=l.map(function(a){return document.querySelector(a.getAttribute('href'))});
+function spy(){var p=window.scrollY+140,i=0;for(var k=0;k<s.length;k++){if(s[k]&&s[k].offsetTop<=p)i=k}l.forEach(function(a,k){a.classList.toggle('on',k===i)})}
+window.addEventListener('scroll',spy,{passive:true});spy();})();
+</script>

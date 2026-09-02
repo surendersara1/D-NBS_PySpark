@@ -1,0 +1,393 @@
+<meta charset="utf-8">
+<title>Storage vs Compute</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F8;--surface:#FFFFFF;--surface2:#E9EDF2;--sunken:#DFE5EC;
+  --ink:#111820;--muted:#5A6875;--line:#CFD8E1;--line2:#B3C0CD;
+  --accent:#0E7490;--accent-ink:#0A5A70;--accent-soft:rgba(14,116,144,.11);
+  --ok:#2E7D4F;--ok-soft:rgba(46,125,79,.12);
+  --warn:#B45309;--warn-soft:rgba(180,83,9,.12);
+  --bad:#B3261E;--bad-soft:rgba(179,38,30,.10);
+  --code-bg:#0E1720;--code-ink:#D6E2EA;--code-dim:#6D8494;
+  --hero-bg:#0E1720;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#22323F;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}}
+:root[data-theme="dark"]{
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;font:16px/1.62 'Public Sans',system-ui,sans-serif}
+h1,h2,h3{font-family:'Chivo',system-ui,sans-serif;margin:0;text-wrap:balance}
+code,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.wrap{max-width:1100px;margin:0 auto;padding:0 28px}
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:70px 0 52px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{font-size:clamp(36px,6vw,62px);font-weight:800;letter-spacing:-.025em;line-height:1.02}
+.hero .thesis{font-size:clamp(18px,2.4vw,23px);font-weight:600;margin:20px 0 6px;font-family:'Chivo',sans-serif}
+.hero .thesis em{font-style:normal;color:var(--accent)}
+.hero p.sub{color:var(--hero-mute);max-width:66ch;margin:12px 0 0}
+.vbadge{display:inline-flex;align-items:center;gap:7px;background:rgba(46,125,79,.18);border:1px solid var(--ok);
+  color:#8FE0B0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+  padding:6px 12px;border-radius:3px;margin-top:26px}
+.stats{display:flex;flex-wrap:wrap;margin-top:30px;border-top:1px solid var(--hero-line);border-left:1px solid var(--hero-line)}
+.stats div{flex:1 1 158px;padding:14px 16px;border-right:1px solid var(--hero-line);border-bottom:1px solid var(--hero-line)}
+.stats b{display:block;font-family:'Chivo',sans-serif;font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--hero-mute);margin-top:5px}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 93%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;overflow-x:auto}
+nav a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;padding:12px 10px;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}nav a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+section{padding:66px 0 34px;border-bottom:1px solid var(--line)}
+.kick{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:10px}
+section h2{font-size:clamp(25px,3.5vw,36px);font-weight:700;letter-spacing:-.015em}
+.lede{max-width:70ch;color:var(--muted);font-size:17px;margin:14px 0 0}
+.lede b,p.body b{color:var(--ink);font-weight:600}
+p.body{max-width:70ch;color:var(--muted);margin:14px 0 0}
+.lede code,p.body code,li code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+figure{margin:30px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px 22px 12px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:640px;margin:0 auto}
+figcaption{font-size:14px;color:var(--muted);max-width:84ch;margin:14px auto 4px;padding-top:12px;border-top:1px solid var(--line)}
+figcaption b{color:var(--ink)}
+figcaption code{font-size:.9em;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+.grid{display:grid;gap:13px;margin-top:20px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(228px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:17px}
+.card .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:8px}
+.card h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;color:var(--muted);margin:6px 0 0}
+.card ul{margin:8px 0 0;padding-left:17px;font-size:14px;color:var(--muted)}
+.card li{margin:4px 0}
+.card code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink)}
+.card.ok{border-color:var(--ok)}.card.ok .tag{color:var(--ok)}
+.card.warn{border-color:var(--warn)}.card.warn .tag{color:var(--warn)}
+.card.bad{border-color:var(--bad)}.card.bad .tag{color:var(--bad)}
+.code{background:var(--code-bg);border-radius:6px;margin:20px 0 0;overflow:hidden}
+.code .hd{display:flex;justify-content:space-between;padding:8px 15px;border-bottom:1px solid rgba(255,255,255,.08)}
+.code .hd span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--code-dim)}
+.code .hd span.lang{color:var(--accent)}
+.code pre{margin:0;padding:15px 17px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12.6px;line-height:1.68;color:var(--code-ink)}
+.code .c{color:var(--code-dim)}.code .k{color:#7FD7E3}.code .s{color:#E8C07D}.code .hl{color:#F0B860;font-weight:600}
+.note{display:flex;gap:12px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 5px 5px 0;padding:14px 16px;margin-top:20px;font-size:14.5px;max-width:90ch}
+.note b{color:var(--accent-ink)}
+.note.warn{background:var(--warn-soft);border-left-color:var(--warn)}.note.warn b{color:var(--warn)}
+.note.bad{background:var(--bad-soft);border-left-color:var(--bad)}.note.bad b{color:var(--bad)}
+.note.ok{background:var(--ok-soft);border-left-color:var(--ok)}.note.ok b{color:var(--ok)}
+.note .ic{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11.5px;flex-shrink:0;letter-spacing:.06em}
+table{width:100%;border-collapse:collapse;margin-top:20px;font-size:14px;background:var(--surface);border:1px solid var(--line)}
+th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2);background:var(--surface2);vertical-align:bottom}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)}
+td b{color:var(--ink)}
+.tw{overflow-x:auto}
+.mono1 td:first-child{font-family:'JetBrains Mono',monospace;font-size:12.2px;white-space:nowrap}
+.v{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.07em;padding:2px 6px;border-radius:2px;vertical-align:middle}
+.v-ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+.v-fix{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.v-no{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+footer{padding:44px 0 64px;color:var(--muted);font-size:13.5px}
+footer b{color:var(--ink)}
+svg text{font-family:'Public Sans',system-ui,sans-serif}
+.t1{font-size:13.5px;font-weight:700;fill:var(--ink)}
+.t2{font-size:12.5px;font-weight:600;fill:var(--ink)}
+.t3{font-size:12px;fill:var(--muted)}
+.t4{font-size:11px;fill:var(--muted)}
+.m1{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:var(--ink)}
+.m2{font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--muted)}
+.m3{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+.eb{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--accent-ink)}
+.eb-o{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--warn)}
+.eb-b{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--bad)}
+.eb-g{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--ok)}
+.la{fill:var(--accent-ink);font-size:11.5px;font-weight:600}
+.lb{fill:var(--bad);font-size:11.5px;font-weight:600}
+.lg{fill:var(--ok);font-size:11.5px;font-weight:600}
+.bx{fill:var(--surface);stroke:var(--line2);stroke-width:1.1}
+.bx2{fill:var(--surface2);stroke:var(--line2);stroke-width:1}
+.bxs{fill:var(--sunken);stroke:var(--line2);stroke-width:1}
+.bxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+.bxo{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.3}
+.bxb{fill:var(--bad-soft);stroke:var(--bad);stroke-width:1.3}
+.bxg{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.3}
+.bxd{fill:none;stroke:var(--line2);stroke-width:1.1;stroke-dasharray:5 4}
+.ln{stroke:var(--line2);stroke-width:1.5;fill:none}
+.lna{stroke:var(--accent);stroke-width:1.9;fill:none}
+.lnb{stroke:var(--bad);stroke-width:1.7;fill:none}
+.lng{stroke:var(--ok);stroke-width:1.7;fill:none}
+.dash{stroke-dasharray:5 4}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media print{nav{display:none}section{break-inside:avoid-page}figure{break-inside:avoid}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line2)"/></marker>
+<marker id="aa" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker>
+</defs></svg>
+
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">S3 Tables trilogy · part 2 of 3</div>
+  <h1>Storage vs<br>Compute</h1>
+  <p class="thesis">Seven distribution rules. <em>S3 Tables owns exactly two of them.</em></p>
+  <p class="sub">Hash, range, round-robin, coalesce, broadcast, write-partitioning and bucketing — where each one actually executes, what reaches the storage layer, and why you cannot "configure a broadcast join" on a table.</p>
+  <div class="vbadge">✓ THE RESPONSIBILITY BOUNDARY, DRAWN ONCE AND USED THROUGHOUT</div>
+  <div class="stats">
+    <div><b>5 of 7</b><span>live in the engine only</span></div>
+    <div><b>2 of 7</b><span>recorded in table metadata</span></div>
+    <div><b>0</b><span>shuffle settings on a table</span></div>
+    <div><b>512 MB</b><span>what compaction targets after</span></div>
+  </div>
+</div></header>
+
+<nav aria-label="Chapters"><div class="wrap">
+<a href="#c1">01 The boundary</a><a href="#c2">02 Hash</a><a href="#c3">03 Range</a><a href="#c4">04 Round-robin</a><a href="#c5">05 Coalesce</a><a href="#c6">06 Broadcast</a><a href="#c7">07 On write</a><a href="#c8">08 Bucketing</a><a href="#c9">09 Decision table</a>
+</div></nav>
+
+<section id="c1"><div class="wrap">
+  <div class="kick">01 · The question this page answers</div>
+  <h2>"Can I set hash partitioning on an S3 Table?"</h2>
+  <p class="lede">No — and the reason is worth ten minutes of any lecture. <b>S3 Tables is a storage engine and an Iceberg REST catalog.</b> It manages metadata definitions and physical file maintenance. Every shuffle mechanism people ask about happens somewhere else entirely: inside a compute engine, in worker memory, before a single Parquet file is written.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 420" role="img" aria-label="Shuffle mechanics execute inside the compute engine in worker memory; only partition transforms and bucket specs are recorded in table metadata, and only compaction and snapshot maintenance happen in the storage layer.">
+      <rect x="20" y="26" width="600" height="176" rx="6" class="bxa"/>
+      <text x="36" y="50" class="eb">COMPUTE ENGINE — SPARK / ATHENA / TRINO / FLINK</text>
+      <text x="36" y="72" class="t3">in executor memory, before any file exists</text>
+      <rect x="36" y="86" width="176" height="30" rx="4" class="bx"/><text x="46" y="106" class="m3">hash shuffle</text>
+      <rect x="220" y="86" width="176" height="30" rx="4" class="bx"/><text x="230" y="106" class="m3">range shuffle + sampling</text>
+      <rect x="404" y="86" width="200" height="30" rx="4" class="bx"/><text x="414" y="106" class="m3">round-robin</text>
+      <rect x="36" y="122" width="176" height="30" rx="4" class="bx"/><text x="46" y="142" class="m3">coalesce</text>
+      <rect x="220" y="122" width="176" height="30" rx="4" class="bx"/><text x="230" y="142" class="m3">broadcast join</text>
+      <rect x="404" y="122" width="200" height="30" rx="4" class="bx"/><text x="414" y="142" class="m3">spill / AQE / skew split</text>
+      <text x="36" y="176" class="la">FIVE OF THE SEVEN LIVE ONLY HERE</text>
+      <text x="36" y="194" class="t4">Nothing about them is stored in, or configurable from, the table.</text>
+
+      <rect x="650" y="26" width="330" height="176" rx="6" class="bxo"/>
+      <text x="666" y="50" class="eb-o">ICEBERG SPEC — IN THE CATALOG</text>
+      <text x="666" y="72" class="t3">metadata definitions, written once</text>
+      <rect x="666" y="86" width="298" height="30" rx="4" class="bx"/><text x="676" y="106" class="m3">partition transforms: day(ts), truncate</text>
+      <rect x="666" y="122" width="298" height="30" rx="4" class="bx"/><text x="676" y="142" class="m3">bucket spec: bucket(128, user_id)</text>
+      <text x="666" y="176" class="eb-o">TWO OF THE SEVEN REACH THE TABLE</text>
+      <text x="666" y="194" class="t4">and only as a declaration, not an action</text>
+
+      <line x1="320" y1="202" x2="380" y2="252" class="lna" marker-end="url(#aa)"/>
+      <line x1="800" y1="202" x2="640" y2="252" class="ln" marker-end="url(#a)"/>
+
+      <rect x="200" y="256" width="620" height="52" rx="6" class="bxs"/>
+      <text x="510" y="278" text-anchor="middle" class="t1">PARQUET FILES ARRIVE IN THE TABLE BUCKET</text>
+      <text x="510" y="296" text-anchor="middle" class="t4">the engine's shuffle decisions are now frozen into file sizes and file contents</text>
+
+      <line x1="510" y1="308" x2="510" y2="336" class="ln" marker-end="url(#a)"/>
+
+      <rect x="120" y="340" width="780" height="70" rx="6" class="bxg"/>
+      <text x="136" y="364" class="eb-g">S3 TABLES — PHYSICAL MAINTENANCE, AFTER THE FACT</text>
+      <text x="136" y="386" class="t3">compaction to 512 MB · snapshot management · unreferenced file removal · record expiration</text>
+      <text x="136" y="404" class="t4">It repairs bad file SIZES. It cannot repair bad file CONTENTS — that was decided by the shuffle.</text>
+    </svg>
+    <figcaption><b>The one sentence to leave on the board:</b> the engine decides <i>which rows land together</i>; S3 Tables decides <i>how those rows are packed and pruned afterwards</i>. Compaction can merge a thousand tiny files into one; it cannot make a file useful if the rows inside it were routed by a hash nobody queries on.</figcaption>
+  </figure>
+
+  <div class="grid g3">
+    <div class="card ok"><div class="tag">What S3 Tables fixes for you</div><h3>File size</h3><p>Small files from a trickle-feed stream get merged toward the 512 MB target, continuously, without you scheduling anything.</p></div>
+    <div class="card warn"><div class="tag">What it half fixes</div><h3>File contents</h3><p>Only if you declared a <code>sort_order</code>. Then <code>auto</code> compaction switches to <b>sort</b> strategy and clusters rows on rewrite. Without one, it just bin-packs.</p></div>
+    <div class="card bad"><div class="tag">What it never fixes</div><h3>Layout decisions</h3><p>Partitioning on a high-cardinality column, a join key nobody filters on, a missing sort order. Those stay yours.</p></div>
+  </div>
+</div></section>
+
+<section id="c2"><div class="wrap">
+  <div class="kick">02 · Hash partitioning</div>
+  <h2>Route by key — correctness, not balance</h2>
+  <p class="lede">Compute <code>hash(key) % N</code> and send the row there. Every row with the same key lands on the same machine, guaranteed — which is exactly what makes <code>groupBy</code> and <code>join</code> correct. Spark does this automatically; you almost never call it by name.</p>
+  <div class="grid g2">
+    <div class="card"><div class="tag">Where it runs</div><h3>Executor memory, mid-job</h3><p>A network exchange between two stages. Nothing about it is persisted anywhere.</p></div>
+    <div class="card warn"><div class="tag">What reaches S3 Tables</div><h3>Uneven file sizes</h3><p>Severe skew on a key produces one enormous Parquet file and many small ones. The storage layer just receives them — and that straggler shows up again on every future read.</p></div>
+  </div>
+  <div class="code"><div class="hd"><span class="lang">PySpark</span><span>implicit almost always</span></div>
+<pre><span class="c"># all of these hash-partition under the hood</span>
+df.groupBy(<span class="s">"region"</span>).agg(F.sum(<span class="s">"amount"</span>))
+df.join(other, <span class="s">"customer_id"</span>)
+Window.partitionBy(<span class="s">"region"</span>)
+
+<span class="c"># explicit only when you reuse the same partitioning repeatedly</span>
+df = df.<span class="hl">repartition</span>(200, <span class="s">"customer_id"</span>).cache()</pre></div>
+  <div class="note warn"><span class="ic">SKEW</span><div>Confirm AQE is on before hand-tuning anything — it splits skewed partitions at runtime. If skew survives that, salt the key: aggregate on <code>key_salt</code>, then re-aggregate on <code>key</code>. Buying a bigger cluster hides this; it does not fix it.</div></div>
+</div></section>
+
+<section id="c3"><div class="wrap">
+  <div class="kick">03 · Range partitioning</div>
+  <h2>The only one that preserves order</h2>
+  <p class="lede">Hash scatters adjacent values across unrelated partitions. Range gives each partition a <b>contiguous band</b>, so partition 0's maximum sits below partition 1's minimum and the concatenation is globally sorted. Spark must first run a <b>sampling job</b> to pick boundaries — that is the mysterious extra stage before a big <code>orderBy</code>.</p>
+  <div class="grid g2">
+    <div class="card"><div class="tag">Where it runs</div><h3>A sampling pass, then a shuffle</h3><p>Costs a scan <i>plus</i> an exchange — the most expensive of the seven.</p></div>
+    <div class="card ok"><div class="tag">What reaches S3 Tables</div><h3>Aligned min/max bounds</h3><p>Because file value-ranges line up with global order, Iceberg manifests prune sharply on that column for every downstream query. This is the one shuffle whose benefit persists into storage.</p></div>
+  </div>
+  <div class="code"><div class="hd"><span class="lang">PySpark</span><span>and the free alternative</span></div>
+<pre>df.<span class="hl">repartitionByRange</span>(64, <span class="s">"order_amount"</span>)   <span class="c"># explicit</span>
+df.orderBy(<span class="s">"order_amount"</span>)                    <span class="c"># implicit: sample + range shuffle + local sort</span>
+df.<span class="hl">sortWithinPartitions</span>(<span class="s">"order_amount"</span>)      <span class="c"># NO shuffle at all</span></pre></div>
+  <div class="note"><span class="ic">BETTER</span><div>On S3 Tables there is a cheaper way to get the same clustering permanently: declare <code>WRITE ORDERED BY</code> on the table. <code>auto</code> compaction then applies the <b>sort</b> strategy on every rewrite, so the storage layer maintains the clustering for you instead of you paying a range shuffle in every job.</div></div>
+</div></section>
+
+<section id="c4"><div class="wrap">
+  <div class="kick">04 · Round-robin</div>
+  <h2>Deal the rows out like cards</h2>
+  <p class="lede">No key, no hash, no order — each row goes to the next partition in turn. Perfectly even sizes, <b>zero locality</b>. It is the anti-skew hammer for map-only work.</p>
+  <div class="grid g2">
+    <div class="card"><div class="tag">Reach for it</div><h3>Heavy per-row work, no aggregation</h3><p>Parsing, scoring, an inference pass. Even task sizes are all that matter and locality is irrelevant.</p></div>
+    <div class="card bad"><div class="tag">What reaches S3 Tables</div><h3>Uniform files, useless statistics</h3><p>Every file ends up holding a mix of every key, so min/max bounds span everything and Iceberg can prune nothing. Even sizes, zero pruning.</p></div>
+  </div>
+  <div class="code"><div class="hd"><span class="lang">PySpark</span><span>the missing argument is the whole difference</span></div>
+<pre>df.<span class="hl">repartition</span>(400)              <span class="c"># round-robin — even, no locality</span>
+df.<span class="hl">repartition</span>(400, <span class="s">"region"</span>)    <span class="c"># hash — locality, uneven sizes</span></pre></div>
+</div></section>
+
+<section id="c5"><div class="wrap">
+  <div class="kick">05 · Coalesce vs repartition</div>
+  <h2>The one that moves nothing — and its trap</h2>
+  <p class="lede"><code>coalesce(N)</code> merges adjacent partitions <b>in place, on the machines already holding them</b>. No network, nearly free. It can only shrink — and it has one failure mode that costs people hours.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 250" role="img" aria-label="Coalesce has no shuffle boundary so it collapses the parallelism of the upstream stage, while repartition creates a stage boundary that confines the single-task section to the write.">
+      <rect x="20" y="26" width="470" height="120" rx="6" class="bxb"/>
+      <text x="36" y="50" class="eb-b">THE TRAP</text>
+      <rect x="36" y="62" width="438" height="28" rx="4" class="bx"/>
+      <text x="46" y="81" class="m2" style="fill:var(--ink)">df.map(expensive).coalesce(1).write…</text>
+      <text x="36" y="110" class="t3">No shuffle boundary, so the narrow dependency propagates</text>
+      <text x="36" y="128" class="t3">UPWARD. Your expensive map now runs with ONE task.</text>
+
+      <rect x="510" y="26" width="470" height="120" rx="6" class="bxg"/>
+      <text x="526" y="50" class="eb-g">THE FIX</text>
+      <rect x="526" y="62" width="438" height="28" rx="4" class="bx"/>
+      <text x="536" y="81" class="m2" style="fill:var(--ink)">df.map(expensive).repartition(1).write…</text>
+      <text x="526" y="110" class="t3">The shuffle boundary confines the single-task section to</text>
+      <text x="526" y="128" class="t3">the write. Slower shuffle, dramatically faster job.</text>
+
+      <rect x="20" y="166" width="960" height="66" rx="6" class="bxa"/>
+      <text x="36" y="190" class="eb">WHAT THIS CONTROLS AT THE STORAGE LAYER</text>
+      <text x="36" y="212" class="t3">coalesce is how you stop emitting hundreds of tiny Parquet files, without paying a network shuffle tax.</text>
+      <text x="36" y="228" class="t4">On S3 Tables it matters less than anywhere else — background compaction would have merged them anyway.</text>
+    </svg>
+    <figcaption><b>S3 Tables genuinely lowers the stakes here.</b> On a self-managed lake, forgetting <code>coalesce</code> before a write leaves you with a small-files problem until somebody schedules compaction. On a table bucket, compaction picks it up on its own — so use <code>coalesce</code> for the job's own efficiency, not out of fear.</figcaption>
+  </figure>
+</div></section>
+
+<section id="c6"><div class="wrap">
+  <div class="kick">06 · Broadcast</div>
+  <h2>The best shuffle is the one you delete</h2>
+  <p class="lede">If one side of a join is small, don't partition either side — <b>copy the small table to every executor</b> and join locally. The exchange disappears. It is the largest single win available on a star-schema join, and it is invisible to storage: S3 Tables just serves file references to both sides.</p>
+  <div class="code"><div class="hd"><span class="lang">PySpark</span><span>be explicit when you already know</span></div>
+<pre><span class="k">from</span> pyspark.sql.functions <span class="k">import</span> broadcast
+facts.join(<span class="hl">broadcast</span>(dims), <span class="s">"dim_id"</span>)
+
+<span class="c"># AQE converts sort-merge to broadcast at RUNTIME once it sees real sizes,</span>
+<span class="c"># but it cannot help if the estimate was wrong before the first stage ran.</span>
+spark.conf.set(<span class="s">"spark.sql.autoBroadcastJoinThreshold"</span>, <span class="s">"104857600"</span>)  <span class="c"># 100 MB</span></pre></div>
+  <div class="note bad"><span class="ic">OOM</span><div>Broadcasting something that is not small is worse than not broadcasting: the small side is <b>collected to the driver first</b>. A 4 GB "small side" kills your driver with an error that never mentions the word broadcast.</div></div>
+</div></section>
+
+<section id="c7"><div class="wrap">
+  <div class="kick">07 · Write partitioning</div>
+  <h2>The first of the two that S3 Tables actually stores</h2>
+  <p class="lede">Shuffle partitioning lasts one job. <b>A partition transform lasts until someone rewrites the table</b> — it is recorded in the Iceberg metadata and every future query inherits it. This is a real S3 Tables concern, unlike everything in chapters 02–06.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 260" role="img" aria-label="Partitioning by date produces a manageable number of prunable partitions, while partitioning by a high cardinality column produces millions of tiny partitions; bucketing is the escape hatch that caps the count.">
+      <rect x="20" y="26" width="300" height="130" rx="6" class="bxg"/>
+      <text x="36" y="50" class="eb-g">GOOD — LOW CARDINALITY</text>
+      <text x="36" y="72" class="m2" style="fill:var(--ink)">day(order_timestamp)</text>
+      <rect x="36" y="84" width="126" height="26" rx="3" class="bx"/><text x="46" y="102" class="m3">dt=2026-09-01</text>
+      <rect x="168" y="84" width="136" height="26" rx="3" class="bx"/><text x="178" y="102" class="m3">… ~365 a year</text>
+      <text x="36" y="130" class="t4">files stay large, pruning is dramatic</text>
+      <text x="36" y="148" class="lg">this is the shape you want</text>
+
+      <rect x="350" y="26" width="300" height="130" rx="6" class="bxb"/>
+      <text x="366" y="50" class="eb-b">FATAL — HIGH CARDINALITY</text>
+      <text x="366" y="72" class="m2" style="fill:var(--ink)">customer_id</text>
+      <rect x="366" y="84" width="60" height="26" rx="3" class="bx"/><text x="376" y="102" class="m3">c=1</text>
+      <rect x="432" y="84" width="60" height="26" rx="3" class="bx"/><text x="442" y="102" class="m3">c=2</text>
+      <rect x="498" y="84" width="136" height="26" rx="3" class="bx"/><text x="508" y="102" class="m3">…900,000,000 more</text>
+      <text x="366" y="130" class="t4">metadata explodes; every read opens thousands of files</text>
+      <text x="366" y="148" class="lb">compaction will NOT save you from this</text>
+
+      <rect x="680" y="26" width="300" height="130" rx="6" class="bxa"/>
+      <text x="696" y="50" class="eb">THE ESCAPE HATCH</text>
+      <text x="696" y="72" class="m2" style="fill:var(--ink)">bucket(128, customer_id)</text>
+      <rect x="696" y="84" width="60" height="26" rx="3" class="bx"/><text x="706" y="102" class="m3">b=0</text>
+      <rect x="762" y="84" width="60" height="26" rx="3" class="bx"/><text x="772" y="102" class="m3">b=1</text>
+      <rect x="828" y="84" width="136" height="26" rx="3" class="bx"/><text x="838" y="102" class="m3">…exactly 128, forever</text>
+      <text x="696" y="130" class="t4">a lookup scans 1 bucket, not the whole table</text>
+      <text x="696" y="148" class="la">chapter 08</text>
+
+      <rect x="20" y="176" width="960" height="66" rx="6" class="bxs"/>
+      <text x="36" y="200" class="eb">HIDDEN PARTITIONING — WHY THE TRANSFORM BEATS A DERIVED COLUMN</text>
+      <text x="36" y="222" class="t3">Hive made you create a <tspan class="m2" style="fill:var(--ink)">month</tspan> column, populate it, and remember to filter on it — forget, and you full-scan.</text>
+      <text x="36" y="238" class="t3">Iceberg records the transform in metadata, so filtering the raw timestamp prunes correctly. Nothing to remember.</text>
+    </svg>
+    <figcaption><b>The target is roughly 128 MB or more per partition.</b> Under about 10 MB you have recreated the small-files problem in the cloud, where listing costs money. S3 Tables compaction merges files <i>within</i> a partition, but it cannot merge partitions — so a 900-million-directory mistake stays a mistake.</figcaption>
+  </figure>
+</div></section>
+
+<section id="c8"><div class="wrap">
+  <div class="kick">08 · Bucketing</div>
+  <h2>Pre-shuffle once, join for free afterwards</h2>
+  <p class="lede">The second thing S3 Tables really stores. <code>bucket(N, col)</code> writes data <b>already hash-partitioned on disk</b>. Two tables bucketed identically on the same key can be joined with <b>no shuffle at all</b> — you paid the shuffle once, at write time.</p>
+  <div class="grid g2">
+    <div class="card ok"><div class="tag">The condition</div><h3>Same column, same N</h3><p>Both sides must share the exact bucket column and bucket count. Different counts and the engine shuffles anyway, silently — you get the storage rigidity with none of the benefit.</p></div>
+    <div class="card warn"><div class="tag">The rigidity</div><h3>Changing N is a rewrite</h3><p>Suits stable, high-traffic tables where the same join runs many times a day. Iceberg at least lets you evolve the spec without rewriting history — new data uses the new bucketing, old data keeps the old.</p></div>
+  </div>
+  <div class="code"><div class="hd"><span class="lang">Declared in the table, not the job</span><span>this is the metadata S3 Tables holds</span></div>
+<pre><span class="c">-- Athena</span>
+<span class="k">CREATE TABLE</span> orders (…)
+<span class="k">PARTITIONED BY</span> (day(order_timestamp), <span class="hl">bucket(128, user_id)</span>)
+<span class="k">TBLPROPERTIES</span> (<span class="s">'table_type'</span>=<span class="s">'iceberg'</span>);
+
+<span class="c">-- Spark: evolve it later without rewriting history</span>
+<span class="k">ALTER TABLE</span> … <span class="k">ADD PARTITION FIELD</span> bucket(64, user_id);</pre></div>
+</div></section>
+
+<section id="c9" style="border-bottom:none"><div class="wrap">
+  <div class="kick">09 · The whole thing on one page</div>
+  <h2>Who owns what</h2>
+  <div class="tw"><table>
+    <tr><th>Mechanism</th><th>Executes in</th><th>Persisted?</th><th>What S3 Tables sees / does</th></tr>
+    <tr><td><b>Hash</b></td><td>Engine — executor memory</td><td>No</td><td>Receives the resulting files. Skew arrives as uneven file sizes.</td></tr>
+    <tr><td><b>Range</b></td><td>Engine — sampling pass + exchange</td><td>No</td><td>File value-ranges align with global order, so manifest min/max pruning gets sharper.</td></tr>
+    <tr><td><b>Round-robin</b></td><td>Engine — exchange</td><td>No</td><td>Even file sizes, but statistics span everything so nothing prunes.</td></tr>
+    <tr><td><b>Coalesce</b></td><td>Engine — local merge, no network</td><td>No</td><td>Controls how many Parquet files land. Compaction would fix it anyway.</td></tr>
+    <tr><td><b>Broadcast</b></td><td>Engine — DAG optimisation</td><td>No</td><td>Nothing. It serves file references to both sides; the join happens in memory.</td></tr>
+    <tr><td><b>Write partitioning</b></td><td><b>Iceberg spec — the catalog</b></td><td><b>Yes</b></td><td>Stores the transform. Every future query inherits the pruning — or the mistake.</td></tr>
+    <tr><td><b>Bucketing</b></td><td><b>Iceberg spec + engine</b></td><td><b>Yes</b></td><td>Stores the bucket spec, enabling shuffle-free joins between identically bucketed tables.</td></tr>
+  </table></div>
+
+  <div class="note"><span class="ic">ASK</span><div><b>The diagnostic order, before you touch any partitioner:</b> ① Am I reading too much — check <code>PartitionFilters</code>. ② How many shuffles are there — can one be broadcast away? ③ Is it skewed — is max task time 40× the median? ④ Are there fewer tasks than cores? Only then reach for a partitioner.</div></div>
+
+  <div class="note warn"><span class="ic">LAST</span><div>Notice what is not on this page: <b>buying a bigger cluster</b>, and <b>changing an S3 Tables setting to fix a slow query</b>. Neither works. The first hides a layout problem expensively; the second is a category error.</div></div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>Storage vs Compute</b> — part 2 of 3. Surender Sara · NorthBay Solutions.<br>
+  Part 1: <b>S3 Tables Deep Dive</b>. Part 3: <b>Compute &amp; Triggers</b> — choosing where the script that writes these tables actually runs.
+</div></footer>
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('nav a')),s=l.map(function(a){return document.querySelector(a.getAttribute('href'))});
+function spy(){var p=window.scrollY+140,i=0;for(var k=0;k<s.length;k++){if(s[k]&&s[k].offsetTop<=p)i=k}l.forEach(function(a,k){a.classList.toggle('on',k===i)})}
+window.addEventListener('scroll',spy,{passive:true});spy();})();
+</script>
