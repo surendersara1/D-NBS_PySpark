@@ -5,12 +5,21 @@
    Every statement here is valid ATHENA SQL. Where a feature is Spark-only,
    it is marked  [NOT IN ATHENA]  with the Spark equivalent beside it.
 
-   BEFORE YOU START — replace this one string everywhere:
-       s3tablescatalog/nbs-lab-bucket      <-- your S3 table bucket
+   BEFORE YOU START — find & replace these TWO strings everywhere (Ctrl+H):
 
-   The Athena catalog name for an S3 table bucket is literally
+       s3tablescatalog/nbs-lab-bucket   ->  your catalog, exactly as it
+                                            appears in the Catalogue dropdown
+                                            e.g. s3tablescatalog/amp-shahzeb-s3tables
+       "ecom"                           ->  your namespace, e.g. "join_demo"
+
+   The catalog name for an S3 table bucket is literally
        s3tablescatalog/<table-bucket-name>
    It contains a slash, so it MUST be double-quoted every time.
+
+   SHORTCUT: if you have already picked the Catalogue and Database in the
+   left-hand panel, you can drop the first two name parts and just write
+       orders            instead of  "s3tablescatalog/...". "ecom"."orders"
+   Fully-qualified names are used below so the file works from any tab.
 
    SETUP (once, outside Athena):
      aws s3tables create-table-bucket --name nbs-lab-bucket --region us-east-1
@@ -21,17 +30,25 @@
    SYNTAX FIXES APPLIED vs. the source notes — the five that actually bite:
      1. `USING iceberg`      -> Spark only. Athena infers Iceberg for S3 Tables.
      2. `backticks`          -> Spark/Hive. Athena quotes identifiers with ".
-     3. CREATE MATERIALIZED VIEW -> Spark/EMR only. Athena = table + INSERT.
+     3. CREATE DATABASE      -> this parser wants CREATE SCHEMA.
      4. CALL catalog.system.*    -> Spark only. Athena = OPTIMIZE / VACUUM.
      5. ALTER TABLE ADD PARTITION FIELD -> Spark only. See block 09.
    =========================================================================== */
 
 
 /* ###########################################################################
-   00 · NAMESPACE (database)
+   00 · NAMESPACE
+   ---------------------------------------------------------------------------
+   Use SCHEMA, not DATABASE. The SageMaker Unified Studio / Athena v3 parser
+   rejects CREATE DATABASE with:
+       mismatched input 'DATABASE'. Expecting: ... 'SCHEMA', 'TABLE', 'VIEW'
+   CREATE SCHEMA is accepted by both engines, so it is the portable choice.
+
+   ALREADY HAVE A NAMESPACE?  Skip this statement entirely and just set
+   :DB below to it (e.g. join_demo, which already exists in your account).
    ########################################################################### */
 
-CREATE DATABASE IF NOT EXISTS "s3tablescatalog/nbs-lab-bucket"."ecom";
+CREATE SCHEMA IF NOT EXISTS "s3tablescatalog/nbs-lab-bucket"."ecom";
 
 
 /* ###########################################################################
@@ -310,11 +327,13 @@ GROUP BY 1;
 SELECT * FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."v_daily_revenue"
 ORDER BY order_date;
 
-/* [NOT IN ATHENA] CREATE MATERIALIZED VIEW. That is Spark/EMR only.
-   The Athena-native equivalent is a physical table you refresh yourself:   */
+/* MATERIALIZED VIEWS — your engine DOES support these.
+   Proof: the CREATE SCHEMA error in block 00 listed the keywords the parser
+   accepts after CREATE, and 'MATERIALIZED' was one of them. Classic Athena
+   has no MVs; SageMaker Unified Studio / Athena v3 does.
+   An MV is a REAL Iceberg table with precomputed rows, not a saved query.   */
 
-CREATE TABLE "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics"
-WITH (partitioning = ARRAY['day(order_hour)']) AS
+CREATE MATERIALIZED VIEW "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics" AS
 SELECT date_trunc('hour', order_timestamp) AS order_hour,
        country,
        count(order_id)   AS total_orders,
@@ -322,18 +341,31 @@ SELECT date_trunc('hour', order_timestamp) AS order_hour,
 FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."orders"
 GROUP BY 1, 2;
 
--- "refresh" = replace the affected rows. Idempotent if you scope the delete.
-DELETE FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics"
+SELECT * FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics"
+ORDER BY order_hour;
+
+REFRESH MATERIALIZED VIEW "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics";
+
+/* If CREATE MATERIALIZED VIEW is rejected in your workgroup, fall back to a
+   plain table plus a scoped refresh — same result, you own the schedule:
+
+CREATE TABLE "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_fallback"
+WITH (partitioning = ARRAY['day(order_hour)']) AS
+SELECT date_trunc('hour', order_timestamp) AS order_hour, country,
+       count(order_id) AS total_orders, sum(total_amount) AS revenue
+FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."orders"
+GROUP BY 1, 2;
+
+-- refresh = delete the affected window, re-insert it. Idempotent.
+DELETE FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_fallback"
 WHERE order_hour >= TIMESTAMP '2026-03-04 00:00:00';
 
-INSERT INTO "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics"
-SELECT date_trunc('hour', order_timestamp) AS order_hour,
-       country,
-       count(order_id)   AS total_orders,
-       sum(total_amount) AS revenue
+INSERT INTO "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_fallback"
+SELECT date_trunc('hour', order_timestamp) AS order_hour, country,
+       count(order_id) AS total_orders, sum(total_amount) AS revenue
 FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."orders"
 WHERE order_timestamp >= TIMESTAMP '2026-03-04 00:00:00'
-GROUP BY 1, 2;
+GROUP BY 1, 2;                                                             */
 
 
 /* ###########################################################################
@@ -421,8 +453,8 @@ FROM "s3tablescatalog/nbs-lab-bucket"."ecom"."app_events";
    ########################################################################### */
 
 -- DROP TABLE "s3tablescatalog/nbs-lab-bucket"."ecom"."app_events";
--- DROP TABLE "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics";
+-- DROP MATERIALIZED VIEW "s3tablescatalog/nbs-lab-bucket"."ecom"."mv_hourly_metrics";
 -- DROP TABLE "s3tablescatalog/nbs-lab-bucket"."ecom"."high_value_orders";
 -- DROP VIEW  "s3tablescatalog/nbs-lab-bucket"."ecom"."v_daily_revenue";
 -- DROP TABLE "s3tablescatalog/nbs-lab-bucket"."ecom"."orders";
--- DROP DATABASE "s3tablescatalog/nbs-lab-bucket"."ecom";
+-- DROP SCHEMA "s3tablescatalog/nbs-lab-bucket"."ecom";
