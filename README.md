@@ -107,7 +107,7 @@ cost grow forever.
 
 | File | Notes |
 |---|---|
-| [apache-iceberg-TDG_ER1.PDF](4_reference/apache-iceberg-TDG_ER1.PDF) | *Apache Iceberg: The Definitive Guide* (Aakulov, Merced & Gidon, O'Reilly). Source for the Iceberg atlas. |
+| `apache-iceberg-TDG_ER1.PDF` | *Apache Iceberg: The Definitive Guide* (Aakulov, Merced & Gidon, O'Reilly). Source for the Iceberg atlas. **Not in the repo** — gitignored as third-party material. Bring your own copy to `4_reference/`. |
 | [s3_tables_iceberg_metadata_guide.md](4_reference/s3_tables_iceberg_metadata_guide.md) | S3 Tables / Iceberg metadata notes. |
 
 ---

@@ -3,3 +3,6 @@ __pycache__/
 3_labs/*/warehouse/
 .playwright-mcp/
 *.jpeg
+
+# Third-party book — kept locally as source material, not redistributed
+4_reference/apache-iceberg-TDG_ER1.PDF
