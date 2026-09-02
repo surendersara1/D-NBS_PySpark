@@ -1,0 +1,658 @@
+<meta charset="utf-8">
+<title>The Cluster Atlas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F5F7F9;--surface:#FFFFFF;--surface2:#EDF1F5;--ink:#17222E;--muted:#5B6B7C;
+  --line:#D7DEE6;--accent:#E8710A;--accent-ink:#B45603;--accent-soft:rgba(232,113,10,.12);
+  --key-g:#2E9E62;--key-e:#2D7DD2;--key-a:#8A56D6;--key-h:#C2497E;
+  --hot:#D64545;--hot-soft:rgba(214,69,69,.10);--good:#2E9E62;--good-soft:rgba(46,158,98,.12);
+  --code-bg:#14202E;--code-ink:#D9E4EF;
+  --hero-bg:#101B29;--hero-ink:#EAF1F8;--hero-muted:#93A5B8;--hero-line:#26374C;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0C1320;--surface:#131C2B;--surface2:#1A2536;--ink:#E6EDF5;--muted:#8DA0B5;
+  --line:#2A3950;--accent:#F5921F;--accent-ink:#FFA94D;--accent-soft:rgba(245,146,31,.14);
+  --key-g:#4CC886;--key-e:#5FA8F2;--key-a:#AA84F0;--key-h:#E06E9C;
+  --hot:#F06A6A;--hot-soft:rgba(240,106,106,.14);--good:#4CC886;--good-soft:rgba(76,200,134,.14);
+  --code-bg:#0F1826;--code-ink:#CFE0F0;
+  --hero-bg:#0A1220;--hero-ink:#EAF1F8;--hero-muted:#8DA0B5;--hero-line:#233348;}}
+:root[data-theme="dark"]{
+  --bg:#0C1320;--surface:#131C2B;--surface2:#1A2536;--ink:#E6EDF5;--muted:#8DA0B5;
+  --line:#2A3950;--accent:#F5921F;--accent-ink:#FFA94D;--accent-soft:rgba(245,146,31,.14);
+  --key-g:#4CC886;--key-e:#5FA8F2;--key-a:#AA84F0;--key-h:#E06E9C;
+  --hot:#F06A6A;--hot-soft:rgba(240,106,106,.14);--good:#4CC886;--good-soft:rgba(76,200,134,.14);
+  --code-bg:#0F1826;--code-ink:#CFE0F0;
+  --hero-bg:#0A1220;--hero-ink:#EAF1F8;--hero-muted:#8DA0B5;--hero-line:#233348;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.62 'Instrument Sans',system-ui,sans-serif;margin:0}
+h1,h2,h3{font-family:'Archivo',system-ui,sans-serif;text-wrap:balance;margin:0}
+code,.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:72px 0 56px;border-bottom:1px solid var(--hero-line)}
+.hero .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{font-size:clamp(38px,6vw,64px);font-weight:800;letter-spacing:-.02em;line-height:1.04}
+.hero .thesis{font-family:'Archivo',sans-serif;font-size:clamp(19px,2.6vw,25px);font-weight:600;margin:22px 0 8px}
+.hero .thesis em{font-style:normal;color:var(--accent)}
+.hero p.sub{color:var(--hero-muted);max-width:64ch;margin:10px 0 0}
+.stats{display:flex;flex-wrap:wrap;gap:0;margin-top:38px;border:1px solid var(--hero-line);border-radius:10px;overflow:hidden}
+.stats div{flex:1 1 150px;padding:14px 18px;border-right:1px solid var(--hero-line)}
+.stats div:last-child{border-right:none}
+.stats b{display:block;font-family:'Archivo',sans-serif;font-size:20px;font-weight:700}
+.stats span{font-size:11.5px;color:var(--hero-muted);text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Mono',monospace}
+nav.chapters{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line)}
+nav.chapters .wrap{display:flex;gap:2px;overflow-x:auto}
+nav.chapters a{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);text-decoration:none;padding:12px 11px;white-space:nowrap;border-bottom:2px solid transparent}
+nav.chapters a:hover{color:var(--ink)}
+nav.chapters a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+section.ch{padding:70px 0 30px;border-bottom:1px solid var(--line)}
+.kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:10px}
+section.ch h2{font-size:clamp(26px,3.6vw,36px);font-weight:700;letter-spacing:-.015em}
+.lede{max-width:70ch;color:var(--muted);margin:14px 0 0;font-size:17px}
+.lede b{color:var(--ink)}
+.lede code,p.body code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--ink)}
+p.body{max-width:70ch;color:var(--muted);margin:14px 0 0}
+p.body b{color:var(--ink)}
+figure{margin:32px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 22px 14px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:660px;margin:0 auto}
+figcaption{font-size:14px;color:var(--muted);max-width:82ch;margin:14px auto 6px;padding-top:12px;border-top:1px dashed var(--line)}
+figcaption b{color:var(--ink)}
+figcaption code{font-size:.9em;background:var(--surface2);padding:1px 5px;border-radius:4px;color:var(--ink)}
+.panelrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.panel .tag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:8px}
+.panel.warn{border-color:var(--hot)}.panel.warn .tag{color:var(--hot)}
+.panel.ok{border-color:var(--good)}.panel.ok .tag{color:var(--good)}
+.panel h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.panel p{font-size:14px;color:var(--muted);margin:6px 0 0}
+.panel ul{margin:8px 0 0;padding-left:17px;font-size:14px;color:var(--muted)}
+.panel li{margin:4px 0}
+.panel code{font-family:'IBM Plex Mono',monospace;font-size:12.2px;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink)}
+.code{background:var(--code-bg);border-radius:12px;margin:22px 0 0;overflow:hidden}
+.code .hd{display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.09)}
+.code .hd span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#7E93A8}
+.code .hd span.lang{color:var(--accent)}
+.code pre{margin:0;padding:16px 18px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.7;color:var(--code-ink)}
+.code .c{color:#7E93A8}.code .k{color:#7FD7E3}.code .s{color:#E8C07D}.code .hl{color:#FFB566;font-weight:600}
+.note{display:flex;gap:12px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 16px;margin-top:20px;font-size:14.5px;max-width:88ch}
+.note b{color:var(--accent-ink)}
+.note.warn{background:var(--hot-soft);border-left-color:var(--hot)}.note.warn b{color:var(--hot)}
+.note.ok{background:var(--good-soft);border-left-color:var(--good)}.note.ok b{color:var(--good)}
+.note .ic{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;flex-shrink:0}
+table{width:100%;border-collapse:collapse;margin-top:22px;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);background:var(--surface2)}
+td{padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:'IBM Plex Mono',monospace;font-size:12.2px;color:var(--ink)}
+td b{color:var(--ink)}
+.tw{overflow-x:auto}
+footer{padding:44px 0 60px;color:var(--muted);font-size:13.5px}
+svg text{font-family:'Instrument Sans',system-ui,sans-serif}
+.st{font-size:14px;font-weight:650;fill:var(--ink)}
+.st2{font-size:12.5px;font-weight:600;fill:var(--ink)}
+.ss{font-size:12px;fill:var(--muted)}
+.sxs{font-size:11px;fill:var(--muted)}
+.sm{font-family:'IBM Plex Mono',monospace;font-size:11.5px;fill:var(--muted)}
+.smi{font-family:'IBM Plex Mono',monospace;font-size:11.5px;fill:var(--ink)}
+.se{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;fill:var(--accent-ink)}
+.sec{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;fill:var(--hot)}
+.seg{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;fill:var(--good)}
+.sa{fill:var(--accent-ink);font-size:12px;font-weight:600}
+.shot{fill:var(--hot);font-size:12px;font-weight:600}
+.sgood{fill:var(--good);font-size:12px;font-weight:600}
+.box{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.box2{fill:var(--surface2);stroke:var(--line);stroke-width:1}
+.boxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+.boxh{fill:var(--hot-soft);stroke:var(--hot);stroke-width:1.3}
+.boxg{fill:var(--good-soft);stroke:var(--good);stroke-width:1.3}
+.boxd{fill:none;stroke:var(--muted);stroke-width:1.1;stroke-dasharray:5 4}
+.flow{stroke:var(--muted);stroke-width:1.6;fill:none}
+.flowa{stroke:var(--accent);stroke-width:2;fill:none}
+.flowh{stroke:var(--hot);stroke-width:1.8;fill:none}
+.flowg{stroke:var(--good);stroke-width:1.8;fill:none}
+.dash{stroke-dasharray:6 5}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media print{nav.chapters{display:none}section.ch{break-inside:avoid-page}figure{break-inside:avoid}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ar" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+<marker id="ara" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="arh" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--hot)"/></marker>
+<marker id="arg" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/></marker>
+</defs></svg>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Module 02 · companion 3 of 3 · the cluster</div>
+  <h1>The Cluster Atlas</h1>
+  <p class="thesis">What runs where — and <em>exactly</em> what happens when AWS takes a machine back mid-job.</p>
+  <p class="sub">Processes and daemons per node role, the life of one task, the two very different spot-loss scenarios, how much work is actually redone (almost never "start again"), and how one cluster safely serves many jobs at once.</p>
+  <div class="stats">
+    <div><b>3</b><span>node roles</span></div>
+    <div><b>2 min</b><span>spot interruption notice</span></div>
+    <div><b>1 stage</b><span>typical redo, not the job</span></div>
+    <div><b>~70%</b><span>spot discount</span></div>
+    <div><b>4</b><span>failure retries by default</span></div>
+  </div>
+</div></header>
+
+<nav class="chapters" aria-label="Chapters"><div class="wrap">
+<a href="#c1">01 What runs where</a><a href="#c2">02 Life of a task</a><a href="#c3">03 Spot loss</a><a href="#c4">04 How much is redone</a><a href="#c5">05 Checkpoints</a><a href="#c6">06 Streaming restart</a><a href="#c7">07 Many jobs, one cluster</a><a href="#c8">08 Sizing for spot</a>
+</div></nav>
+
+<!-- ============ 01 ============ -->
+<section class="ch" id="c1"><div class="wrap">
+  <div class="kicker">01 · Anatomy</div>
+  <h2>Every process, and which box it sits on</h2>
+  <p class="lede">A node's <b>role decides what it holds</b>, and what it holds decides whether losing it is free or expensive. That single sentence is the whole spot-instance strategy: task nodes hold nothing durable, so put them on spot; core nodes hold shuffle files and HDFS, so don't.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 470" role="img" aria-label="A detailed EMR cluster: the primary node runs the YARN ResourceManager and in client mode the Spark driver; core nodes run NodeManagers, executors, HDFS DataNodes and hold shuffle files on local disk; task nodes run executors only and hold nothing durable, which is why they go on spot.">
+      <rect x="20" y="26" width="660" height="426" rx="12" class="boxd"/>
+      <text x="38" y="50" class="se">EMR CLUSTER · ONE VPC · ONE YARN</text>
+
+      <rect x="40" y="62" width="620" height="88" rx="10" class="boxa"/>
+      <text x="58" y="86" class="se">PRIMARY NODE — ALWAYS ON-DEMAND, ALWAYS EXACTLY ONE</text>
+      <rect x="58" y="96" width="190" height="42" rx="6" class="box"/>
+      <text x="70" y="114" class="st2">YARN ResourceManager</text>
+      <text x="70" y="130" class="sxs">grants containers · knows no Spark</text>
+      <rect x="256" y="96" width="190" height="42" rx="6" class="box"/>
+      <text x="268" y="114" class="st2">Spark driver (client mode)</text>
+      <text x="268" y="130" class="sxs">DAG · Catalyst · task scheduling</text>
+      <rect x="454" y="96" width="188" height="42" rx="6" class="box"/>
+      <text x="466" y="114" class="st2">HDFS NameNode · Hive MS</text>
+      <text x="466" y="130" class="sxs">metadata services</text>
+
+      <line x1="200" y1="150" x2="200" y2="180" class="flow" marker-end="url(#ar)"/>
+      <line x1="500" y1="150" x2="500" y2="180" class="flow" marker-end="url(#ar)"/>
+      <text x="350" y="170" text-anchor="middle" class="sm">containers · heartbeats every 3s</text>
+
+      <rect x="40" y="184" width="300" height="126" rx="10" class="box"/>
+      <text x="58" y="208" class="seg">CORE NODE — ON-DEMAND. STATEFUL.</text>
+      <rect x="58" y="218" width="128" height="34" rx="5" class="box2"/>
+      <text x="68" y="239" class="sm">NodeManager</text>
+      <rect x="194" y="218" width="128" height="34" rx="5" class="box2"/>
+      <text x="204" y="239" class="sm">executor JVMs</text>
+      <rect x="58" y="258" width="264" height="42" rx="5" class="boxg"/>
+      <text x="70" y="276" class="smi">LOCAL DISK — the reason it can't be spot</text>
+      <text x="70" y="292" class="sxs">HDFS blocks · shuffle files · RDD spill</text>
+
+      <rect x="356" y="184" width="304" height="126" rx="10" class="box"/>
+      <text x="374" y="208" class="seg">CORE NODE</text>
+      <rect x="374" y="218" width="128" height="34" rx="5" class="box2"/>
+      <text x="384" y="239" class="sm">NodeManager</text>
+      <rect x="510" y="218" width="132" height="34" rx="5" class="box2"/>
+      <text x="520" y="239" class="sm">executor JVMs</text>
+      <rect x="374" y="258" width="268" height="42" rx="5" class="boxg"/>
+      <text x="386" y="276" class="smi">shuffle output lives here until the</text>
+      <text x="386" y="292" class="sxs">consuming stage has fetched it</text>
+
+      <line x1="190" y1="310" x2="150" y2="344" class="flow" marker-end="url(#ar)"/>
+      <line x1="510" y1="310" x2="560" y2="344" class="flow" marker-end="url(#ar)"/>
+
+      <rect x="40" y="348" width="196" height="88" rx="10" class="boxh"/>
+      <text x="58" y="372" class="sec">TASK NODE — SPOT</text>
+      <text x="58" y="392" class="sxs">executors only</text>
+      <text x="58" y="410" class="sxs">no HDFS · no shuffle state</text>
+      <text x="58" y="428" class="shot">safe to lose</text>
+      <rect x="248" y="348" width="196" height="88" rx="10" class="boxh"/>
+      <text x="266" y="372" class="sec">TASK NODE — SPOT</text>
+      <text x="266" y="392" class="sxs">executors only</text>
+      <text x="266" y="410" class="sxs">no HDFS · no shuffle state</text>
+      <text x="266" y="428" class="shot">safe to lose</text>
+      <rect x="456" y="348" width="204" height="88" rx="10" class="boxh"/>
+      <text x="474" y="372" class="sec">TASK NODE — SPOT</text>
+      <text x="474" y="392" class="sxs">executors only</text>
+      <text x="474" y="410" class="sxs">no HDFS · no shuffle state</text>
+      <text x="474" y="428" class="shot">safe to lose</text>
+
+      <rect x="700" y="62" width="280" height="120" rx="10" class="box"/>
+      <text x="718" y="86" class="se">S3 — THE ACTUAL STORAGE</text>
+      <text x="718" y="110" class="ss">Input and output live here, not on</text>
+      <text x="718" y="128" class="ss">the cluster. Terminate the whole</text>
+      <text x="718" y="146" class="ss">thing tonight and lose nothing.</text>
+      <text x="718" y="170" class="sa">compute is disposable</text>
+      <line x1="660" y1="122" x2="696" y2="122" class="flowa" marker-end="url(#ara)"/>
+
+      <rect x="700" y="196" width="280" height="114" rx="10" class="box2"/>
+      <text x="718" y="220" class="se">WHY HDFS AT ALL, IF S3 IS STORAGE?</text>
+      <text x="718" y="244" class="ss">It isn't for your tables. It holds</text>
+      <text x="718" y="262" class="ss">shuffle spill, scratch and temp for</text>
+      <text x="718" y="280" class="ss">the engines. That is why core node</text>
+      <text x="718" y="298" class="ss">disk still matters on an S3 lake.</text>
+
+      <rect x="700" y="324" width="280" height="112" rx="10" class="boxa"/>
+      <text x="718" y="348" class="se">THE RULE TO WRITE DOWN</text>
+      <text x="718" y="372" class="ss">Lose a <tspan style="fill:var(--ink)">task</tspan> node → re-run its tasks.</text>
+      <text x="718" y="392" class="ss">Lose a <tspan style="fill:var(--ink)">core</tspan> node → also lose shuffle</text>
+      <text x="718" y="410" class="ss">files, so re-run the stage that</text>
+      <text x="718" y="428" class="ss">produced them. Much worse.</text>
+    </svg>
+    <figcaption><b>Client mode vs cluster mode:</b> the driver drawn on the primary node is client mode. In <b>cluster mode</b> — the default for EMR steps — YARN places the driver in a container on a worker instead. Same process, same job, different host. Never let the driver land on a spot node: losing it kills the whole application, not one stage.</figcaption>
+  </figure>
+</div></section>
+
+<!-- ============ 02 ============ -->
+<section class="ch" id="c2"><div class="wrap">
+  <div class="kicker">02 · The life of one task</div>
+  <h2>From your <code>.count()</code> to bytes on a disk</h2>
+  <p class="lede">Knowing this chain is what lets you read a failure message. Every recovery behaviour in the rest of this atlas is just "which of these steps gets repeated".</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 300" role="img" aria-label="The chain from an action in user code through the driver's DAG scheduler and YARN container allocation to a task running in an executor and writing shuffle output to local disk.">
+      <rect x="20" y="40" width="140" height="70" rx="8" class="box"/>
+      <text x="36" y="64" class="se">1 · YOUR CODE</text>
+      <text x="36" y="86" class="sm">df.count()</text>
+      <text x="36" y="102" class="sxs">an ACTION fires</text>
+      <line x1="160" y1="75" x2="192" y2="75" class="flowa" marker-end="url(#ara)"/>
+
+      <rect x="196" y="40" width="160" height="70" rx="8" class="boxa"/>
+      <text x="212" y="64" class="se">2 · DRIVER</text>
+      <text x="212" y="86" class="ss">builds the DAG, cuts it</text>
+      <text x="212" y="102" class="ss">into STAGES at shuffles</text>
+      <line x1="356" y1="75" x2="388" y2="75" class="flowa" marker-end="url(#ara)"/>
+
+      <rect x="392" y="40" width="160" height="70" rx="8" class="box"/>
+      <text x="408" y="64" class="se">3 · YARN RM</text>
+      <text x="408" y="86" class="ss">grants containers on</text>
+      <text x="408" y="102" class="ss">whichever nodes have room</text>
+      <line x1="552" y1="75" x2="584" y2="75" class="flow" marker-end="url(#ar)"/>
+
+      <rect x="588" y="40" width="160" height="70" rx="8" class="box"/>
+      <text x="604" y="64" class="se">4 · EXECUTOR</text>
+      <text x="604" y="86" class="ss">a JVM in that container</text>
+      <text x="604" y="102" class="ss">runs N tasks in N threads</text>
+      <line x1="748" y1="75" x2="780" y2="75" class="flow" marker-end="url(#ar)"/>
+
+      <rect x="784" y="40" width="196" height="70" rx="8" class="boxg"/>
+      <text x="800" y="64" class="seg">5 · LOCAL DISK</text>
+      <text x="800" y="86" class="ss">shuffle output written here,</text>
+      <text x="800" y="102" class="ss">fetched by the NEXT stage</text>
+
+      <rect x="20" y="140" width="960" height="66" rx="10" class="box2"/>
+      <text x="38" y="164" class="se">THE UNIT THAT MATTERS FOR RECOVERY IS THE STAGE BOUNDARY</text>
+      <text x="38" y="188" class="ss">A stage's output is durable on local disk once written. That is the save point Spark rewinds to — not the start of your job, and not the last row.</text>
+
+      <rect x="20" y="220" width="470" height="66" rx="10" class="box"/>
+      <text x="38" y="244" class="st2">Narrow dependency</text>
+      <text x="38" y="266" class="ss">map, filter, withColumn — one input partition → one output. Recomputing one partition needs one parent.</text>
+      <rect x="510" y="220" width="470" height="66" rx="10" class="boxa"/>
+      <text x="528" y="244" class="st2">Wide dependency (shuffle)</text>
+      <text x="528" y="266" class="ss">groupBy, join, distinct — one output partition needs EVERY parent. This is why losing shuffle files is expensive.</text>
+    </svg>
+    <figcaption><b>Narrow vs wide is the whole recovery story.</b> Re-running a narrow chain is cheap and local. Re-running anything that fed a shuffle means re-reading and re-processing every upstream partition — which is exactly what happens when a core node's shuffle files vanish.</figcaption>
+  </figure>
+</div></section>
+
+<!-- ============ 03 ============ -->
+<section class="ch" id="c3"><div class="wrap">
+  <div class="kicker">03 · Spot interruption</div>
+  <h2>AWS gives you two minutes. Here's what Spark does with them.</h2>
+  <p class="lede">A spot reclaim is not a crash — it is an <b>announced</b> departure. EC2 posts an interruption notice roughly two minutes ahead, EMR sees it, and Spark can decommission the node gracefully instead of discovering the loss by timeout. <b>The two scenarios below have wildly different costs.</b></p>
+
+  <figure>
+    <svg viewBox="0 0 1000 500" role="img" aria-label="Timeline of a spot interruption: EC2 issues a two minute notice, YARN marks the node decommissioning, Spark stops scheduling new tasks there and migrates shuffle blocks if decommissioning is enabled, then the node dies and any tasks still running are rescheduled elsewhere.">
+      <text x="20" y="24" class="se">THE TWO-MINUTE WINDOW — WHAT EACH LAYER DOES</text>
+      <line x1="20" y1="46" x2="980" y2="46" class="flow"/>
+      <text x="20" y="70" class="sm">T-120s</text><circle cx="60" cy="46" r="7" fill="var(--accent)"/>
+      <text x="300" y="70" class="sm">T-110s</text><circle cx="340" cy="46" r="7" fill="var(--accent)"/>
+      <text x="560" y="70" class="sm">T-100s → T-5s</text><circle cx="620" cy="46" r="7" fill="var(--accent)"/>
+      <text x="900" y="70" class="sm">T-0</text><circle cx="930" cy="46" r="7" fill="var(--hot)"/>
+
+      <rect x="20" y="84" width="260" height="88" rx="8" class="box"/>
+      <text x="36" y="108" class="se">EC2</text>
+      <text x="36" y="130" class="ss">posts an interruption notice</text>
+      <text x="36" y="148" class="ss">to instance metadata</text>
+      <text x="36" y="166" class="sxs">also a rebalance recommendation, earlier</text>
+
+      <rect x="300" y="84" width="260" height="88" rx="8" class="box"/>
+      <text x="316" y="108" class="se">YARN / EMR</text>
+      <text x="316" y="130" class="ss">marks the NodeManager</text>
+      <text x="316" y="148" class="ss">DECOMMISSIONING</text>
+      <text x="316" y="166" class="sxs">no NEW containers placed there</text>
+
+      <rect x="580" y="84" width="260" height="88" rx="8" class="boxg"/>
+      <text x="596" y="108" class="seg">SPARK — IF DECOMMISSION IS ON</text>
+      <text x="596" y="130" class="ss">stops scheduling new tasks,</text>
+      <text x="596" y="148" class="ss">MIGRATES shuffle blocks and</text>
+      <text x="596" y="166" class="ss">cached RDD blocks off the node</text>
+
+      <rect x="860" y="84" width="120" height="88" rx="8" class="boxh"/>
+      <text x="876" y="108" class="sec">GONE</text>
+      <text x="876" y="130" class="sxs">anything still</text>
+      <text x="876" y="148" class="sxs">running here is</text>
+      <text x="876" y="166" class="sxs">rescheduled</text>
+
+      <line x1="20" y1="196" x2="980" y2="196" class="flow dash"/>
+
+      <text x="20" y="228" class="seg">SCENARIO A — A TASK NODE GOES. THE CHEAP CASE.</text>
+      <rect x="20" y="240" width="460" height="230" rx="10" class="boxg"/>
+      <rect x="40" y="258" width="420" height="40" rx="6" class="box"/>
+      <text x="54" y="283" class="sm">it held: executors + the 4 tasks they were running</text>
+      <line x1="250" y1="298" x2="250" y2="322" class="flowg" marker-end="url(#arg)"/>
+      <rect x="40" y="326" width="420" height="40" rx="6" class="box"/>
+      <text x="54" y="351" class="sm">it held NO shuffle files, NO HDFS blocks</text>
+      <line x1="250" y1="366" x2="250" y2="390" class="flowg" marker-end="url(#arg)"/>
+      <rect x="40" y="394" width="420" height="58" rx="6" class="boxg"/>
+      <text x="54" y="416" class="st2">cost: re-run 4 tasks, elsewhere</text>
+      <text x="54" y="436" class="ss">Seconds to minutes. Other tasks never noticed.</text>
+
+      <text x="520" y="228" class="sec">SCENARIO B — A CORE NODE GOES. THE EXPENSIVE CASE.</text>
+      <rect x="520" y="240" width="460" height="230" rx="10" class="boxh"/>
+      <rect x="540" y="258" width="420" height="40" rx="6" class="box"/>
+      <text x="554" y="283" class="sm">it held: executors + tasks — same as above so far</text>
+      <line x1="750" y1="298" x2="750" y2="322" class="flowh" marker-end="url(#arh)"/>
+      <rect x="540" y="326" width="420" height="40" rx="6" class="boxh"/>
+      <text x="554" y="351" class="smi">…AND the shuffle files a completed stage wrote</text>
+      <line x1="750" y1="366" x2="750" y2="390" class="flowh" marker-end="url(#arh)"/>
+      <rect x="540" y="394" width="420" height="58" rx="6" class="boxh"/>
+      <text x="554" y="416" class="st2">cost: re-run the STAGE that produced them</text>
+      <text x="554" y="436" class="ss">Every upstream partition re-read and re-processed. Minutes to hours.</text>
+    </svg>
+    <figcaption><b>This asymmetry is the entire reason for the core/task split.</b> "FetchFailedException" in your logs is scenario B announcing itself: a reducer asked for shuffle output that no longer exists, so Spark must go back and regenerate it. Keep core nodes on-demand, sized only for the shuffle they must hold, and put the elastic capacity on spot task nodes.</figcaption>
+  </figure>
+
+  <div class="code"><div class="hd"><span class="lang">spark-defaults</span><span>make the two minutes count</span></div>
+<pre><span class="c"># Use the interruption notice instead of discovering loss by timeout</span>
+spark.decommission.enabled                          <span class="hl">true</span>
+spark.storage.decommission.enabled                  <span class="hl">true</span>
+spark.storage.decommission.shuffleBlocks.enabled    <span class="hl">true</span>   <span class="c"># move shuffle off the dying node</span>
+spark.storage.decommission.rddBlocks.enabled        <span class="hl">true</span>   <span class="c"># move cached blocks too</span>
+
+<span class="c"># Tolerate more churn before giving up on a task or a stage</span>
+spark.task.maxFailures                              8      <span class="c"># default 4</span>
+spark.stage.maxConsecutiveAttempts                  8      <span class="c"># default 4</span>
+
+<span class="c"># Don't let one flaky node poison the run</span>
+spark.excludeOnFailure.enabled                      true</pre></div>
+
+  <div class="note ok"><span class="ic">WIN</span><div><b>Shuffle-block migration turns scenario B into scenario A.</b> With decommissioning enabled, Spark copies shuffle output off the doomed node during the notice window, so its departure no longer forces a stage recompute. On spot-heavy clusters this is the single highest-value setting on this page.</div></div>
+</div></section>
+
+<!-- ============ 04 ============ -->
+<section class="ch" id="c4"><div class="wrap">
+  <div class="kicker">04 · The question everyone asks</div>
+  <h2>Do we start from the beginning? Almost never.</h2>
+  <p class="lede">Spark does not re-run your job. It re-runs <b>the smallest set of partitions whose results were lost</b>, using lineage — the recipe for recomputing any partition from its parents. Completed stages that still have their shuffle files intact are simply reused.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 400" role="img" aria-label="A four stage job where a spot node dies during stage three: stages one and two are already complete with intact shuffle files and are reused, only the lost partitions of stage three are recomputed, and the job continues to stage four.">
+      <text x="20" y="24" class="se">A FOUR-STAGE JOB. A SPOT NODE DIES DURING STAGE 3.</text>
+
+      <rect x="20" y="40" width="200" height="112" rx="10" class="boxg"/>
+      <text x="36" y="64" class="seg">STAGE 1 — DONE ✓</text>
+      <text x="36" y="86" class="ss">scan S3 + filter</text>
+      <text x="36" y="106" class="ss">8,000 tasks complete</text>
+      <rect x="36" y="116" width="168" height="24" rx="4" class="box"/>
+      <text x="46" y="133" class="sm">shuffle files intact</text>
+
+      <line x1="220" y1="96" x2="252" y2="96" class="flowg" marker-end="url(#arg)"/>
+
+      <rect x="256" y="40" width="200" height="112" rx="10" class="boxg"/>
+      <text x="272" y="64" class="seg">STAGE 2 — DONE ✓</text>
+      <text x="272" y="86" class="ss">partial aggregation</text>
+      <text x="272" y="106" class="ss">output already on disk</text>
+      <rect x="272" y="116" width="168" height="24" rx="4" class="box"/>
+      <text x="282" y="133" class="sm">shuffle files intact</text>
+
+      <line x1="456" y1="96" x2="488" y2="96" class="flowg" marker-end="url(#arg)"/>
+
+      <rect x="492" y="40" width="200" height="112" rx="10" class="boxh"/>
+      <text x="508" y="64" class="sec">STAGE 3 — IN FLIGHT</text>
+      <text x="508" y="86" class="ss">200 reduce tasks</text>
+      <text x="508" y="106" class="shot">4 of them died with the node</text>
+      <rect x="508" y="116" width="168" height="24" rx="4" class="boxh"/>
+      <text x="518" y="133" class="sm">196 done · 4 lost</text>
+
+      <line x1="692" y1="96" x2="724" y2="96" class="flow dash" marker-end="url(#ar)"/>
+      <rect x="728" y="40" width="200" height="112" rx="10" class="box"/>
+      <text x="744" y="64" class="se">STAGE 4 — NOT STARTED</text>
+      <text x="744" y="86" class="ss">final write</text>
+      <text x="744" y="106" class="ss">waiting on stage 3</text>
+
+      <rect x="20" y="180" width="908" height="86" rx="10" class="boxg"/>
+      <text x="38" y="204" class="seg">WHAT SPARK ACTUALLY REDOES</text>
+      <text x="38" y="228" class="ss">Stages 1 and 2: <tspan style="fill:var(--good);font-weight:600">nothing</tspan> — their shuffle output survives on other nodes, so it is fetched and reused.</text>
+      <text x="38" y="250" class="ss">Stage 3: <tspan style="fill:var(--ink);font-weight:600">4 tasks out of 200</tspan> are rescheduled onto surviving executors. The other 196 results are kept.</text>
+
+      <rect x="20" y="286" width="440" height="96" rx="10" class="box"/>
+      <text x="38" y="310" class="se">THE EXCEPTION — WHEN MORE IS REDONE</text>
+      <text x="38" y="332" class="ss">If the dead node held stage 2's shuffle files and</text>
+      <text x="38" y="350" class="ss">migration was off, stage 2 must run again to</text>
+      <text x="38" y="368" class="ss">regenerate them. That is FetchFailedException.</text>
+
+      <rect x="488" y="286" width="440" height="96" rx="10" class="boxh"/>
+      <text x="506" y="310" class="sec">WHEN THE JOB REALLY DOES DIE</text>
+      <text x="506" y="332" class="ss">• the DRIVER's node is lost — nothing survives</text>
+      <text x="506" y="350" class="ss">• one task fails <tspan class="sm">spark.task.maxFailures</tspan> times</text>
+      <text x="506" y="368" class="ss">• a stage retries past <tspan class="sm">maxConsecutiveAttempts</tspan></text>
+    </svg>
+    <figcaption><b>"Do we restart from scratch?" — no, and the reason is lineage.</b> Spark knows the recipe for every partition, so it recomputes only the ones that vanished. The only true restart-from-zero cases are driver loss and exhausting the retry limits, which is precisely why the driver must never run on spot.</figcaption>
+  </figure>
+</div></section>
+
+<!-- ============ 05 ============ -->
+<section class="ch" id="c5"><div class="wrap">
+  <div class="kicker">05 · Cache, checkpoint, and the long lineage</div>
+  <h2>Three ways to not do the work twice</h2>
+  <p class="lede">Lineage is free insurance, but it has a cost: a very long chain means a very long recompute. <b><code>cache</code> keeps results handy but stays recomputable; <code>checkpoint</code> writes to reliable storage and cuts the chain.</b> They solve different problems and people constantly reach for the wrong one.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 380" role="img" aria-label="Comparison of cache and checkpoint: cache stores partitions in executor memory and is lost with the node, keeping lineage as the fallback, while checkpoint writes to S3 or HDFS and truncates lineage so no recompute is possible or needed.">
+      <rect x="20" y="30" width="300" height="300" rx="10" class="box"/>
+      <text x="36" y="54" class="se">.cache() / .persist()</text>
+      <text x="36" y="78" class="st">keeps results in executor RAM</text>
+      <rect x="36" y="94" width="268" height="34" rx="5" class="box2"/>
+      <text x="46" y="115" class="sm">stored: executor memory / disk</text>
+      <rect x="36" y="134" width="268" height="34" rx="5" class="box2"/>
+      <text x="46" y="155" class="sm">survives node loss: NO</text>
+      <rect x="36" y="174" width="268" height="34" rx="5" class="box2"/>
+      <text x="46" y="195" class="sm">lineage: KEPT as fallback</text>
+      <text x="36" y="232" class="ss">Lose the node and Spark silently</text>
+      <text x="36" y="250" class="ss">recomputes from lineage. Correct,</text>
+      <text x="36" y="268" class="ss">just slower — you never see an error.</text>
+      <text x="36" y="300" class="sa">use for: reusing a result 2+ times</text>
+      <text x="36" y="318" class="sxs">e.g. repeated counts, iterative ML</text>
+
+      <rect x="350" y="30" width="300" height="300" rx="10" class="boxa"/>
+      <text x="366" y="54" class="se">.checkpoint()</text>
+      <text x="366" y="78" class="st">writes to reliable storage</text>
+      <rect x="366" y="94" width="268" height="34" rx="5" class="box"/>
+      <text x="376" y="115" class="sm">stored: S3 / HDFS</text>
+      <rect x="366" y="134" width="268" height="34" rx="5" class="box"/>
+      <text x="376" y="155" class="sm">survives node loss: YES</text>
+      <rect x="366" y="174" width="268" height="34" rx="5" class="boxa"/>
+      <text x="376" y="195" class="smi">lineage: TRUNCATED</text>
+      <text x="366" y="232" class="ss">The chain is cut. Nothing upstream</text>
+      <text x="366" y="250" class="ss">can ever be recomputed — and</text>
+      <text x="366" y="268" class="ss">nothing needs to be.</text>
+      <text x="366" y="300" class="sa">use for: very long lineages</text>
+      <text x="366" y="318" class="sxs">100+ transformations, iterative loops</text>
+
+      <rect x="680" y="30" width="300" height="300" rx="10" class="boxg"/>
+      <text x="696" y="54" class="seg">STRUCTURED STREAMING CHECKPOINT</text>
+      <text x="696" y="78" class="st">a different thing entirely</text>
+      <rect x="696" y="94" width="268" height="34" rx="5" class="box"/>
+      <text x="706" y="115" class="sm">stored: checkpointLocation on S3</text>
+      <rect x="696" y="134" width="268" height="34" rx="5" class="box"/>
+      <text x="706" y="155" class="sm">holds: offsets + state, not data</text>
+      <rect x="696" y="174" width="268" height="34" rx="5" class="boxg"/>
+      <text x="706" y="195" class="smi">restart resumes exactly here</text>
+      <text x="696" y="232" class="ss">This is the one people mean when</text>
+      <text x="696" y="250" class="ss">they ask "do we restart from the</text>
+      <text x="696" y="268" class="ss">checkpoint?" — and for streaming,</text>
+      <text x="696" y="286" class="ss">the answer is yes. See chapter 06.</text>
+      <text x="696" y="318" class="sgood">mandatory for any streaming job</text>
+    </svg>
+    <figcaption><b>Batch jobs have no automatic checkpoint.</b> If a batch job dies completely, it starts over from the beginning — lineage protects <i>partitions within a run</i>, not the run itself. The way to make a long batch job resumable is to break it into steps that each land their output in S3, so a rerun skips what already exists.</figcaption>
+  </figure>
+</div></section>
+
+<!-- ============ 06 ============ -->
+<section class="ch" id="c6"><div class="wrap">
+  <div class="kicker">06 · Streaming restart</div>
+  <h2>Resume from the checkpoint, not from the start</h2>
+  <p class="lede">A Structured Streaming job that dies — spot reclaim, deploy, crash — restarts by reading its <b>checkpoint directory</b>: the offsets it had consumed and the state it had accumulated. It picks up exactly where it stopped, with no duplicates and no gap.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 340" role="img" aria-label="A streaming job processes micro-batches and commits offsets to its checkpoint after each; when the job dies mid-batch it restarts by reading the last committed offset and reprocessing only the uncommitted batch.">
+      <text x="20" y="24" class="se">MICRO-BATCHES, EACH ONE COMMITTING ITS OFFSET</text>
+      <line x1="20" y1="70" x2="980" y2="70" class="flow"/>
+      <g>
+        <rect x="40" y="52" width="90" height="36" rx="5" class="boxg"/><text x="85" y="75" text-anchor="middle" class="sm">batch 1 ✓</text>
+        <rect x="150" y="52" width="90" height="36" rx="5" class="boxg"/><text x="195" y="75" text-anchor="middle" class="sm">batch 2 ✓</text>
+        <rect x="260" y="52" width="90" height="36" rx="5" class="boxg"/><text x="305" y="75" text-anchor="middle" class="sm">batch 3 ✓</text>
+        <rect x="370" y="52" width="90" height="36" rx="5" class="boxh"/><text x="415" y="75" text-anchor="middle" class="sm">batch 4 ✗</text>
+      </g>
+      <text x="470" y="76" class="shot">← spot reclaim mid-batch</text>
+
+      <line x1="85" y1="88" x2="85" y2="126" class="flowg" marker-end="url(#arg)"/>
+      <line x1="195" y1="88" x2="195" y2="126" class="flowg" marker-end="url(#arg)"/>
+      <line x1="305" y1="88" x2="305" y2="126" class="flowg" marker-end="url(#arg)"/>
+      <path d="M 415 88 L 415 110" class="flowh dash"/>
+      <text x="425" y="108" class="sec">never committed</text>
+
+      <rect x="20" y="130" width="500" height="86" rx="10" class="boxg"/>
+      <text x="38" y="154" class="seg">CHECKPOINT DIRECTORY ON S3</text>
+      <text x="38" y="176" class="sm">offsets/  → last committed: batch 3, Kafka offset 84,201</text>
+      <text x="38" y="196" class="sm">state/    → aggregation state as of batch 3</text>
+      <text x="38" y="212" class="sxs">commits/ · metadata/ · sources/</text>
+
+      <path d="M 520 173 C 570 173, 570 173, 610 173" class="flowa" marker-end="url(#ara)"/>
+      <text x="565" y="163" text-anchor="middle" class="sm">restart</text>
+
+      <rect x="614" y="130" width="366" height="86" rx="10" class="boxa"/>
+      <text x="632" y="154" class="se">THE JOB COMES BACK UP</text>
+      <text x="632" y="176" class="ss">reads offsets/, resumes at 84,201,</text>
+      <text x="632" y="196" class="ss">reprocesses ONLY batch 4</text>
+      <text x="632" y="212" class="sa">no gap · no duplicate · no manual work</text>
+
+      <rect x="20" y="238" width="470" height="90" rx="10" class="box"/>
+      <text x="38" y="262" class="se">WHAT YOU MUST NOT DO</text>
+      <text x="38" y="284" class="ss">• delete the checkpoint dir to "clean up" — you</text>
+      <text x="38" y="302" class="ss">  will reprocess from the beginning of the topic</text>
+      <text x="38" y="320" class="ss">• point two jobs at one checkpoint location</text>
+
+      <rect x="510" y="238" width="470" height="90" rx="10" class="boxh"/>
+      <text x="528" y="262" class="sec">THE STREAMING-ON-ICEBERG TAX</text>
+      <text x="528" y="284" class="ss">Every micro-batch is a COMMIT — one snapshot,</text>
+      <text x="528" y="302" class="ss">new small files. A 1-minute trigger is 1,440</text>
+      <text x="528" y="320" class="ss">snapshots a day. Compact and expire, or drown.</text>
+    </svg>
+    <figcaption><b>This is the sharpest practical difference between batch and streaming on spot.</b> A streaming job is genuinely resumable and shrugs off node loss; a batch job relies on lineage within a run and starts over if the driver dies. If you need long-running work on cheap capacity, structuring it as a stream — or as small idempotent batch steps — is what makes spot safe.</figcaption>
+  </figure>
+</div></section>
+
+<!-- ============ 07 ============ -->
+<section class="ch" id="c7"><div class="wrap">
+  <div class="kicker">07 · Multi-tenancy</div>
+  <h2>One cluster, many jobs — who gets the cores?</h2>
+  <p class="lede">A long-running cluster is usually shared. Each submitted application gets <b>its own driver and its own executors</b> — they never share a JVM — and YARN arbitrates between them. Understanding the two levels of scheduling is how you stop one analyst's query from starving the nightly load.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 470" role="img" aria-label="One YARN cluster serving three applications, each with its own driver and executors, allocated through queues; within a single application the FAIR scheduler shares cores between concurrent threads.">
+      <rect x="20" y="26" width="960" height="70" rx="10" class="boxa"/>
+      <text x="38" y="50" class="se">YARN RESOURCEMANAGER — THE ONLY THING THAT HANDS OUT CAPACITY</text>
+      <text x="38" y="74" class="ss">Total: 4 nodes × 16 cores = 64 cores, 480 GB. Every application must ask for containers here.</text>
+      <text x="700" y="74" class="sm">capacity or fair scheduler</text>
+
+      <line x1="180" y1="96" x2="180" y2="126" class="flowa" marker-end="url(#ara)"/>
+      <line x1="500" y1="96" x2="500" y2="126" class="flowa" marker-end="url(#ara)"/>
+      <line x1="820" y1="96" x2="820" y2="126" class="flowa" marker-end="url(#ara)"/>
+
+      <rect x="20" y="130" width="300" height="180" rx="10" class="box"/>
+      <text x="38" y="154" class="se">QUEUE: etl  ·  60% GUARANTEED</text>
+      <rect x="38" y="166" width="264" height="36" rx="5" class="box2"/>
+      <text x="50" y="189" class="sm">driver JVM (its own)</text>
+      <rect x="38" y="208" width="128" height="32" rx="5" class="box2"/><text x="50" y="229" class="sm">executor</text>
+      <rect x="174" y="208" width="128" height="32" rx="5" class="box2"/><text x="186" y="229" class="sm">executor</text>
+      <rect x="38" y="246" width="128" height="32" rx="5" class="box2"/><text x="50" y="267" class="sm">executor</text>
+      <rect x="174" y="246" width="128" height="32" rx="5" class="box2"/><text x="186" y="267" class="sm">executor</text>
+      <text x="38" y="298" class="sxs">nightly load · 38 cores</text>
+
+      <rect x="350" y="130" width="300" height="180" rx="10" class="box"/>
+      <text x="368" y="154" class="se">QUEUE: adhoc  ·  30% GUARANTEED</text>
+      <rect x="368" y="166" width="264" height="36" rx="5" class="box2"/>
+      <text x="380" y="189" class="sm">driver JVM (separate)</text>
+      <rect x="368" y="208" width="128" height="32" rx="5" class="box2"/><text x="380" y="229" class="sm">executor</text>
+      <rect x="504" y="208" width="128" height="32" rx="5" class="box2"/><text x="516" y="229" class="sm">executor</text>
+      <text x="368" y="266" class="sxs">analyst notebook · 19 cores</text>
+      <text x="368" y="290" class="sa">can BORROW idle etl capacity</text>
+
+      <rect x="680" y="130" width="300" height="180" rx="10" class="box"/>
+      <text x="698" y="154" class="se">QUEUE: default  ·  10%</text>
+      <rect x="698" y="166" width="264" height="36" rx="5" class="box2"/>
+      <text x="710" y="189" class="sm">driver JVM (separate)</text>
+      <rect x="698" y="208" width="128" height="32" rx="5" class="box2"/><text x="710" y="229" class="sm">executor</text>
+      <text x="698" y="266" class="sxs">the misc job nobody owns · 7 cores</text>
+      <text x="698" y="290" class="sxs">gets squeezed first under pressure</text>
+
+      <rect x="20" y="326" width="470" height="130" rx="10" class="box2"/>
+      <text x="38" y="350" class="se">LEVEL 1 — BETWEEN APPLICATIONS (YARN)</text>
+      <text x="38" y="374" class="ss">Queues with guaranteed shares. An idle queue lends</text>
+      <text x="38" y="392" class="ss">its capacity; when its own work arrives it takes it back.</text>
+      <text x="38" y="416" class="smi">yarn.scheduler.capacity.root.&lt;q&gt;.capacity</text>
+      <text x="38" y="440" class="sxs">Dynamic allocation lets an app return idle executors so others can use them.</text>
+
+      <rect x="510" y="326" width="470" height="130" rx="10" class="box2"/>
+      <text x="528" y="350" class="se">LEVEL 2 — INSIDE ONE APPLICATION (SPARK)</text>
+      <text x="528" y="374" class="ss">One app running several queries at once — a notebook,</text>
+      <text x="528" y="392" class="ss">a Thrift server — schedules them FIFO by default, so a</text>
+      <text x="528" y="410" class="ss">big query blocks small ones behind it.</text>
+      <text x="528" y="434" class="smi">spark.scheduler.mode = FAIR</text>
+      <text x="528" y="452" class="sxs">then assign pools per user or per query class</text>
+    </svg>
+    <figcaption><b>Executors are never shared between applications.</b> Two jobs on one cluster means two drivers and two disjoint sets of executor JVMs — isolation is real, and so is the cost of holding idle executors. Turn on <b>dynamic allocation</b> so an application gives back executors it isn't using; without it, an idle notebook can hold 20 cores hostage all afternoon.</figcaption>
+  </figure>
+
+  <div class="code"><div class="hd"><span class="lang">spark-defaults</span><span>sharing a cluster politely</span></div>
+<pre><span class="c"># Give executors back when idle, grab more when the queue is deep</span>
+spark.dynamicAllocation.enabled            <span class="hl">true</span>
+spark.dynamicAllocation.minExecutors       2
+spark.dynamicAllocation.maxExecutors       40
+spark.dynamicAllocation.executorIdleTimeout 60s
+spark.shuffle.service.enabled              <span class="hl">true</span>   <span class="c"># REQUIRED: serves shuffle for removed executors</span>
+
+<span class="c"># Fair scheduling BETWEEN concurrent queries in one app (notebooks, Thrift)</span>
+spark.scheduler.mode                       FAIR
+
+<span class="c"># Submit into a named YARN queue</span>
+spark.yarn.queue                           etl</pre></div>
+
+  <div class="note warn"><span class="ic">TRAP</span><div><b>Dynamic allocation without the external shuffle service is a data-loss bug waiting to happen.</b> When Spark removes an idle executor, whatever shuffle files it was serving go with it — unless the shuffle service on that node can keep serving them. Enable both or neither.</div></div>
+</div></section>
+
+<!-- ============ 08 ============ -->
+<section class="ch" id="c8" style="border-bottom:none"><div class="wrap">
+  <div class="kicker">08 · Putting it together</div>
+  <h2>How to actually buy this cluster</h2>
+  <p class="lede">Everything above collapses into a handful of sizing decisions. This is the shape that survives spot churn without paying on-demand for the whole fleet.</p>
+
+  <div class="tw"><table>
+    <tr><th>Component</th><th>Buy it as</th><th>Size it by</th><th>Because</th></tr>
+    <tr><td>Primary</td><td><b>On-demand</b>, always</td><td>Smallest that runs the RM comfortably</td><td>Lose it and the cluster is gone. Never spot.</td></tr>
+    <tr><td>Driver</td><td>On-demand node</td><td>Enough RAM for broadcasts + collected results</td><td>Driver loss = whole application dies, no recovery</td></tr>
+    <tr><td>Core nodes</td><td><b>On-demand</b></td><td>Enough disk for peak shuffle + HDFS</td><td>They hold shuffle files; losing them forces stage recomputes</td></tr>
+    <tr><td>Task nodes</td><td><b>Spot</b>, instance fleets</td><td>All the elastic capacity you want</td><td>Hold nothing durable — reclaim costs only their running tasks</td></tr>
+    <tr><td>Instance fleet</td><td>5+ instance types, several AZs</td><td>Capacity-optimized allocation</td><td>Diversification is what actually reduces interruption rate</td></tr>
+    <tr><td>Long jobs</td><td>Streaming, or idempotent steps</td><td>Each step lands output in S3</td><td>Makes a restart resume rather than start over</td></tr>
+  </table></div>
+
+  <div class="panelrow">
+    <div class="panel ok"><div class="tag">Job A — 12 min nightly</div><h3>Don't build a cluster</h3><p>EMR's 5–10 min spin-up is most of the runtime. Glue Flex or EMR Serverless wins on both cost and ops.</p></div>
+    <div class="panel ok"><div class="tag">Job B — 6 h daily reprocess</div><h3>This is spot's moment</h3><p>Small on-demand core group for shuffle, large spot task fleet for compute. Roughly $25–40/run against ~$132 on Glue.</p></div>
+    <div class="panel warn"><div class="tag">Job C — analyst asking questions</div><h3>Not a cluster problem</h3><p>Athena over the same tables. Spinning up Spark to answer <code>SELECT … GROUP BY</code> is the most common waste in a young platform.</p></div>
+  </div>
+
+  <div class="note"><span class="ic">BOARD</span><div><b>The four sentences to leave on the whiteboard:</b> ① S3 is storage, the cluster is compute — kill it any night. ② Role decides risk: task nodes hold nothing, core nodes hold shuffle. ③ Spot loss re-runs tasks, not jobs — unless the driver or shuffle files went with it. ④ Streaming resumes from its checkpoint; batch relies on lineage, so make long batch jobs idempotent and stepwise.</div></div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>The Cluster Atlas</b> — companion 3 of 3 for Module 02, <i>Mindset: EMR 101</i>. Surender Sara · NorthBay Solutions.<br>
+  See also: the <b>EMR Visual Atlas</b> (the 1 TB question) and the <b>Partitioning Atlas</b> (which rows end up together, and why).
+</div></footer>
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('nav.chapters a')),s=l.map(function(a){return document.querySelector(a.getAttribute('href'))});
+function spy(){var p=window.scrollY+140,i=0;for(var k=0;k<s.length;k++){if(s[k]&&s[k].offsetTop<=p)i=k}l.forEach(function(a,k){a.classList.toggle('on',k===i)})}
+window.addEventListener('scroll',spy,{passive:true});spy();})();
+</script>

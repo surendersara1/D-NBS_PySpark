@@ -31,6 +31,8 @@ Self-contained HTML — no build step, no server. Open the file, or use the host
 | File | What it is |
 |---|---|
 | [EMR_Visual_Atlas.html](2_atlases/EMR_Visual_Atlas.html) | Companion to **deck 2**. Eleven progressive diagrams: the AWS platform, EMR cluster anatomy, Py4J, then the full 1 TB story — waves → map-side combine → hash routing → the global answer → range sort → skew → the Iceberg commit → the four knobs. |
+| [EMR_Partitioning_Atlas.html](2_atlases/EMR_Partitioning_Atlas.html) | **Seven partitioning strategies, drawn the same way so they compare directly** — hash, range, round-robin, coalesce, broadcast, storage partitioning, bucketing. Opens by separating the three unrelated things Spark calls "partition", closes with a symptom → move decision table. |
+| [EMR_Cluster_Atlas.html](2_atlases/EMR_Cluster_Atlas.html) | **What runs where, and what happens when spot takes it back.** Processes per node role, the life of one task, the two spot-loss scenarios and their very different costs, how much work is actually redone (almost never "start again"), cache vs checkpoint, streaming restart, and one cluster serving many jobs. |
 | [EMR_ICEBERG_ATLAS.html](2_atlases/EMR_ICEBERG_ATLAS.html) | Sixteen deep diagrams of **Apache Iceberg internals with Spark**: metadata tree, write path, commit protocol, pruning cascade, time travel, hidden partitioning, schema evolution, copy-on-write vs merge-on-read, compaction, maintenance, catalogs, branching/WAP, migration, streaming, EMR wiring. Traced from the Definitive Guide in `4_reference`. |
 
 Both are theme-aware (light/dark) and print cleanly to one figure per page for handouts.
