@@ -6,8 +6,8 @@ run `3_labs` alongside module 3, and keep `2_atlases` open on the second screen.
 
 ```
 1_decks/       the three lecture PDFs, in teaching order
-2_atlases/     interactive diagram companions (open in a browser)
-3_labs/        runnable PySpark — 44 assertions, laptop or EMR
+2_atlases/     seven diagram atlases, numbered in learning order
+3_labs/        runnable PySpark + Iceberg — 103 assertions, laptop or EMR
 4_reference/   source material and deeper reading
 ```
 
@@ -26,21 +26,30 @@ Decks 1 and 2 label themselves "Module 01/02" internally, matching these numbers
 
 ## 2 · Visual atlases
 
-Self-contained HTML — no build step, no server. Open the file, or use the hosted link.
+Seven self-contained HTML pages — no build step, no server. Open the file directly.
+**Numbered in learning order**: the engine, then the cluster it runs on, then how data
+moves, then the table format, then the managed service, then the boundary between
+storage and compute, then where to run the job in the first place.
 
-| File | What it is |
-|---|---|
-| [EMR_Visual_Atlas.html](2_atlases/EMR_Visual_Atlas.html) | Companion to **deck 2**. Eleven progressive diagrams: the AWS platform, EMR cluster anatomy, Py4J, then the full 1 TB story — waves → map-side combine → hash routing → the global answer → range sort → skew → the Iceberg commit → the four knobs. |
-| [EMR_Partitioning_Atlas.html](2_atlases/EMR_Partitioning_Atlas.html) | **Seven partitioning strategies, drawn the same way so they compare directly** — hash, range, round-robin, coalesce, broadcast, storage partitioning, bucketing. Opens by separating the three unrelated things Spark calls "partition", closes with a symptom → move decision table. |
-| [EMR_Cluster_Atlas.html](2_atlases/EMR_Cluster_Atlas.html) | **What runs where, and what happens when spot takes it back.** Processes per node role, the life of one task, the two spot-loss scenarios and their very different costs, how much work is actually redone (almost never "start again"), cache vs checkpoint, streaming restart, and one cluster serving many jobs. |
-| [EMR_ICEBERG_ATLAS.html](2_atlases/EMR_ICEBERG_ATLAS.html) | Sixteen deep diagrams of **Apache Iceberg internals with Spark**: metadata tree, write path, commit protocol, pruning cascade, time travel, hidden partitioning, schema evolution, copy-on-write vs merge-on-read, compaction, maintenance, catalogs, branching/WAP, migration, streaming, EMR wiring. Traced from the Definitive Guide in `4_reference`. |
+| # | Atlas | What it is |
+|---|---|---|
+| 1 | [How Spark Runs 1 TB on EMR](2_atlases/1_How_Spark_Runs_1TB_On_EMR.html) | Companion to **deck 2**. Eleven progressive diagrams: the AWS platform, EMR cluster anatomy, Py4J, then the full 1 TB story — waves → map-side combine → hash routing → the global answer → range sort → skew → the Iceberg commit → the four knobs. **Start here.** |
+| 2 | [EMR Cluster & Spot Recovery](2_atlases/2_EMR_Cluster_And_Spot_Recovery.html) | **What runs where, and what happens when spot takes it back.** Processes per node role, the life of one task, the two spot-loss scenarios and their very different costs, how much work is actually redone (almost never "start again"), cache vs checkpoint, streaming restart, one cluster serving many jobs. |
+| 3 | [Spark Partitioning Strategies](2_atlases/3_Spark_Partitioning_Strategies.html) | **Seven strategies drawn identically so they compare directly** — hash, range, round-robin, coalesce, broadcast, storage partitioning, bucketing. Opens by separating the three unrelated things Spark calls "partition"; closes with a symptom → move decision table. |
+| 4 | [Iceberg Table Format Internals](2_atlases/4_Iceberg_Table_Format_Internals.html) | Sixteen deep diagrams of **Apache Iceberg with Spark**: metadata tree, write path, commit protocol, pruning cascade, time travel, hidden partitioning, schema evolution, copy-on-write vs merge-on-read, compaction, maintenance, catalogs, branching/WAP, migration, streaming, EMR wiring. Traced from the Definitive Guide. |
+| 5 | [S3 Tables — Managed Iceberg](2_atlases/5_S3_Tables_Managed_Iceberg.html) | Architecture, the **three automatic maintenance jobs with their real defaults**, DDL that works in Athena vs Spark, metadata tables, documented limits, views. Every number read from AWS docs. |
+| 6 | [Storage vs Compute Boundary](2_atlases/6_Storage_vs_Compute_Boundary.html) | Where each of the seven distribution mechanisms **actually executes**. Five live only in the engine; two are recorded in table metadata. Answers "can I set hash partitioning on an S3 Table?" |
+| 7 | [AWS Compute & Trigger Selection](2_atlases/7_AWS_Compute_And_Trigger_Selection.html) | The 15-minute wall, a **verified timeout table** for Lambda/Glue/Batch/Fargate/EMR, five ways to run a script straight from S3 with exact CLI calls, and the trigger patterns — including the Lambda shim you can drop. |
 
-Both are theme-aware (light/dark) and print cleanly to one figure per page for handouts.
+Atlases **5–7** were built by validating every claim against AWS documentation through the
+AWS docs MCP server. Each ends with a verification log marking claims
+VERIFIED / CORRECTED / FALSE — nine widely-repeated statements did not survive that check.
+All seven are theme-aware (light/dark) and print cleanly for handouts.
 
 ## 3 · Labs
 
 Two suites. Run `pyspark30` alongside deck 3, then `iceberg_deep` alongside
-deck 2's Iceberg sections and the Iceberg atlas.
+deck 2's Iceberg sections and atlas 4.
 
 | Suite | Covers | Checks |
 |---|---|---|
