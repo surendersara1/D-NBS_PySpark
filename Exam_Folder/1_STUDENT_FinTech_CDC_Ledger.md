@@ -1,334 +1,686 @@
-# CAPSTONE — Student 1
-## Nightly CDC ingestion and a reconstructable account ledger
+# PROJECT 1 — FinTech Transaction Ledger & CDC Engine
 
-**Duration:** 3 days · **Stack:** EMR (PySpark) → Apache Iceberg (3 layers) → Redshift
-**Total marks:** 100
+**Stack:** AWS EMR (PySpark) · Apache Iceberg · AWS Glue Data Catalog · Amazon Redshift
+**Duration:** 3 days · **Level:** senior data engineer
 
----
-
-## 0 · The situation
-
-You have joined the data platform team at a mobile money provider. The core
-banking system is an OLTP database you are **not** allowed to query directly.
-Every night it drops a **change-data-capture extract** onto S3: inserts, updates
-and deletes that occurred that day, each row carrying the balance before and
-after the movement.
-
-Two people depend on you.
-
-**Priya, Head of Financial Control**, must close the books every morning. She
-needs a daily balance per account that reconciles to the penny, and she must be
-able to ask *"what did this account look like at 23:59 last Tuesday?"* when an
-auditor calls — six months later.
-
-**Sam, Fraud Operations**, needs a feed of accounts whose balance moved in ways
-the transaction record does not explain, within an hour of the extract landing.
-
-The previous engineer left. The pipeline they built re-ran twice one night and
-**double-applied a day of transfers**. Nobody noticed for nine days. Your first
-job is to build something where that cannot happen.
+You are building the ledger layer for a payments platform. The source is an OLTP
+core banking system you cannot query. It emits Debezium-style CDC onto S3. Your
+job is a lakehouse that survives late-arriving adjustments, re-runs, and an
+auditor asking about a balance from eight months ago.
 
 ---
 
-## 1 · Dataset
+# THE THREE QUESTIONS
+
+Everything you build exists to answer these. They are the acceptance test.
+
+### Q1 · Historical point-in-time audit
+> What was the exact settled balance for account `X` at timestamp `T` — say
+> 23:59:59 last Friday — **accounting for chargebacks and updates that arrived
+> days after the transactions occurred?**
+
+The hard part is not time travel. It is that the answer changes depending on
+whether you mean *"the balance as we understood it on Friday"* or *"the balance
+as we now know Friday's to have been."* Both are legitimate; they differ by the
+late adjustments. **You must produce both numbers and label them.**
+
+### Q2 · Rapid outflow / fraud velocity
+> Which accounts moved cumulative withdrawals plus transfers exceeding **80% of
+> their starting daily balance** inside any **rolling 15-minute window**?
+
+Rolling, not tumbling. An account that drains 80% between 10:07 and 10:22 must
+be caught even though no clock-aligned bucket contains it.
+
+### Q3 · Settlement drift from late adjustments
+> What is the net daily balance shift **per currency**, and how much financial
+> drift was introduced into **already-published** close reports by CDC `U` and
+> `D` events that arrived after those reports were signed?
+
+This is the reconciliation question that gets platforms audited. You are
+quantifying how wrong yesterday's published number turned out to be.
+
+---
+
+# DATASET & CDC HARNESS
 
 **PaySim — Synthetic Financial Dataset for Fraud Detection** (Kaggle).
+`step` is an hour counter from 1. Anchor **step 1 = 2026-01-01 00:00:00 UTC**.
 
-Fields you will use: `step`, `type` (CASH-IN, CASH-OUT, TRANSFER, DEBIT,
-PAYMENT), `amount`, `nameOrig`, `oldbalanceOrg`, `newbalanceOrig`, `nameDest`,
-`oldbalanceDest`, `newbalanceDest`, `isFraud`, `isFlaggedFraud`.
+PaySim is a flat transaction log. Debezium output is not. **Build the harness
+first** — everything downstream is meaningless without a realistic CDC stream.
 
-`step` is an hour counter starting at 1. Treat **step 1 as 2026-01-01 00:00 UTC**
-and derive a real `event_ts` from it. Every downstream partition depends on this,
-so get it right on day 1.
+### Harness requirements
 
-### You must manufacture the CDC feed yourself
+Emit newline-delimited JSON to `s3://<bucket>/raw/cdc/dt=YYYY-MM-DD/`, one file
+per hour, minimum **20 consecutive days**. Envelope shape:
 
-The raw file is a flat transaction log. A real CDC extract is not. Before you
-build anything, write a **generator** that splits PaySim into a sequence of daily
-CDC files under `s3://<class-bucket>/raw/<your_id>/cdc/dt=YYYY-MM-DD/`, where
-each row carries:
+```json
+{
+  "op": "u",
+  "ts_ms": 1767225600000,
+  "source": {"table": "transactions", "lsn": 84412093, "ts_ms": 1767225598000},
+  "before": {"transaction_id": "T-88213", "status": "PENDING",  "amount": 4200.00},
+  "after":  {"transaction_id": "T-88213", "status": "SETTLED",  "amount": 4200.00}
+}
+```
 
-- `op` — one of `I`, `U`, `D`
-- `commit_ts` — when the change was committed in the source system
-- `extract_ts` — when the CDC tool wrote it out
-- the account key and the balance columns
+Inject these, because the real source does:
 
-Rules the generator must obey, because the real source system does:
+| Behaviour | Rate | Why it matters |
+|---|---|---|
+| Late arrivals — `source.ts_ms` belongs to a prior day | **3%** | Q1 and Q3 exist because of these |
+| Same PK twice in one file, different `ts_ms` | **1%** | Breaks a naive `MERGE` (step 4) |
+| `op: "d"` — chargeback reversal / account closure | **0.5%** | Must vanish from current, persist in history |
+| Out-of-order LSN within a file | **2%** | Ordering by arrival is wrong; you need `ts_ms` |
+| Schema drift — a `risk_score` field appears at day 12 | once | Bronze must not break |
 
-1. **Roughly 3% of rows arrive late** — their `commit_ts` belongs to a previous
-   day but they appear in today's file. Your pipeline must place them correctly.
-2. **Roughly 1% of account keys appear more than once in the same daily file**,
-   with different `commit_ts`. Only the latest may win.
-3. **About 0.5% are `D` (delete) operations** — an account closure. A deleted
-   account must disappear from the current ledger but must remain visible in
-   history.
-4. Produce **at least 20 consecutive days** of extracts.
-
-Commit the generator script. It is marked.
+Commit the harness. It is graded as production code, not a fixture.
 
 ---
 
-## 2 · What you are building
+# ARCHITECTURE
 
 ```
-raw/            daily CDC extracts, as landed, never modified
-  |
-bronze.cdc_events      every row ever received, append-only, with audit columns
-  |
-silver.accounts        ONE current row per account — the MERGE target
-silver.transactions    cleaned, typed, deduplicated movement log
-  |
-gold.daily_balances    per account per day, closing balance, reconciled
-gold.fraud_signals     unexplained balance movements for Sam
-  |
-Redshift               Priya's close-of-books marts
+s3://raw/cdc/dt=*/                      Debezium JSON envelopes
+        │  Step 1
+bronze.cdc_events                       append-only, schema-on-read, audit cols
+        │  Step 2  dedup + event ordering
+        │  Step 4  MERGE INTO
+silver.ledger                           one row per transaction, current state
+silver.accounts                         one row per account, running balance
+        │  Step 6
+gold.daily_account_summary              open/close, credit/debit volume
+gold.velocity_alerts                    rolling 15-min breach events
+gold.settlement_drift                   restated vs originally-published
+        │  Step 8
+Redshift Spectrum → materialized views  executive dashboards
 ```
 
 ---
 
-# DAY 1 — Bronze, and the idempotency contract
+# THE TEN STEPS
 
-**Goal: land the CDC feed so that re-running any day is provably harmless.**
+## Step 1 · Bronze ingestion — EMR + PySpark
 
-### 1.1 Bronze table
-Create `bronze.cdc_events` as an Iceberg table. Append-only: bronze is the
-system of record for *what arrived*, so it never gets an `UPDATE` or a `DELETE`.
+Land the envelopes without judging them. Bronze is the record of *what arrived*,
+so it is append-only and never updated.
 
-Partition it on the **extract date**, not the commit date. Justify that choice in
-one paragraph — the two dates disagree for 3% of your rows, and the reason you
-partition on one rather than the other is a marked answer.
+```python
+from pyspark.sql import functions as F
 
-Add audit columns: source file path, ingestion timestamp, and a `batch_id` you
-control.
+raw = (spark.read
+       .option("mode", "PERMISSIVE")
+       .option("columnNameOfCorruptRecord", "_corrupt")
+       .json(f"s3://{BUCKET}/raw/cdc/dt={run_date}/"))
 
-### 1.2 The idempotency contract
-Write the loader so that **running the same day's extract twice produces a table
-identical to running it once.** Prove it:
+bronze = (raw
+    .withColumn("cdc_operation",   F.col("op"))
+    .withColumn("source_ts",       (F.col("source.ts_ms") / 1000).cast("timestamp"))
+    .withColumn("arrival_ts",      (F.col("ts_ms")        / 1000).cast("timestamp"))
+    .withColumn("source_lsn",      F.col("source.lsn"))
+    .withColumn("_src_file",       F.input_file_name())
+    .withColumn("_ingested_at",    F.current_timestamp())
+    .withColumn("_batch_id",       F.lit(BATCH_ID))
+    .withColumn("extract_date",    F.lit(run_date).cast("date")))
 
-- load day 5, record `SELECT count(*)` and the snapshot ID
-- load day 5 again with the same `batch_id`
-- record the count and snapshot ID again
+bronze.writeTo("glue_catalog.fintech_db.bronze_cdc_events").append()
+```
 
-Both counts must match. Explain in your report what mechanism you used and why
-it holds. There is more than one correct answer; a bare `INSERT INTO` is not one
-of them.
+```sql
+CREATE TABLE glue_catalog.fintech_db.bronze_cdc_events (
+    cdc_operation   STRING,
+    source_ts       TIMESTAMP,
+    arrival_ts      TIMESTAMP,
+    source_lsn      BIGINT,
+    before          STRING,
+    after           STRING,
+    _src_file       STRING,
+    _ingested_at    TIMESTAMP,
+    _batch_id       STRING,
+    extract_date    DATE
+) USING iceberg
+PARTITIONED BY (extract_date)
+TBLPROPERTIES ('write.parquet.compression-codec' = 'zstd');
+```
 
-### 1.3 Late-arriving rows
-Show, with a query, how many rows in your day-12 extract have a `commit_ts`
-belonging to an earlier day. State what your bronze layer does with them.
+**Partition on `extract_date`, not `source_ts`.** Ingestion writes one partition
+per run; partitioning on source date would scatter every batch across 20+
+partitions and produce small files immediately. Document this trade-off —
+it costs you pruning on `source_ts`, which you recover in silver.
 
-### Day 1 deliverables
-- generator script + loader script
-- the idempotency proof (counts and snapshot IDs before/after the double load)
-- the late-arrival count for day 12
-- the full output of the `snapshots` metadata table for `bronze.cdc_events`
-  after all 20 days
+**Idempotency contract.** Re-running a batch must not duplicate rows. Use
+`_batch_id` and `overwritePartitions()` rather than blind `append()`:
+
+```python
+bronze.writeTo("glue_catalog.fintech_db.bronze_cdc_events").overwritePartitions()
+```
+
+**Deliverable:** load day 5 twice. `count(*)` identical, two snapshots, same row
+count. Record both snapshot IDs.
 
 ---
 
-# DAY 2 — Silver, and the MERGE that must not lie
+## Step 2 · Deduplication & event ordering — EMR + PySpark
 
-**Goal: one correct current row per account, and a movement log you can trust.**
+One transaction can appear many times across batches, and more than once inside
+a single batch. Collapse to the latest state per key.
 
-### 2.1 `silver.accounts` — the MERGE target
-This is the heart of the exam. Build a table holding exactly one row per
-account with its current balance, current status (`ACTIVE` / `CLOSED`), and the
-`commit_ts` of the change that produced it.
+```python
+from pyspark.sql.window import Window
 
-Load it with `MERGE INTO`. Your MERGE must handle all three of:
+w = (Window.partitionBy("transaction_id")
+           .orderBy(F.col("source_ts").desc(), F.col("source_lsn").desc()))
 
-- `I` and `U` — upsert
-- `D` — mark closed (decide: soft-delete flag, or row removal — and defend it)
-- multiple changes for the same account in one batch — **only the latest applies**
+latest = (spark.table("glue_catalog.fintech_db.bronze_cdc_events")
+    .where(F.col("_batch_id") == BATCH_ID)
+    .select(
+        F.get_json_object("after", "$.transaction_id").alias("transaction_id"),
+        F.get_json_object("after", "$.account_id").alias("account_id"),
+        F.get_json_object("after", "$.amount").cast("decimal(18,2)").alias("amount"),
+        F.upper(F.get_json_object("after", "$.currency")).alias("currency"),
+        F.upper(F.get_json_object("after", "$.status")).alias("status"),
+        F.get_json_object("after", "$.tx_type").alias("tx_type"),
+        "cdc_operation", "source_ts", "source_lsn")
+    .withColumn("_rn", F.row_number().over(w))
+    .where(F.col("_rn") == 1)
+    .drop("_rn"))
+```
 
-> **You will hit an error here.** A `MERGE INTO` whose source contains more than
-> one row per join key fails. That is not a bug to work around silently — it is
-> the correctness guarantee doing its job. Capture the exact error text, then fix
-> it properly. Both the error and the fix are marked.
+Order on `source_ts` **then** `source_lsn`. Two events can share a millisecond;
+LSN is the tiebreaker and it is monotonic in the source. Ordering on
+`arrival_ts` is wrong — that is when the file landed, not when the change
+happened.
 
-### 2.2 Out-of-order safety
-A late-arriving row from day 3 must **not** overwrite a newer value already in
-the table. Add the guard. Then prove it:
+`dropDuplicates()` is not acceptable here. It keeps an arbitrary row, so your
+refund report is right on Monday and wrong on Tuesday with no code change.
 
-1. Note account X's balance and `commit_ts`.
-2. Feed a synthetic late row for X with an *older* `commit_ts` and a wrong balance.
-3. Show the balance did not change.
-4. Show the row was still recorded in bronze.
-
-### 2.3 `silver.transactions`
-Clean and type the movement log. Handle at minimum: the balance columns arrive as
-strings in some extracts; `type` has inconsistent casing; `amount` can be
-negative on reversals; some `nameDest` values are null for DEBIT rows.
-
-Set a sort order on the table and say which queries you chose it for.
-
-### 2.4 Time travel as an audit tool
-Priya's auditor asks for account `C1231006815` as it stood at the end of day 10.
-Answer it **twice**:
-
-- once with `TIMESTAMP AS OF`
-- once with `VERSION AS OF` a snapshot ID you looked up
-
-Paste both queries, both results, and the snapshot ID.
-
-### Day 2 deliverables
-- the MERGE statement, final version
-- the duplicate-key error text you hit, and the fix
-- the out-of-order proof, all four steps
-- both time-travel queries returning identical results
-- the full output of the `history` metadata table for `silver.accounts`
+**Deliverable:** rows in, rows out, collapse ratio. Count of keys that appeared
+more than once within one batch.
 
 ---
 
-# DAY 3 — Gold, reconciliation, and Redshift
+## Step 3 · Silver schema — EMR + Iceberg DDL
 
-**Goal: numbers Priya can sign, and a feed Sam can act on.**
+```sql
+CREATE TABLE glue_catalog.fintech_db.silver_ledger (
+    transaction_id  STRING,
+    account_id      STRING,
+    amount          DECIMAL(18,2),
+    currency        STRING,
+    tx_type         STRING,
+    status          STRING,
+    event_timestamp TIMESTAMP,
+    source_lsn      BIGINT,
+    is_deleted      BOOLEAN,
+    _updated_at     TIMESTAMP
+) USING iceberg
+PARTITIONED BY (day(event_timestamp), bucket(16, account_id))
+TBLPROPERTIES (
+    'format-version'                  = '2',
+    'write.delete.mode'               = 'merge-on-read',
+    'write.update.mode'               = 'merge-on-read',
+    'write.merge.mode'                = 'merge-on-read',
+    'write.target-file-size-bytes'    = '134217728',
+    'write.distribution-mode'         = 'hash'
+);
 
-### 3.1 `gold.daily_balances`
-Per account, per day: opening balance, total in, total out, closing balance,
-transaction count.
-
-**The reconciliation rule, and it is absolute:**
-
+ALTER TABLE glue_catalog.fintech_db.silver_ledger
+  WRITE ORDERED BY account_id, event_timestamp DESC;
 ```
-opening_balance + total_in - total_out = closing_balance
-```
 
-Write a check query that returns **zero rows**. If it returns rows, you have a
-bug — find it, do not filter it away. Report how many accounts failed before you
-fixed it and what the cause was.
+Four decisions to defend in your report:
 
-### 3.2 `gold.fraud_signals` for Sam
-An "unexplained movement" is a row where the balance delta does not equal the
-transaction amount, beyond a tolerance of **0.01**.
-
-Produce, per account per day: the number of unexplained movements, the total
-unexplained value, and a severity band you define and justify.
-
-Cross-check your signal against PaySim's own `isFraud` column. Report precision
-and recall. **A low score is fine — an unexamined score is not.** Explain in a
-paragraph why your rule catches what it catches and misses what it misses.
-
-### 3.3 Rerun the whole pipeline
-Re-run days 1–20 end to end, from the same raw files, into the same tables.
-Show `gold.daily_balances` is unchanged: same row count, same
-`sum(closing_balance)`, and state the snapshot count before and after.
-
-If the numbers moved, your pipeline is not idempotent. Fix it. This is the
-scenario that cost your predecessor their job.
-
-### 3.4 Redshift
-Expose gold to Redshift and build two marts for Priya:
-
-- `mart_daily_close` — per day: accounts, total closing balance, movement volume
-- `mart_account_statement` — statement view for one account over a date range
-
-Document your chosen access path (external schema over the Glue catalog, a
-`CREATE DATABASE ... FROM ARN`, or the auto-mounted `awsdatacatalog`) and say why.
-
-Then answer, with a number: **how long does a `mart_daily_close` query take, and
-how much data does it scan, compared with the same query straight against
-Iceberg?** Explain the difference.
+- **`day(event_timestamp)`** — hidden transform. Analysts filter the raw
+  timestamp and still prune; no derived column, no `WHERE day=` ritual.
+- **`bucket(16, account_id)`** — `account_id` is high cardinality. Partitioning
+  on it directly would produce millions of directories. 16 buckets caps that and
+  co-locates an account's history. Justify 16 against your volume and core count.
+- **`merge-on-read`** — CDC means constant small updates. Copy-on-write would
+  rewrite a whole 128 MB file to change one row. You pay for this at read time
+  and in step 7.
+- **`write.distribution-mode = hash`** — without it, ten rows for one partition
+  spread across ten tasks become ten files.
 
 ---
 
-## 4 · Deliverables
+## Step 4 · CDC upserts — MERGE INTO
 
-Submit one repository:
+```sql
+MERGE INTO glue_catalog.fintech_db.silver_ledger t
+USING staged_changes s
+   ON t.transaction_id = s.transaction_id
 
+WHEN MATCHED AND s.cdc_operation = 'd'
+   THEN UPDATE SET t.is_deleted = true, t._updated_at = current_timestamp()
+
+WHEN MATCHED AND s.cdc_operation IN ('u','c','r')
+              AND s.source_ts > t.event_timestamp
+   THEN UPDATE SET
+        t.amount          = s.amount,
+        t.status          = s.status,
+        t.currency        = s.currency,
+        t.event_timestamp = s.source_ts,
+        t.source_lsn      = s.source_lsn,
+        t._updated_at     = current_timestamp()
+
+WHEN NOT MATCHED AND s.cdc_operation <> 'd'
+   THEN INSERT (transaction_id, account_id, amount, currency, tx_type,
+                status, event_timestamp, source_lsn, is_deleted, _updated_at)
+        VALUES (s.transaction_id, s.account_id, s.amount, s.currency, s.tx_type,
+                s.status, s.source_ts, s.source_lsn, false, current_timestamp());
 ```
-/generator/       the CDC feed generator
-/pipeline/        bronze, silver, gold PySpark jobs
-/sql/             Athena / Redshift SQL
-/evidence/        the ledger below, plus pasted query outputs
-/REPORT.md        8-12 pages
-```
 
-`REPORT.md` must contain: the architecture diagram, your idempotency mechanism,
-the MERGE design and why, the reconciliation result, the fraud precision/recall
-with your interpretation, and the Redshift comparison.
+### The two things that will break
+
+**Duplicate keys on the source side.** If `staged_changes` contains two rows for
+one `transaction_id`, the MERGE aborts. That is the correctness guarantee
+working, not a bug — the engine cannot know which row you meant. Step 2 is the
+fix. Capture the exact error text; it is a deliverable.
+
+**Out-of-order overwrite.** The `s.source_ts > t.event_timestamp` guard is why a
+late-arriving day-3 event cannot clobber a day-11 value. Remove it and your
+ledger silently rots. Prove the guard works:
+
+1. Record account X's balance and `event_timestamp`.
+2. Inject a synthetic late row for X with an older `source_ts` and a wrong amount.
+3. Show the ledger unchanged.
+4. Show the row still present in bronze.
+
+**Soft delete, not hard.** `is_deleted = true` rather than `DELETE FROM`. A
+chargeback must vanish from the current ledger and remain visible to the auditor.
+Hard deletes plus snapshot expiry destroy that. Defend your choice either way.
 
 ---
 
-## 5 · Evidence Ledger — mandatory
+## Step 5 · Point-in-time audit — Iceberg time travel
 
-Fill this in from **your own account**. Submissions without it are not marked.
+**Correct syntax matters here.** Iceberg on Spark uses `TIMESTAMP AS OF` /
+`VERSION AS OF`. Athena prefixes with `FOR`. `FOR SYSTEM_TIME AS OF` is Delta /
+SQL Server syntax and will fail.
+
+```sql
+-- Spark (EMR)
+SELECT * FROM glue_catalog.fintech_db.silver_ledger
+  TIMESTAMP AS OF '2026-01-16 23:59:59';
+
+SELECT * FROM glue_catalog.fintech_db.silver_ledger
+  VERSION AS OF 8333017788700497002;
+
+-- Athena
+SELECT * FROM fintech_db.silver_ledger
+  FOR TIMESTAMP AS OF (current_timestamp - INTERVAL '7' DAY);
+```
+
+Find your snapshot first:
+
+```sql
+SELECT snapshot_id, committed_at, operation, summary['added-records']
+FROM glue_catalog.fintech_db.silver_ledger.snapshots
+ORDER BY committed_at;
+```
+
+### Answering Q1 properly — both numbers
+
+```python
+AS_OF = "2026-01-16 23:59:59"
+
+# (a) balance AS WE KNEW IT on Friday — the table as of Friday's snapshot
+as_known = spark.sql(f"""
+    SELECT account_id, sum(CASE WHEN tx_type IN ('CASH-IN')
+                                THEN amount ELSE -amount END) AS balance
+    FROM glue_catalog.fintech_db.silver_ledger TIMESTAMP AS OF '{AS_OF}'
+    WHERE account_id = '{ACCOUNT}' AND NOT is_deleted
+      AND event_timestamp <= TIMESTAMP '{AS_OF}'
+    GROUP BY account_id""")
+
+# (b) balance AS WE NOW KNOW IT — current table, same event cutoff,
+#     including late adjustments that arrived after Friday
+as_restated = spark.sql(f"""
+    SELECT account_id, sum(CASE WHEN tx_type IN ('CASH-IN')
+                                THEN amount ELSE -amount END) AS balance
+    FROM glue_catalog.fintech_db.silver_ledger
+    WHERE account_id = '{ACCOUNT}' AND NOT is_deleted
+      AND event_timestamp <= TIMESTAMP '{AS_OF}'
+    GROUP BY account_id""")
+```
+
+The delta between (a) and (b) **is** the late-adjustment impact, per account.
+That is the input to Q3. Report both, and the delta, for at least 5 accounts.
+
+**Gotcha:** `TIMESTAMP AS OF` resolves to the newest snapshot **strictly older**
+than the value. Passing a snapshot's own `committed_at` finds nothing older and
+raises `Cannot find a snapshot older than …`. Also: never let a Spark timestamp
+become a Python `datetime` on the way into SQL — PySpark converts it to the
+**driver's local zone** and Iceberg re-parses it as session time, silently
+shifting it by your UTC offset. Format inside SQL with `date_format()`.
+
+---
+
+## Step 6 · Gold aggregations — EMR + PySpark
+
+### 6a · `gold_daily_account_summary`
+
+```sql
+CREATE TABLE glue_catalog.fintech_db.gold_daily_account_summary (
+    account_id       STRING,
+    business_date    DATE,
+    currency         STRING,
+    opening_balance  DECIMAL(18,2),
+    credit_volume    DECIMAL(18,2),
+    debit_volume     DECIMAL(18,2),
+    closing_balance  DECIMAL(18,2),
+    txn_count        BIGINT,
+    computed_at      TIMESTAMP
+) USING iceberg
+PARTITIONED BY (business_date)
+TBLPROPERTIES ('format-version' = '2');
+```
+
+**The reconciliation invariant is absolute:**
+
+```
+opening_balance + credit_volume − debit_volume = closing_balance
+```
+
+```sql
+-- must return ZERO rows
+SELECT account_id, business_date,
+       opening_balance + credit_volume - debit_volume AS derived,
+       closing_balance,
+       abs(opening_balance + credit_volume - debit_volume - closing_balance) AS drift
+FROM glue_catalog.fintech_db.gold_daily_account_summary
+WHERE abs(opening_balance + credit_volume - debit_volume - closing_balance) > 0.01;
+```
+
+If it returns rows, find the bug. Do not filter it away. Report how many failed
+before the fix and the root cause.
+
+### 6b · `gold_velocity_alerts` — Q2
+
+Rolling 15 minutes means a **range** frame over an epoch-seconds column, not
+`rowsBetween`, and not a tumbling `window()`.
+
+```python
+outflow = (spark.table("glue_catalog.fintech_db.silver_ledger")
+    .where(~F.col("is_deleted") & F.col("tx_type").isin("CASH-OUT", "TRANSFER", "DEBIT"))
+    .withColumn("ts_epoch", F.col("event_timestamp").cast("long"))
+    .withColumn("business_date", F.to_date("event_timestamp")))
+
+w15 = (Window.partitionBy("account_id", "business_date")
+             .orderBy("ts_epoch")
+             .rangeBetween(-900, 0))          # 900 seconds, inclusive of current row
+
+alerts = (outflow
+    .withColumn("rolling_15m_outflow", F.sum("amount").over(w15))
+    .join(opening_balances, ["account_id", "business_date"])
+    .withColumn("pct_of_opening",
+                F.col("rolling_15m_outflow") / F.col("opening_balance"))
+    .where((F.col("opening_balance") > 0) & (F.col("pct_of_opening") >= 0.80))
+    .withColumn("severity",
+        F.when(F.col("pct_of_opening") >= 1.00, "CRITICAL")
+         .when(F.col("pct_of_opening") >= 0.90, "HIGH")
+         .otherwise("MEDIUM")))
+```
+
+Cross-check against PaySim's `isFraud`. Report precision and recall. **A low
+score is fine; an unexamined one is not.** Name two fraud patterns this rule
+structurally cannot see.
+
+### 6c · `gold_settlement_drift` — Q3
+
+Per currency per business date: the originally-published net position versus the
+restated one, using the same snapshot technique as step 5.
+
+```python
+published = spark.sql(f"""
+    SELECT currency, to_date(event_timestamp) AS business_date,
+           sum(CASE WHEN tx_type='CASH-IN' THEN amount ELSE -amount END) AS net
+    FROM glue_catalog.fintech_db.silver_ledger VERSION AS OF {SNAPSHOT_AT_CLOSE}
+    WHERE NOT is_deleted GROUP BY 1,2""")
+
+restated = spark.sql("""
+    SELECT currency, to_date(event_timestamp) AS business_date,
+           sum(CASE WHEN tx_type='CASH-IN' THEN amount ELSE -amount END) AS net
+    FROM glue_catalog.fintech_db.silver_ledger
+    WHERE NOT is_deleted GROUP BY 1,2""")
+
+drift = (published.alias("p").join(restated.alias("r"),
+            ["currency", "business_date"], "full_outer")
+    .withColumn("drift_amount", F.col("r.net") - F.col("p.net"))
+    .withColumn("drift_pct",    F.col("drift_amount") / F.abs(F.col("p.net"))))
+```
+
+Report the worst three currency-days by absolute drift, and state how many days
+of published close reports were materially wrong.
+
+---
+
+## Step 7 · Table maintenance — EMR + Iceberg procedures
+
+High-frequency `MERGE` on a merge-on-read table produces small files **and**
+delete files. Both degrade reads.
+
+```sql
+-- compaction
+CALL glue_catalog.system.rewrite_data_files(
+    table   => 'fintech_db.silver_ledger',
+    strategy => 'sort',
+    sort_order => 'account_id ASC, event_timestamp DESC',
+    options => map(
+        'target-file-size-bytes',   '134217728',
+        'partial-progress-enabled', 'true',
+        'max-concurrent-file-group-rewrites', '4'
+    ));
+
+-- metadata
+CALL glue_catalog.system.rewrite_manifests('fintech_db.silver_ledger');
+
+-- retention
+CALL glue_catalog.system.expire_snapshots(
+    table       => 'fintech_db.silver_ledger',
+    older_than  => TIMESTAMP '2026-01-10 00:00:00',
+    retain_last => 50,
+    stream_results => true);
+
+CALL glue_catalog.system.remove_orphan_files(
+    table => 'fintech_db.silver_ledger', dry_run => true);
+```
+
+### Measure it, do not assume it
+
+| Metric | Before | After |
+|---|---|---|
+| Data files (`.files` where `content=0`) | | |
+| Position delete files (`content=1`) | | |
+| Average file size | | |
+| Q1 query runtime | | |
+| Bytes scanned | | |
+
+```sql
+SELECT content, count(*) AS files,
+       cast(avg(file_size_in_bytes) AS BIGINT) AS avg_bytes
+FROM glue_catalog.fintech_db.silver_ledger.files
+GROUP BY content;
+```
+
+> **A plain `rewrite_data_files` will very likely reconcile none of your delete
+> files.** Binpack only rewrites files it considers badly sized; delete files
+> pointing at a healthy 128 MB file are not, on their own, a reason to rewrite
+> it. Find the option that makes them eligible, and report both the no-op run
+> and the working one. This is the single most valuable finding in this project.
+
+**Retention vs audit.** `expire_snapshots` is what frees storage *and* what ends
+time travel — the same operation. Q1 requires eight months of history. State your
+retention policy and what it costs. Do not set `retain_last => 1` and then claim
+you can answer an audit.
+
+---
+
+## Step 8 · Redshift integration
+
+Zero-copy. The Iceberg tables stay in S3; Redshift reads them through Glue.
+
+```sql
+CREATE EXTERNAL SCHEMA spectrum_fintech
+FROM DATA CATALOG
+DATABASE 'fintech_db'
+IAM_ROLE 'arn:aws:iam::<ACCOUNT>:role/RedshiftLakehouseRole'
+REGION 'us-east-1';
+
+SELECT count(*) FROM spectrum_fintech.gold_daily_account_summary;
+```
+
+The role needs `glue:GetTable*`, `glue:GetPartition*`, `glue:GetDatabase*` and
+`s3:GetObject`/`s3:ListBucket` on the warehouse prefix. If the tables live in an
+**S3 Tables bucket** rather than a general-purpose bucket, you need a Glue
+**resource link** first and the catalog path changes — document which you used.
+
+---
+
+## Step 9 · Query optimisation in Redshift
+
+```sql
+-- materialize the executive aggregate
+CREATE MATERIALIZED VIEW mv_exec_daily_close
+AUTO REFRESH NO
+AS
+SELECT business_date,
+       currency,
+       count(DISTINCT account_id) AS active_accounts,
+       sum(closing_balance)       AS total_closing_balance,
+       sum(credit_volume)         AS total_credits,
+       sum(debit_volume)          AS total_debits,
+       sum(txn_count)             AS total_transactions
+FROM spectrum_fintech.gold_daily_account_summary
+GROUP BY business_date, currency;
+
+REFRESH MATERIALIZED VIEW mv_exec_daily_close;
+```
+
+Then measure, three ways, same question:
+
+| Path | Runtime | Data scanned |
+|---|---|---|
+| Athena direct on Iceberg | | |
+| Redshift Spectrum external schema | | |
+| Redshift materialized view | | |
+
+Explain the differences. A materialized view that is 50× faster is not free —
+state the refresh cost and the staleness window, and say which one you would put
+behind a dashboard refreshing every five minutes.
+
+---
+
+## Step 10 · Executive reporting & final validation
+
+### 10a · Answer the three questions in Redshift SQL
+
+```sql
+-- Q1: point-in-time balance, both versions, for one account
+SELECT * FROM spectrum_fintech.gold_pit_balance_compare
+WHERE account_id = 'C1231006815' AND as_of_ts = '2026-01-16 23:59:59';
+
+-- Q2: velocity breaches, ranked
+SELECT account_id, business_date, max(pct_of_opening) AS peak_pct, severity
+FROM spectrum_fintech.gold_velocity_alerts
+GROUP BY account_id, business_date, severity
+ORDER BY peak_pct DESC LIMIT 50;
+
+-- Q3: drift by currency
+SELECT currency,
+       sum(abs(drift_amount))                    AS total_abs_drift,
+       count(*) FILTER (WHERE abs(drift_pct) > 0.001) AS material_days
+FROM spectrum_fintech.gold_settlement_drift
+GROUP BY currency ORDER BY total_abs_drift DESC;
+```
+
+### 10b · Full-pipeline idempotency
+
+Re-run days 1–20 end to end into the same tables. Prove nothing moved:
+
+```sql
+SELECT count(*) AS rows,
+       sum(closing_balance) AS total_balance,
+       count(DISTINCT account_id) AS accounts
+FROM glue_catalog.fintech_db.gold_daily_account_summary;
+```
+
+Identical before and after. If not, your pipeline is not idempotent — that is
+the failure that puts a bank on a regulator's list.
+
+---
+
+# ACCEPTANCE CRITERIA
+
+| # | Criterion | Pass condition |
+|---|---|---|
+| A1 | CDC harness realism | All five injected behaviours present and measurable |
+| A2 | Bronze idempotency | Same day loaded twice ⇒ identical row count |
+| A3 | Dedup correctness | Zero duplicate `transaction_id` in silver |
+| A4 | MERGE ordering guard | Late row does not overwrite newer state — proven in 4 steps |
+| A5 | Reconciliation | The step-6a check returns **0 rows** |
+| A6 | Q1 answered | Both balances produced and labelled, for ≥5 accounts |
+| A7 | Q2 answered | Rolling — not tumbling — window, with precision/recall vs `isFraud` |
+| A8 | Q3 answered | Drift per currency, with worst 3 currency-days named |
+| A9 | Maintenance measured | Before/after table populated; delete-file finding reported |
+| A10 | Redshift | External schema + MV live; three-way performance table populated |
+| A11 | Full-pipeline idempotency | Gold totals unchanged after full re-run |
+
+---
+
+# EVIDENCE PACK
+
+Numbers only obtainable from your own account. Submit as `EVIDENCE.md`.
 
 | # | Item | Value |
 |---|---|---|
-| 1 | EMR Serverless application ID | |
-| 2 | S3 Tables bucket ARN | |
-| 3 | `bronze.cdc_events` snapshot ID after day-5 first load | |
-| 4 | …snapshot ID after the day-5 **repeat** load | |
-| 5 | Row count at both of the above (must match) | |
-| 6 | `silver.accounts` — total snapshots after day 20 | |
-| 7 | Snapshot ID used for the time-travel audit query | |
-| 8 | `committed_at` of that snapshot (UTC, to the millisecond) | |
-| 9 | Athena query execution ID for the reconciliation check | |
-| 10 | Rows returned by the reconciliation check (must be 0) | |
-| 11 | `sum(closing_balance)` before the full rerun | |
-| 12 | `sum(closing_balance)` after the full rerun | |
-| 13 | Data scanned: Iceberg query vs Redshift mart | |
+| 1 | EMR cluster / Serverless application ID | |
+| 2 | Glue database + warehouse S3 prefix | |
+| 3 | Bronze snapshot ID after day-5 load 1 / load 2 | |
+| 4 | Row count at both (must match) | |
+| 5 | Dedup: rows in → rows out, collapse ratio | |
+| 6 | Intra-batch duplicate keys found | |
+| 7 | Exact error text from the duplicate-key MERGE failure | |
+| 8 | Snapshot ID + `committed_at` used for Q1 (a) | |
+| 9 | Q1 delta (restated − as-known) for 5 accounts | |
+| 10 | Reconciliation: rows failing before fix / after (must be 0) | |
+| 11 | Velocity alerts: count by severity; precision / recall | |
+| 12 | Drift: worst 3 currency-days, material-day count | |
+| 13 | Files & delete-files before / after compaction | |
+| 14 | Delete files after **plain** compaction vs after the fix | |
+| 15 | The option that made compaction reconcile deletes | |
+| 16 | Retention policy set, and resulting time-travel horizon | |
+| 17 | Athena / Spectrum / MV — runtime and bytes for the same query | |
+| 18 | Gold totals before and after full re-run | |
 
-### Break Log — mandatory
-Document **three** things that genuinely broke, with the real error text, the
-diagnosis, and the fix. One of them must be the duplicate-key MERGE failure.
-A submission with no error text in it did not run.
-
----
-
-## 6 · Defence (15 minutes, live)
-
-You will be asked, among others:
-
-1. Show me the `history` metadata table for `silver.accounts`. Point at the
-   rollback, if there is one.
-2. Why did you partition bronze on extract date and not commit date?
-3. Account X had a late row arrive on day 12. Walk me through what happened to it
-   at every layer.
-4. Your MERGE failed the first time. What was the exact error, and why is that
-   error *correct* behaviour rather than a bug?
-5. Show the two time-travel queries returning the same answer. Now expire that
-   snapshot and tell me which one still works.
-6. Your reconciliation returned N rows before you fixed it. What was the cause?
-7. Your fraud recall is X. Name two fraud patterns your rule structurally cannot
-   see.
-8. If the CDC extract for day 14 arrived twice, what stops the double-apply —
-   precisely which line of code?
-9. What does your pipeline do if day 13 never arrives at all?
-10. Priya asks for a balance as of a date **eight months** ago. Does your table
-    still answer that? What determines whether it can?
+**Break log.** Three genuine failures: real error text, diagnosis, fix. One must
+be the duplicate-key MERGE. One must be the compaction no-op.
 
 ---
 
-## 7 · Rubric
+# TECHNICAL REVIEW (45 min, live)
 
-| Area | Marks |
-|---|---|
-| CDC generator realism — late arrivals, duplicates, deletes all present | 10 |
-| Bronze design + partition justification | 8 |
-| **Idempotency: mechanism, and the proof it works** | 15 |
-| **MERGE correctness incl. out-of-order guard** | 18 |
-| Silver cleaning and typing | 7 |
-| Time travel used correctly as an audit tool | 7 |
-| **Reconciliation passing at zero rows** | 10 |
-| Fraud signal + honest precision/recall discussion | 8 |
-| Redshift marts + measured comparison | 7 |
-| Evidence Ledger complete and internally consistent | 5 |
-| Break Log — three real failures | 5 |
-| **Defence** | 20 |
-| | **/120, scaled to 100** |
+Bring the cluster up. These are answered by running things, not describing them.
+
+1. Show `silver_ledger.snapshots`. Walk the history and point at the MERGE that
+   applied late adjustments.
+2. Why `bucket(16, account_id)` and not `bucket(256, …)` or plain partitioning?
+3. Show the physical plan for Q2. Where is the shuffle, and how many stages?
+4. Your MERGE aborted first run. Exact error, and why is aborting *correct*?
+5. Remove the `source_ts >` guard, re-run, and show me what breaks.
+6. Q1 gives two numbers. Which one goes in the regulatory filing, and why?
+7. Reconciliation failed N rows before your fix. Root cause?
+8. Your first compaction reconciled zero delete files. Why? What fixed it?
+9. What is your time-travel horizon right now, and which setting sets it?
+10. Auditor asks for account X at a date eight months back. Run it. If it fails,
+    explain exactly which decision in step 7 caused that.
 
 ---
 
-## 8 · Rules
+# NOTES
 
-- **Using an LLM is allowed and expected.** You are marked on judgement,
-  evidence and defence — not on typing.
-- Every number in your report must be reproducible from your own account.
-- Do not share tables, snapshots or query IDs with another student. Your
-  timestamps and IDs are checked against CloudTrail.
-- Stop your EMR Serverless application at the end of each day.
-- If something is ambiguous, **make a decision, write down the assumption, and
-  defend it.** Real briefs are ambiguous. That is part of the exam.
+- LLM assistance is expected. You are assessed on judgement, measurement and
+  defence — not on typing. Every number must be reproducible from your account.
+- Ambiguity in this brief is deliberate. Decide, document the assumption,
+  defend it in review.
+- Stop EMR at the end of each day. Put a budget alarm on the account first.
