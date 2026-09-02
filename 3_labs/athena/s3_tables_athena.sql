@@ -183,12 +183,19 @@ DESCRIBE orders_lab;
 
 
 -- ###########################################################################
--- 08 · CTAS
+-- 08 · CTAS  — read the three rules first, they are not obvious
 -- ###########################################################################
+-- Per the AWS docs, CTAS for S3 Tables differs from normal Athena CTAS:
+--   1. OMIT location        - S3 Tables manage their own storage.
+--   2. OMIT table_type      - it already DEFAULTS to ICEBERG.
+--   3. OMIT format          - it already defaults to PARQUET.
+--   Do NOT pass is_external. It is not an S3 Tables property and it is what
+--   makes Athena try to write into your query-results bucket instead.
+--
+-- So the whole WITH clause is usually just the partitioning:
 
 CREATE TABLE high_value_orders_lab
 WITH (
-    table_type   = 'ICEBERG',
     partitioning = ARRAY['day(order_timestamp)', 'bucket(64, user_id)']
 ) AS
 SELECT order_id, user_id, order_timestamp, total_amount, country
@@ -196,6 +203,32 @@ FROM orders_lab
 WHERE total_amount > 500.00;
 
 SELECT * FROM high_value_orders_lab;
+
+-- ---------------------------------------------------------------------------
+-- IF YOU GET  TABLE_ALREADY_EXISTS  AFTER A FAILED CTAS
+-- ---------------------------------------------------------------------------
+-- The AWS docs are explicit about this one:
+--   "If your CTAS query fails, you might have to delete your table using the
+--    S3 Tables API before attempting to re-run your query. You cannot use the
+--    Athena DROP TABLE statements to remove the table that was partially
+--    created by the query."
+--
+-- So DROP TABLE will NOT clear it. Use the CLI (adjust names/region):
+--
+--   aws s3tables delete-table \
+--     --table-bucket-arn arn:aws:s3tables:us-east-1:<ACCOUNT_ID>:bucket/<TABLE_BUCKET> \
+--     --namespace <NAMESPACE> \
+--     --name <TABLE_NAME> \
+--     --region us-east-1
+--
+-- Then list what actually exists, to confirm it is gone:
+--
+--   aws s3tables list-tables \
+--     --table-bucket-arn arn:aws:s3tables:us-east-1:<ACCOUNT_ID>:bucket/<TABLE_BUCKET> \
+--     --namespace <NAMESPACE> --region us-east-1
+--
+-- Every value you need is inside the Athena error text itself:
+--   "catalog:<ACCOUNT_ID>:s3tablescatalog/<TABLE_BUCKET>$schema:<NAMESPACE>"
 
 
 -- ###########################################################################
@@ -243,7 +276,6 @@ WHERE NOT EXISTS (
 
 CREATE TABLE mv_hourly_metrics_lab
 WITH (
-    table_type   = 'ICEBERG',
     partitioning = ARRAY['day(order_hour)']
 ) AS
 SELECT date_trunc('hour', order_timestamp) AS order_hour,
