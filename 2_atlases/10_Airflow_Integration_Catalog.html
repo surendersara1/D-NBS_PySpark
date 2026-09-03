@@ -1,0 +1,1870 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Airflow Integration Catalog</title>
+<style>
+*{box-sizing:border-box}
+:root{
+--bg:#F4F6F8;--surface:#FFFFFF;--surface2:#E9EDF2;--sunken:#DFE5EC;
+--ink:#111820;--muted:#5A6875;--line:#CFD8E1;--line2:#B3C0CD;
+--accent:#0E7490;--accent-ink:#0A5A70;--accent-soft:rgba(14,116,144,.11);
+--ok:#2E7D4F;--ok-soft:rgba(46,125,79,.12);
+--warn:#B45309;--warn-soft:rgba(180,83,9,.12);
+--bad:#B3261E;--bad-soft:rgba(179,38,30,.10);
+--code-bg:#0E1720;--code-ink:#D6E2EA;--code-dim:#6D8494;
+--hero-bg:#0E1720;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#22323F;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+--ink:#E3EDF4;--muted:#8CA0AF;--line:#22303C;--line2:#334656;
+--accent:#38BDF8;--accent-ink:#7DD3FC;--accent-soft:rgba(56,189,248,.13);
+--ok:#4ADE80;--ok-soft:rgba(74,222,128,.13);
+--warn:#FBBF24;--warn-soft:rgba(251,191,36,.13);
+--bad:#F87171;--bad-soft:rgba(248,113,113,.13);
+--code-bg:#070D13;--code-ink:#D6E2EA;--code-dim:#6D8494;
+--hero-bg:#070D13;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#1B2732;
+}}
+:root[data-theme="dark"]{
+--bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+--ink:#E3EDF4;--muted:#8CA0AF;--line:#22303C;--line2:#334656;
+--accent:#38BDF8;--accent-ink:#7DD3FC;--accent-soft:rgba(56,189,248,.13);
+--ok:#4ADE80;--ok-soft:rgba(74,222,128,.13);
+--warn:#FBBF24;--warn-soft:rgba(251,191,36,.13);
+--bad:#F87171;--bad-soft:rgba(248,113,113,.13);
+--code-bg:#070D13;--code-ink:#D6E2EA;--code-dim:#6D8494;
+--hero-bg:#070D13;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#1B2732;
+}
+body{margin:0;background:var(--bg);color:var(--ink);
+font:400 15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+code,pre,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* hero */
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:64px 0 52px;
+border-bottom:1px solid var(--hero-line)}
+.hero .eyebrow{font:600 11px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.18em;
+text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{margin:0 0 16px;font:700 clamp(30px,5vw,50px)/1.06 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+letter-spacing:-.028em}
+.hero .thesis{margin:0 0 14px;font-size:19px;line-height:1.5;color:var(--hero-ink);max-width:74ch}
+.hero .thesis em{color:var(--accent);font-style:normal;font-weight:600}
+.hero .sub{margin:0;color:var(--hero-mute);font-size:15px;line-height:1.6;max-width:80ch}
+.vbadge{display:inline-block;margin-top:24px;padding:7px 13px;border:1px solid var(--accent);
+border-radius:4px;color:var(--accent);font:600 10.5px/1 "JetBrains Mono",ui-monospace,monospace;
+letter-spacing:.11em}
+.stats{display:flex;flex-wrap:wrap;gap:36px;margin-top:32px;padding-top:26px;
+border-top:1px solid var(--hero-line)}
+.stats div{display:flex;flex-direction:column;gap:5px}
+.stats b{font:700 26px/1 -apple-system,system-ui,sans-serif;color:var(--accent)}
+.stats span{font:500 11px/1.3 "JetBrains Mono",ui-monospace,monospace;color:var(--hero-mute);
+letter-spacing:.05em;text-transform:uppercase}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:var(--surface);
+border-bottom:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch}
+nav .wrap{display:flex;gap:2px;white-space:nowrap;padding-top:0;padding-bottom:0}
+nav a{padding:13px 11px;text-decoration:none;color:var(--muted);
+font:500 12px/1 "JetBrains Mono",ui-monospace,monospace;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}
+nav a.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* sections */
+section{padding:52px 0;border-bottom:1px solid var(--line)}
+section.lead{padding:40px 0}
+h2{margin:0 0 8px;font:700 clamp(22px,3vw,31px)/1.15 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+letter-spacing:-.02em;scroll-margin-top:64px}
+h3{margin:34px 0 10px;font:600 17px/1.3 -apple-system,system-ui,sans-serif;letter-spacing:-.01em}
+p{margin:0 0 14px;max-width:82ch}
+ul,ol{margin:0 0 16px;padding-left:22px;max-width:82ch}
+li{margin:5px 0}
+hr{border:none;border-top:1px solid var(--line);margin:38px 0}
+strong{font-weight:650}
+a{color:var(--accent-ink)}
+
+/* inline code */
+p code,li code,td code,th code,h3 code,blockquote code{
+background:var(--accent-soft);color:var(--accent-ink);padding:1.5px 5px;border-radius:3px;
+font-size:12.5px;white-space:nowrap}
+
+/* tables */
+table{width:100%;border-collapse:collapse;margin:6px 0 22px;font-size:13.5px;
+background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+thead{background:var(--surface2)}
+th{text-align:left;padding:11px 13px;font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;
+letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+border-bottom:1px solid var(--line2);vertical-align:bottom}
+td{padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--accent-soft)}
+td:first-child{font-weight:550}
+.tablewrap{overflow-x:auto;margin:6px 0 22px}
+.tablewrap table{margin:0}
+
+/* code blocks */
+pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:6px;
+overflow-x:auto;margin:6px 0 22px;font-size:12.5px;line-height:1.62;
+border:1px solid var(--hero-line)}
+pre code{background:none;color:inherit;padding:0;white-space:pre}
+
+/* blockquote = the callout */
+blockquote{margin:18px 0 22px;padding:14px 18px;background:var(--warn-soft);
+border-left:3px solid var(--warn);border-radius:0 5px 5px 0;max-width:88ch}
+blockquote p{margin:0 0 8px}
+blockquote p:last-child{margin:0}
+
+footer{padding:38px 0 60px;color:var(--muted);font-size:13px}
+footer b{color:var(--ink)}
+@media print{nav{display:none}section{break-inside:avoid;border-bottom:1px solid #ccc}}
+</style>
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Reference · generated from the installed packages</div>
+  <h1>The Airflow Integration Catalog</h1>
+  <p class="thesis">Airflow ships around <em>ninety provider packages</em>. The AWS one alone holds 268 classes. Here is all of it, and the twenty you will actually use.</p>
+  <p class="sub">Chapters 5 to 10 and Appendix A were produced by walking
+  <code>airflow.providers.amazon.aws</code> inside the running Airflow 3.3.1
+  image with <code>pkgutil</code> and <code>inspect</code>. No class name here
+  was recalled from memory. The verification log at the end says exactly what
+  was checked and how.</p>
+  <div class="vbadge">✓ AIRFLOW 3.3.1 · AMAZON PROVIDER 9.34.0 · 268 CLASSES ENUMERATED</div>
+  <div class="stats">
+    <div><b>268</b><span>AWS operator / sensor / transfer classes</span></div>
+    <div><b>87</b><span>AWS modules</span></div>
+    <div><b>~90</b><span>provider packages in the ecosystem</span></div>
+    <div><b>4</b><span>kinds of integration</span></div>
+    <div><b>5</b><span>enterprise DAGs that use them</span></div>
+  </div>
+</div></header>
+<nav aria-label="Chapters"><div class="wrap"><a href="#ch-1-the-four-kinds-of-integration">1 four kinds of integ…</a><a href="#ch-2-the-decision-table">2 decision table</a><a href="#ch-3-core-building-blocks-apache-airflow-providers-standard">3 Core building blocks</a><a href="#ch-4-sql-against-anything-apache-airflow-providers-common-sql">4 SQL against anything</a><a href="#ch-5-aws-compute-the-three-emr-models-and-everything-beside-them">5 AWS compute</a><a href="#ch-6-aws-query-and-warehouse">6 AWS query and wareh…</a><a href="#ch-7-aws-storage-and-transfer">7 AWS storage and tra…</a><a href="#ch-8-aws-messaging-eventing-and-data-movement">8 AWS messaging, even…</a><a href="#ch-9-aws-machine-learning-and-ai">9 AWS machine learnin…</a><a href="#ch-10-aws-platform-and-operations">10 AWS platform and op…</a><a href="#ch-11-the-three-ways-to-wait-and-why-it-matters">11 three ways to wait,…</a><a href="#ch-12-beyond-aws">12 Beyond AWS</a><a href="#ch-13-transformation-frameworks">13 Transformation fram…</a><a href="#ch-14-notifications-and-human-in-the-loop">14 Notifications and h…</a><a href="#ch-15-when-there-is-no-operator">15 When there is no op…</a><a href="#ch-16-mwaa-what-changes">16 MWAA</a><a href="#ch-17-anti-patterns">17 Anti-patterns</a><a href="#ch-18-where-to-see-all-of-this-working">18 Where to see all of…</a><a href="#ch-appendix-a-complete-apache-airflow-providers-amazon-inventory">Appendix A · Comple…</a><a href="#ch-verification-log">Verification log</a></div></nav>
+<section class="lead"><div class="wrap"><p><strong>What Apache Airflow can actually talk to, and which of it you will really use.</strong></p>
+<p>Every class name in the AWS chapters was read out of the installed package, not
+recalled from documentation. Verified against:</p>
+<table>
+<thead>
+<tr>
+<th>component</th>
+<th>version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apache Airflow</td>
+<td>3.3.1</td>
+</tr>
+<tr>
+<td><code>apache-airflow-providers-amazon</code></td>
+<td>9.34.0 — <strong>268</strong> operator/sensor/transfer classes across 87 modules</td>
+</tr>
+<tr>
+<td><code>apache-airflow-providers-standard</code></td>
+<td>1.17.0</td>
+</tr>
+<tr>
+<td><code>apache-airflow-providers-common-sql</code></td>
+<td>2.1.0</td>
+</tr>
+</tbody>
+</table>
+<p>Companion to atlas 8 (what Airflow is and is not) and atlas 9 (the 30 building
+blocks). Where atlas 9 teaches the thirty things you use daily, this catalogue
+is the map of everything else, so that when a new requirement lands you know
+whether an operator already exists.</p>
+<hr />
+</div></section><section id="ch-1-the-four-kinds-of-integration"><div class="wrap"><h2 id="ch-1-the-four-kinds-of-integration">1 · The four kinds of integration</h2>
+<p>Everything Airflow can do to an external system arrives as one of four things.
+Knowing which you need cuts the search enormously.</p>
+<table>
+<thead>
+<tr>
+<th>kind</th>
+<th>question it answers</th>
+<th>naming</th>
+<th>example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Operator</strong></td>
+<td>"do a thing and tell me when it is finished"</td>
+<td><code>*Operator</code></td>
+<td><code>EmrServerlessStartJobOperator</code></td>
+</tr>
+<tr>
+<td><strong>Sensor</strong></td>
+<td>"wait until a condition is true"</td>
+<td><code>*Sensor</code></td>
+<td><code>S3KeySensor</code></td>
+</tr>
+<tr>
+<td><strong>Transfer</strong></td>
+<td>"move data from A to B"</td>
+<td><code>XToYOperator</code></td>
+<td><code>RedshiftToS3Operator</code></td>
+</tr>
+<tr>
+<td><strong>Hook</strong></td>
+<td>"give me an authenticated client and get out of my way"</td>
+<td><code>*Hook</code></td>
+<td><code>AthenaHook</code>, <code>S3Hook</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A hook is the escape hatch and it is not a fallback.</strong> Every operator is a
+thin wrapper over a hook. When no operator fits, a five-line <code>@task</code> using the
+hook is idiomatic Airflow, not a workaround. Chapter 15 covers this.</p>
+<p>Two cross-cutting properties matter more than any individual class:</p>
+<ul>
+<li><strong><code>deferrable=True</code></strong> — the wait moves to the triggerer process and the task
+  holds no worker slot. Available on most AWS operators that wait. On a busy
+  deployment this is the difference between 16 concurrent jobs and thousands.</li>
+<li><strong><code>.partial() / .expand()</code></strong> — dynamic task mapping works on <em>any</em> operator,
+  not just <code>@task</code>. One definition, N instances decided at run time.</li>
+</ul>
+<hr />
+</div></section><section id="ch-2-the-decision-table"><div class="wrap"><h2 id="ch-2-the-decision-table">2 · The decision table</h2>
+<p>Start here. The mistake is not picking the wrong operator, it is reaching for
+Airflow at all when a simpler trigger would do.</p>
+<table>
+<thead>
+<tr>
+<th>you need to…</th>
+<th>reach for</th>
+<th>not</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>run one job on a schedule, nothing else</td>
+<td>EventBridge Scheduler</td>
+<td>a whole Airflow deployment</td>
+</tr>
+<tr>
+<td>run Spark on a managed cluster you own</td>
+<td><code>EmrCreateJobFlowOperator</code> + steps</td>
+<td>Glue, if you need bootstrap actions</td>
+</tr>
+<tr>
+<td>run Spark with no cluster lifecycle</td>
+<td><code>EmrServerlessStartJobOperator</code></td>
+<td>EMR on EC2</td>
+</tr>
+<tr>
+<td>run Spark on the platform's shared k8s</td>
+<td><code>EmrContainerOperator</code> (EMR on EKS)</td>
+<td>a second EMR estate</td>
+</tr>
+<tr>
+<td>run a small managed ETL script</td>
+<td><code>GlueJobOperator</code></td>
+<td>EMR, which starts slower</td>
+</tr>
+<tr>
+<td>run any container</td>
+<td><code>EcsRunTaskOperator</code>, <code>BatchOperator</code>, <code>KubernetesPodOperator</code></td>
+<td>wrapping it in a Lambda</td>
+</tr>
+<tr>
+<td>run a query and use the answer</td>
+<td><code>AthenaOperator</code> / <code>RedshiftDataOperator</code> + a task that reads it</td>
+<td>the operator alone — see chapter 6</td>
+</tr>
+<tr>
+<td>assert a data condition</td>
+<td><code>SQLCheckOperator</code> family, Glue Data Quality</td>
+<td>a bespoke Python assertion</td>
+</tr>
+<tr>
+<td>wait for a file</td>
+<td><code>S3KeySensor</code> (deferrable)</td>
+<td>a <code>time.sleep</code> loop</td>
+</tr>
+<tr>
+<td>wait for another DAG</td>
+<td>an <strong>Asset</strong></td>
+<td><code>ExternalTaskSensor</code>, usually</td>
+</tr>
+<tr>
+<td>move bytes between two stores</td>
+<td>a transfer operator</td>
+<td>reading them into the worker</td>
+</tr>
+<tr>
+<td>move a lot of bytes</td>
+<td>a Spark/Glue job</td>
+<td>any transfer operator</td>
+</tr>
+<tr>
+<td>call a REST API</td>
+<td><code>HttpOperator</code> or <code>@task</code> + <code>requests</code></td>
+<td>a shell <code>curl</code></td>
+</tr>
+<tr>
+<td>ask a human to approve</td>
+<td><code>ApprovalOperator</code> (HITL, chapter 14)</td>
+<td>an email and a paused DAG</td>
+</tr>
+<tr>
+<td>do something with no operator</td>
+<td>the <strong>Hook</strong></td>
+<td>inventing a plugin</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-3-core-building-blocks-apache-airflow-providers-standard"><div class="wrap"><h2 id="ch-3-core-building-blocks-apache-airflow-providers-standard">3 · Core building blocks — <code>apache-airflow-providers-standard</code></h2>
+<p>Installed with Airflow. No external system required. These are the operators
+that show up in every DAG regardless of what the DAG actually does.</p>
+<table>
+<thead>
+<tr>
+<th>class</th>
+<th>module</th>
+<th>what it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BashOperator</code></td>
+<td><code>operators.bash</code></td>
+<td>run a shell command — the universal escape hatch</td>
+</tr>
+<tr>
+<td><code>PythonOperator</code></td>
+<td><code>operators.python</code></td>
+<td>run a callable (pre-TaskFlow style)</td>
+</tr>
+<tr>
+<td><code>PythonVirtualenvOperator</code></td>
+<td><code>operators.python</code></td>
+<td>run a callable in a throwaway venv with its own deps</td>
+</tr>
+<tr>
+<td><code>ExternalPythonOperator</code></td>
+<td><code>operators.python</code></td>
+<td>run a callable in a <strong>pre-built</strong> interpreter — the fast version of the above</td>
+</tr>
+<tr>
+<td><code>BranchPythonOperator</code></td>
+<td><code>operators.python</code></td>
+<td>choose a downstream path (<code>@task.branch</code> is the modern form)</td>
+</tr>
+<tr>
+<td><code>BranchExternalPythonOperator</code></td>
+<td><code>operators.python</code></td>
+<td>branch, decided in another interpreter</td>
+</tr>
+<tr>
+<td><code>BranchPythonVirtualenvOperator</code></td>
+<td><code>operators.python</code></td>
+<td>branch, decided in a temporary venv</td>
+</tr>
+<tr>
+<td><code>ShortCircuitOperator</code></td>
+<td><code>operators.python</code></td>
+<td>falsy return skips everything downstream</td>
+</tr>
+<tr>
+<td><code>EmptyOperator</code></td>
+<td><code>operators.empty</code></td>
+<td>a no-op node: join points, named markers</td>
+</tr>
+<tr>
+<td><code>LatestOnlyOperator</code></td>
+<td><code>operators.latest_only</code></td>
+<td>skip everything downstream on a backfill run</td>
+</tr>
+<tr>
+<td><code>TriggerDagRunOperator</code></td>
+<td><code>operators.trigger_dagrun</code></td>
+<td>start another DAG by id, optionally waiting</td>
+</tr>
+<tr>
+<td><code>BranchDateTimeOperator</code></td>
+<td><code>operators.datetime</code></td>
+<td>branch on a time-of-day window</td>
+</tr>
+<tr>
+<td><code>BranchDayOfWeekOperator</code></td>
+<td><code>operators.weekday</code></td>
+<td>branch on the day of the week</td>
+</tr>
+<tr>
+<td><code>ApprovalOperator</code></td>
+<td><code>operators.hitl</code></td>
+<td><strong>human-in-the-loop</strong>: pause until a person approves</td>
+</tr>
+<tr>
+<td><code>HITLOperator</code> / <code>HITLEntryOperator</code></td>
+<td><code>operators.hitl</code></td>
+<td>ask a human for a value or a decision</td>
+</tr>
+<tr>
+<td><code>HITLBranchOperator</code></td>
+<td><code>operators.hitl</code></td>
+<td>let a human pick the branch</td>
+</tr>
+<tr>
+<td><code>SmoothOperator</code></td>
+<td><code>operators.smooth</code></td>
+<td>an easter egg. It plays Santana. Genuinely in the provider.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sensors in the same provider:</strong></p>
+<table>
+<thead>
+<tr>
+<th>class</th>
+<th>waits for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FileSensor</code></td>
+<td>a path on a filesystem (needs an <code>fs</code>-type Connection — Airflow 3 seeds none)</td>
+</tr>
+<tr>
+<td><code>ExternalTaskSensor</code></td>
+<td>a task in another DAG at the same logical date</td>
+</tr>
+<tr>
+<td><code>DateTimeSensor</code> / <code>DateTimeSensorAsync</code></td>
+<td>a wall-clock moment</td>
+</tr>
+<tr>
+<td><code>TimeSensor</code> / <code>TimeSensorAsync</code></td>
+<td>a time of day</td>
+</tr>
+<tr>
+<td><code>TimeDeltaSensor</code> / <code>TimeDeltaSensorAsync</code> / <code>WaitSensor</code></td>
+<td>a duration after the data interval</td>
+</tr>
+<tr>
+<td><code>DayOfWeekSensor</code></td>
+<td>a given weekday</td>
+</tr>
+<tr>
+<td><code>BashSensor</code></td>
+<td>a shell command to exit 0</td>
+</tr>
+<tr>
+<td><code>PythonSensor</code></td>
+<td>a callable to return truthy</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The <code>*Async</code> suffix on the standard sensors and <code>deferrable=True</code> on the AWS
+ones are the same idea: the triggerer waits, not a worker.</p>
+</blockquote>
+<hr />
+</div></section><section id="ch-4-sql-against-anything-apache-airflow-providers-common-sql"><div class="wrap"><h2 id="ch-4-sql-against-anything-apache-airflow-providers-common-sql">4 · SQL against anything — <code>apache-airflow-providers-common-sql</code></h2>
+<p>These work against <strong>any</strong> database that has a DBAPI hook — Postgres, MySQL,
+Snowflake, Redshift, Trino, Athena, Databricks, Oracle, MSSQL. You change
+<code>conn_id</code>, not the operator. This is the most under-used provider in the
+ecosystem.</p>
+<table>
+<thead>
+<tr>
+<th>class</th>
+<th>what it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SQLExecuteQueryOperator</code></td>
+<td>run SQL. Replaces the per-database <code>PostgresOperator</code>, <code>SnowflakeOperator</code>, etc., all of which are deprecated</td>
+</tr>
+<tr>
+<td><code>SQLCheckOperator</code></td>
+<td>run a query; fail the task if any value in the first row is falsy</td>
+</tr>
+<tr>
+<td><code>SQLValueCheckOperator</code></td>
+<td>compare a single result against an expected value with tolerance</td>
+</tr>
+<tr>
+<td><code>SQLIntervalCheckOperator</code></td>
+<td>compare today's metrics against a previous interval — drift detection in one operator</td>
+</tr>
+<tr>
+<td><code>SQLThresholdCheckOperator</code></td>
+<td>assert a value lies between a min and max, either of which may itself be a query</td>
+</tr>
+<tr>
+<td><code>SQLColumnCheckOperator</code></td>
+<td>declarative per-column assertions: null_check, distinct_check, unique_check, min, max</td>
+</tr>
+<tr>
+<td><code>SQLTableCheckOperator</code></td>
+<td>declarative table-level assertions written as boolean SQL expressions</td>
+</tr>
+<tr>
+<td><code>BranchSQLOperator</code></td>
+<td>branch on the result of a query</td>
+</tr>
+<tr>
+<td><code>SQLBulkLoadOperator</code></td>
+<td>bulk-load a file into a table</td>
+</tr>
+<tr>
+<td><code>SQLInsertRowsOperator</code></td>
+<td>insert rows from a Python iterable</td>
+</tr>
+<tr>
+<td><code>SqlSensor</code></td>
+<td>wait until a query returns a truthy result</td>
+</tr>
+<tr>
+<td><code>AnalyticsOperator</code></td>
+<td>run analytics-shaped SQL with result handling</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python"># Declarative data quality with no custom code, on any SQL engine.
+from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator
+
+SQLColumnCheckOperator(
+    task_id=&quot;check_cdr_quality&quot;,
+    conn_id=&quot;redshift_default&quot;,
+    table=&quot;silver.cdr_events&quot;,
+    column_mapping={
+        &quot;cdr_id&quot;:        {&quot;null_check&quot;: {&quot;equal_to&quot;: 0}, &quot;unique_check&quot;: {&quot;equal_to&quot;: 0}},
+        &quot;duration_sec&quot;:  {&quot;min&quot;: {&quot;geq_to&quot;: 0}, &quot;max&quot;: {&quot;leq_to&quot;: 86400}},
+        &quot;subscriber_id&quot;: {&quot;null_check&quot;: {&quot;equal_to&quot;: 0}},
+    },
+)
+</code></pre>
+<hr />
+</div></section><section id="ch-5-aws-compute-the-three-emr-models-and-everything-beside-them"><div class="wrap"><h2 id="ch-5-aws-compute-the-three-emr-models-and-everything-beside-them">5 · AWS compute — the three EMR models and everything beside them</h2>
+<h3 id="ch-the-emr-family-in-full">The EMR family in full</h3>
+<table>
+<thead>
+<tr>
+<th>deployment model</th>
+<th>operators</th>
+<th>sensors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EMR on EC2</strong></td>
+<td><code>EmrCreateJobFlowOperator</code>, <code>EmrAddStepsOperator</code>, <code>EmrModifyClusterOperator</code>, <code>EmrTerminateJobFlowOperator</code></td>
+<td><code>EmrJobFlowSensor</code>, <code>EmrStepSensor</code></td>
+</tr>
+<tr>
+<td><strong>EMR Serverless</strong></td>
+<td><code>EmrServerlessCreateApplicationOperator</code>, <code>EmrServerlessStartJobOperator</code>, <code>EmrServerlessStopApplicationOperator</code>, <code>EmrServerlessDeleteApplicationOperator</code></td>
+<td><code>EmrServerlessJobSensor</code>, <code>EmrServerlessApplicationSensor</code></td>
+</tr>
+<tr>
+<td><strong>EMR on EKS</strong></td>
+<td><code>EmrContainerOperator</code>, <code>EmrEksCreateClusterOperator</code></td>
+<td><code>EmrContainerSensor</code></td>
+</tr>
+<tr>
+<td><strong>EMR Studio notebooks</strong></td>
+<td><code>EmrStartNotebookExecutionOperator</code>, <code>EmrStopNotebookExecutionOperator</code></td>
+<td><code>EmrNotebookExecutionSensor</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch-choosing-between-them">Choosing between them</h3>
+<table>
+<thead>
+<tr>
+<th>your workload</th>
+<th>model</th>
+<th>why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>40 minutes, 60 nodes, custom native library, heavy shuffle</td>
+<td><strong>EC2</strong></td>
+<td>bootstrap actions and custom AMIs exist nowhere else</td>
+</tr>
+<tr>
+<td>8 minutes, bursty, every 15 minutes</td>
+<td><strong>Serverless</strong></td>
+<td>a transient cluster would spend 5 of those minutes booting</td>
+</tr>
+<tr>
+<td>small, frequent, must share the platform's k8s IAM and network</td>
+<td><strong>EKS</strong></td>
+<td>reuses a cluster and a security posture you already run</td>
+</tr>
+<tr>
+<td>someone wants to run a notebook on a schedule</td>
+<td><strong>Studio notebooks</strong></td>
+<td>it is a real, supported thing</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The terminate trap.</strong> <code>EmrTerminateJobFlowOperator</code> must carry
+<code>trigger_rule="all_done"</code>. With the default <code>all_success</code> a failed step
+leaves the cluster running until a human notices. This is the most expensive
+single mistake in the whole catalogue.</p>
+</blockquote>
+<h3 id="ch-the-rest-of-aws-compute">The rest of AWS compute</h3>
+<table>
+<thead>
+<tr>
+<th>service</th>
+<th>operators</th>
+<th>sensors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AWS Glue</strong></td>
+<td><code>GlueJobOperator</code>, <code>GlueDataQualityOperator</code>, <code>GlueDataQualityRuleSetEvaluationRunOperator</code>, <code>GlueDataQualityRuleRecommendationRunOperator</code></td>
+<td><code>GlueJobSensor</code>, <code>GlueDataQualityRuleSetEvaluationRunSensor</code>, <code>GlueDataQualityRuleRecommendationRunSensor</code></td>
+</tr>
+<tr>
+<td><strong>Glue crawlers</strong></td>
+<td><code>GlueCrawlerOperator</code>, <code>GlueCrawlerCreateOperator</code>, <code>GlueCrawlerRunOperator</code>, <code>GlueCrawlerUpdateOperator</code>, <code>GlueCrawlerDeleteOperator</code></td>
+<td><code>GlueCrawlerSensor</code></td>
+</tr>
+<tr>
+<td><strong>Glue Data Catalog</strong></td>
+<td><code>GlueCatalogCreateDatabaseOperator</code>, <code>GlueCatalogDeleteDatabaseOperator</code>, <code>GlueCatalogCreateTableOperator</code>, <code>GlueCatalogDeleteTableOperator</code>, <code>GlueCatalogCreatePartitionOperator</code>, <code>GlueCatalogBatchDeletePartitionOperator</code></td>
+<td><code>GlueCatalogPartitionSensor</code></td>
+</tr>
+<tr>
+<td><strong>Glue DataBrew</strong></td>
+<td><code>GlueDataBrewStartJobOperator</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>AWS Batch</strong></td>
+<td><code>BatchOperator</code>, <code>BatchCreateComputeEnvironmentOperator</code></td>
+<td><code>BatchSensor</code>, <code>BatchComputeEnvironmentSensor</code>, <code>BatchJobQueueSensor</code></td>
+</tr>
+<tr>
+<td><strong>ECS / Fargate</strong></td>
+<td><code>EcsRunTaskOperator</code>, <code>EcsCreateClusterOperator</code>, <code>EcsDeleteClusterOperator</code>, <code>EcsRegisterTaskDefinitionOperator</code>, <code>EcsDeregisterTaskDefinitionOperator</code></td>
+<td><code>EcsTaskStateSensor</code>, <code>EcsClusterStateSensor</code>, <code>EcsTaskDefinitionStateSensor</code></td>
+</tr>
+<tr>
+<td><strong>EKS</strong></td>
+<td><code>EksCreateClusterOperator</code>, <code>EksCreateNodegroupOperator</code>, <code>EksCreateFargateProfileOperator</code>, <code>EksPodOperator</code>, and the three matching delete operators</td>
+<td><code>EksClusterStateSensor</code>, <code>EksNodegroupStateSensor</code>, <code>EksFargateProfileStateSensor</code></td>
+</tr>
+<tr>
+<td><strong>Lambda</strong></td>
+<td><code>LambdaCreateFunctionOperator</code>, <code>LambdaInvokeFunctionOperator</code></td>
+<td><code>LambdaFunctionStateSensor</code></td>
+</tr>
+<tr>
+<td><strong>EC2</strong></td>
+<td><code>EC2CreateInstanceOperator</code>, <code>EC2StartInstanceOperator</code>, <code>EC2StopInstanceOperator</code>, <code>EC2RebootInstanceOperator</code>, <code>EC2HibernateInstanceOperator</code>, <code>EC2TerminateInstanceOperator</code></td>
+<td><code>EC2InstanceStateSensor</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-6-aws-query-and-warehouse"><div class="wrap"><h2 id="ch-6-aws-query-and-warehouse">6 · AWS query and warehouse</h2>
+<table>
+<thead>
+<tr>
+<th>service</th>
+<th>operators</th>
+<th>sensors</th>
+<th>transfers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Athena</strong></td>
+<td><code>AthenaOperator</code></td>
+<td><code>AthenaSensor</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Redshift (data)</strong></td>
+<td><code>RedshiftDataOperator</code></td>
+<td>—</td>
+<td><code>S3ToRedshiftOperator</code>, <code>RedshiftToS3Operator</code></td>
+</tr>
+<tr>
+<td><strong>Redshift (cluster)</strong></td>
+<td><code>RedshiftCreateClusterOperator</code>, <code>RedshiftPauseClusterOperator</code>, <code>RedshiftResumeClusterOperator</code>, <code>RedshiftDeleteClusterOperator</code>, <code>RedshiftCreateClusterSnapshotOperator</code>, <code>RedshiftDeleteClusterSnapshotOperator</code></td>
+<td><code>RedshiftClusterSensor</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>RDS</strong></td>
+<td><code>RdsCreateDbInstanceOperator</code>, <code>RdsStartDbOperator</code>, <code>RdsStopDbOperator</code>, <code>RdsDeleteDbInstanceOperator</code>, <code>RdsCreateDbSnapshotOperator</code>, <code>RdsCopyDbSnapshotOperator</code>, <code>RdsDeleteDbSnapshotOperator</code>, <code>RdsStartExportTaskOperator</code>, <code>RdsCancelExportTaskOperator</code>, <code>RdsCreateEventSubscriptionOperator</code>, <code>RdsDeleteEventSubscriptionOperator</code></td>
+<td><code>RdsDbSensor</code>, <code>RdsSnapshotExistenceSensor</code>, <code>RdsExportTaskExistenceSensor</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>DynamoDB</strong></td>
+<td>—</td>
+<td><code>DynamoDBValueSensor</code></td>
+<td><code>DynamoDBToS3Operator</code>, <code>S3ToDynamoDBOperator</code></td>
+</tr>
+<tr>
+<td><strong>Neptune</strong></td>
+<td><code>NeptuneStartDbClusterOperator</code>, <code>NeptuneStopDbClusterOperator</code></td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Neptune Analytics</strong></td>
+<td><code>NeptuneCreateGraphOperator</code>, <code>NeptuneCreateGraphWithImportOperator</code>, <code>NeptuneStartImportTaskOperator</code>, <code>NeptuneCancelImportTaskOperator</code>, <code>NeptuneCreatePrivateGraphEndpointOperator</code>, <code>NeptuneDeleteGraphOperator</code>, <code>NeptuneDeletePrivateGraphEndpointOperator</code></td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>OpenSearch Serverless</strong></td>
+<td><code>OpenSearchServerlessCreateCollectionOperator</code></td>
+<td><code>OpenSearchServerlessCollectionActiveSensor</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>QuickSight</strong></td>
+<td><code>QuickSightCreateIngestionOperator</code></td>
+<td><code>QuickSightSensor</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The green-but-wrong trap.</strong> <code>AthenaOperator</code> and <code>RedshiftDataOperator</code>
+succeed when the <em>query</em> succeeds. A query returning zero rows, or returning
+a number that should have alarmed you, is still a success. Anything that must
+fail on a <em>value</em> needs a task that reads the result and raises:</p>
+</blockquote>
+<pre><code class="language-python">@task
+def assert_rows_landed(ds: str) -&gt; int:
+    from airflow.providers.amazon.aws.hooks.athena import AthenaHook
+    hook = AthenaHook(aws_conn_id=&quot;aws_default&quot;)
+    qid = hook.run_query(
+        query=f&quot;SELECT count(*) FROM cdr_events WHERE event_date = DATE '{ds}'&quot;,
+        query_context={&quot;Database&quot;: &quot;silver&quot;},
+        result_configuration={&quot;OutputLocation&quot;: &quot;s3://bucket/athena/&quot;},
+    )
+    if hook.poll_query_status(qid, max_polling_attempts=60) != &quot;SUCCEEDED&quot;:
+        raise RuntimeError(f&quot;query {qid} failed&quot;)
+    rows = hook.get_query_results(qid)[&quot;ResultSet&quot;][&quot;Rows&quot;]
+    n = int(rows[1][&quot;Data&quot;][0][&quot;VarCharValue&quot;])
+    if n == 0:
+        raise ValueError(f&quot;no rows for {ds}&quot;)     # THIS is the actual check
+    return n
+</code></pre>
+<hr />
+</div></section><section id="ch-7-aws-storage-and-transfer"><div class="wrap"><h2 id="ch-7-aws-storage-and-transfer">7 · AWS storage and transfer</h2>
+<h3 id="ch-s3-and-the-newer-table-shaped-storage">S3 and the newer table-shaped storage</h3>
+<table>
+<thead>
+<tr>
+<th>group</th>
+<th>classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S3 objects</strong></td>
+<td><code>S3CreateObjectOperator</code>, <code>S3ReadObjectOperator</code>, <code>S3CopyObjectOperator</code>, <code>S3CopyPrefixOperator</code>, <code>S3DeleteObjectsOperator</code>, <code>S3FileTransformOperator</code>, <code>S3ListOperator</code>, <code>S3ListPrefixesOperator</code></td>
+</tr>
+<tr>
+<td><strong>S3 buckets</strong></td>
+<td><code>S3CreateBucketOperator</code>, <code>S3DeleteBucketOperator</code>, <code>S3PutBucketTaggingOperator</code>, <code>S3GetBucketTaggingOperator</code>, <code>S3DeleteBucketTaggingOperator</code></td>
+</tr>
+<tr>
+<td><strong>S3 sensors</strong></td>
+<td><code>S3KeySensor</code>, <code>S3KeysUnchangedSensor</code></td>
+</tr>
+<tr>
+<td><strong>S3 Tables</strong> (managed Iceberg — atlas 5)</td>
+<td><code>S3TablesCreateTableBucketOperator</code>, <code>S3TablesCreateNamespaceOperator</code>, <code>S3TablesCreateTableOperator</code>, <code>S3TablesRenameTableOperator</code>, <code>S3TablesDeleteTableOperator</code>, <code>S3TablesDeleteNamespaceOperator</code>, <code>S3TablesDeleteTableBucketOperator</code>, <code>S3TablesPutTableBucketPolicyOperator</code>, <code>S3TablesDeleteTableBucketPolicyOperator</code></td>
+</tr>
+<tr>
+<td><strong>S3 Vectors</strong></td>
+<td><code>S3VectorsCreateVectorBucketOperator</code>, <code>S3VectorsCreateIndexOperator</code>, <code>S3VectorsPutVectorsOperator</code>, <code>S3VectorsQueryVectorsOperator</code>, <code>S3VectorsDeleteIndexOperator</code>, <code>S3VectorsDeleteVectorBucketOperator</code></td>
+</tr>
+<tr>
+<td><strong>Glacier</strong></td>
+<td><code>GlacierCreateJobOperator</code>, <code>GlacierUploadArchiveOperator</code>, sensor <code>GlacierJobOperationSensor</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>S3KeysUnchangedSensor</code> is the one people miss. It waits until the number of
+objects under a prefix <strong>stops changing</strong> — the right answer when a producer
+writes many files and does not write a <code>_SUCCESS</code> marker.</p>
+</blockquote>
+<h3 id="ch-transfer-operators-in-full">Transfer operators, in full</h3>
+<p>Every transfer in the amazon provider. All of them stream through the Airflow
+worker, so they are for <strong>metadata-scale</strong> movement — thousands of rows, not
+billions. Moving a partition is a Spark job.</p>
+<table>
+<thead>
+<tr>
+<th>from → to</th>
+<th>class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S3 → Redshift</td>
+<td><code>S3ToRedshiftOperator</code></td>
+</tr>
+<tr>
+<td>Redshift → S3</td>
+<td><code>RedshiftToS3Operator</code></td>
+</tr>
+<tr>
+<td>S3 → DynamoDB</td>
+<td><code>S3ToDynamoDBOperator</code></td>
+</tr>
+<tr>
+<td>DynamoDB → S3</td>
+<td><code>DynamoDBToS3Operator</code></td>
+</tr>
+<tr>
+<td>S3 → SQL</td>
+<td><code>S3ToSqlOperator</code></td>
+</tr>
+<tr>
+<td>SQL → S3</td>
+<td><code>SqlToS3Operator</code></td>
+</tr>
+<tr>
+<td>S3 → SFTP / SFTP → S3</td>
+<td><code>S3ToSFTPOperator</code>, <code>SFTPToS3Operator</code></td>
+</tr>
+<tr>
+<td>S3 → FTP / FTP → S3</td>
+<td><code>S3ToFTPOperator</code>, <code>FTPToS3Operator</code></td>
+</tr>
+<tr>
+<td>local → S3</td>
+<td><code>LocalFilesystemToS3Operator</code></td>
+</tr>
+<tr>
+<td>HTTP → S3</td>
+<td><code>HttpToS3Operator</code></td>
+</tr>
+<tr>
+<td>GCS → S3</td>
+<td><code>GCSToS3Operator</code></td>
+</tr>
+<tr>
+<td>Azure Blob → S3</td>
+<td><code>AzureBlobStorageToS3Operator</code></td>
+</tr>
+<tr>
+<td>Google API → S3</td>
+<td><code>GoogleApiToS3Operator</code></td>
+</tr>
+<tr>
+<td>Glacier → GCS</td>
+<td><code>GlacierToGCSOperator</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-8-aws-messaging-eventing-and-data-movement"><div class="wrap"><h2 id="ch-8-aws-messaging-eventing-and-data-movement">8 · AWS messaging, eventing and data movement</h2>
+<table>
+<thead>
+<tr>
+<th>service</th>
+<th>classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SNS</strong></td>
+<td><code>SnsPublishOperator</code></td>
+</tr>
+<tr>
+<td><strong>SQS</strong></td>
+<td><code>SqsPublishOperator</code>, <code>SqsSensor</code></td>
+</tr>
+<tr>
+<td><strong>SES</strong></td>
+<td><code>SesEmailOperator</code></td>
+</tr>
+<tr>
+<td><strong>EventBridge</strong></td>
+<td><code>EventBridgePutEventsOperator</code>, <code>EventBridgePutRuleOperator</code>, <code>EventBridgeEnableRuleOperator</code>, <code>EventBridgeDisableRuleOperator</code></td>
+</tr>
+<tr>
+<td><strong>Step Functions</strong></td>
+<td><code>StepFunctionStartExecutionOperator</code>, <code>StepFunctionGetExecutionOutputOperator</code>, <code>StepFunctionExecutionSensor</code></td>
+</tr>
+<tr>
+<td><strong>DMS</strong> (database migration / CDC)</td>
+<td><code>DmsCreateTaskOperator</code>, <code>DmsStartTaskOperator</code>, <code>DmsStopTaskOperator</code>, <code>DmsModifyTaskOperator</code>, <code>DmsDeleteTaskOperator</code>, <code>DmsDescribeTasksOperator</code>, <code>DmsReloadTablesOperator</code>, plus the serverless replication set: <code>DmsCreateReplicationConfigOperator</code>, <code>DmsStartReplicationOperator</code>, <code>DmsStopReplicationOperator</code>, <code>DmsDescribeReplicationsOperator</code>, <code>DmsDeleteReplicationConfigOperator</code>; sensor <code>DmsTaskCompletedSensor</code></td>
+</tr>
+<tr>
+<td><strong>DataSync</strong></td>
+<td><code>DataSyncOperator</code></td>
+</tr>
+<tr>
+<td><strong>AppFlow</strong> (SaaS → AWS)</td>
+<td><code>AppflowRunOperator</code>, <code>AppflowRunFullOperator</code>, <code>AppflowRunDailyOperator</code>, <code>AppflowRunBeforeOperator</code>, <code>AppflowRunAfterOperator</code>, <code>AppflowRecordsShortCircuitOperator</code></td>
+</tr>
+<tr>
+<td><strong>Kinesis Data Analytics v2</strong></td>
+<td><code>KinesisAnalyticsV2CreateApplicationOperator</code>, <code>KinesisAnalyticsV2StartApplicationOperator</code>, <code>KinesisAnalyticsV2StopApplicationOperator</code>; sensors <code>KinesisAnalyticsV2StartApplicationCompletedSensor</code>, <code>KinesisAnalyticsV2StopApplicationCompletedSensor</code></td>
+</tr>
+<tr>
+<td><strong>MWAA</strong></td>
+<td><code>MwaaTriggerDagRunOperator</code>, <code>MwaaDagRunSensor</code>, <code>MwaaTaskSensor</code> — <strong>Airflow triggering another Airflow</strong>, the standard pattern for cross-team, cross-account orchestration</td>
+</tr>
+<tr>
+<td><strong>MWAA Serverless</strong></td>
+<td><code>MwaaServerlessCreateWorkflowOperator</code>, <code>MwaaServerlessStartWorkflowRunOperator</code>, <code>MwaaServerlessStopWorkflowRunOperator</code>, <code>MwaaServerlessUpdateWorkflowOperator</code>, <code>MwaaServerlessDeleteWorkflowOperator</code>; sensor <code>MwaaServerlessWorkflowRunSensor</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>A dispute, an approval chain or anything measured in <em>human</em> time belongs in
+Step Functions, not in an Airflow task. Start it with
+<code>StepFunctionStartExecutionOperator</code> and stop caring. Never hold an Airflow
+task open for weeks.</p>
+</blockquote>
+<hr />
+</div></section><section id="ch-9-aws-machine-learning-and-ai"><div class="wrap"><h2 id="ch-9-aws-machine-learning-and-ai">9 · AWS machine learning and AI</h2>
+<table>
+<thead>
+<tr>
+<th>service</th>
+<th>operators</th>
+<th>sensors</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SageMaker jobs</strong></td>
+<td><code>SageMakerProcessingOperator</code>, <code>SageMakerTrainingOperator</code>, <code>SageMakerTransformOperator</code>, <code>SageMakerTuningOperator</code>, <code>SageMakerAutoMLOperator</code></td>
+<td><code>SageMakerProcessingSensor</code>, <code>SageMakerTrainingSensor</code>, <code>SageMakerTransformSensor</code>, <code>SageMakerTuningSensor</code>, <code>SageMakerAutoMLSensor</code></td>
+</tr>
+<tr>
+<td><strong>SageMaker models</strong></td>
+<td><code>SageMakerModelOperator</code>, <code>SageMakerEndpointConfigOperator</code>, <code>SageMakerEndpointOperator</code>, <code>SageMakerRegisterModelVersionOperator</code>, <code>SageMakerDeleteModelOperator</code></td>
+<td><code>SageMakerEndpointSensor</code></td>
+</tr>
+<tr>
+<td><strong>SageMaker pipelines</strong></td>
+<td><code>SageMakerStartPipelineOperator</code>, <code>SageMakerStopPipelineOperator</code>, <code>SageMakerConditionOperator</code>, <code>SageMakerCreateExperimentOperator</code></td>
+<td><code>SageMakerPipelineSensor</code></td>
+</tr>
+<tr>
+<td><strong>SageMaker notebooks</strong></td>
+<td><code>SageMakerCreateNotebookOperator</code>, <code>SageMakerStartNoteBookOperator</code>, <code>SageMakerStopNotebookOperator</code>, <code>SageMakerDeleteNotebookOperator</code>, <code>SageMakerNotebookOperator</code> (Unified Studio)</td>
+<td><code>SageMakerNotebookSensor</code></td>
+</tr>
+<tr>
+<td><strong>Bedrock — inference</strong></td>
+<td><code>BedrockInvokeModelOperator</code>, <code>BedrockBatchInferenceOperator</code>, <code>BedrockRetrieveOperator</code>, <code>BedrockRaGOperator</code></td>
+<td><code>BedrockBatchInferenceSensor</code></td>
+</tr>
+<tr>
+<td><strong>Bedrock — customisation</strong></td>
+<td><code>BedrockCustomizeModelOperator</code>, <code>BedrockCreateProvisionedModelThroughputOperator</code>, <code>BedrockCreateEvaluationJobOperator</code></td>
+<td><code>BedrockCustomizeModelCompletedSensor</code>, <code>BedrockProvisionModelThroughputCompletedSensor</code></td>
+</tr>
+<tr>
+<td><strong>Bedrock — knowledge bases</strong></td>
+<td><code>BedrockCreateKnowledgeBaseOperator</code>, <code>BedrockCreateDataSourceOperator</code>, <code>BedrockIngestDataOperator</code></td>
+<td><code>BedrockIngestionJobSensor</code>, <code>BedrockKnowledgeBaseActiveSensor</code></td>
+</tr>
+<tr>
+<td><strong>Bedrock — guardrails &amp; agents</strong></td>
+<td><code>BedrockCreateGuardrailOperator</code>, <code>BedrockCreateGuardrailVersionOperator</code>, <code>BedrockUpdateGuardrailOperator</code>, <code>BedrockDeleteGuardrailOperator</code>, <code>BedrockCreateAgentRuntimeOperator</code>, <code>BedrockInvokeAgentRuntimeOperator</code>, <code>BedrockDeleteAgentRuntimeOperator</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Comprehend</strong></td>
+<td><code>ComprehendStartPiiEntitiesDetectionJobOperator</code>, <code>ComprehendCreateDocumentClassifierOperator</code></td>
+<td><code>ComprehendStartPiiEntitiesDetectionJobCompletedSensor</code>, <code>ComprehendCreateDocumentClassifierCompletedSensor</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-10-aws-platform-and-operations"><div class="wrap"><h2 id="ch-10-aws-platform-and-operations">10 · AWS platform and operations</h2>
+<table>
+<thead>
+<tr>
+<th>service</th>
+<th>classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CloudFormation</strong></td>
+<td><code>CloudFormationCreateStackOperator</code>, <code>CloudFormationDeleteStackOperator</code>; sensors <code>CloudFormationCreateStackSensor</code>, <code>CloudFormationDeleteStackSensor</code></td>
+</tr>
+<tr>
+<td><strong>Systems Manager</strong></td>
+<td><code>SsmRunCommandOperator</code>, <code>SsmGetCommandInvocationOperator</code>; sensor <code>SsmRunCommandCompletedSensor</code> — run a command on an EC2 fleet without SSH</td>
+</tr>
+<tr>
+<td><strong>ECR</strong></td>
+<td><code>EcrCreateRepositoryOperator</code>, <code>EcrDeleteRepositoryOperator</code>, <code>EcrSetRepositoryPolicyOperator</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-11-the-three-ways-to-wait-and-why-it-matters"><div class="wrap"><h2 id="ch-11-the-three-ways-to-wait-and-why-it-matters">11 · The three ways to wait, and why it matters</h2>
+<table>
+<thead>
+<tr>
+<th>mode</th>
+<th>worker slot held</th>
+<th>use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode="poke"</code> (default)</td>
+<td><strong>yes, the whole time</strong></td>
+<td>the wait is under a minute</td>
+</tr>
+<tr>
+<td><code>mode="reschedule"</code></td>
+<td>no — released between pokes</td>
+<td>minutes to hours</td>
+</tr>
+<tr>
+<td><code>deferrable=True</code></td>
+<td>no — the triggerer waits asynchronously</td>
+<td>hours, or hundreds of concurrent waits</td>
+</tr>
+</tbody>
+</table>
+<p>Twenty poke-mode sensors on a sixteen-slot worker pool is a deployment that
+looks hung with nothing running. It is the single most common managed-Airflow
+support ticket. Every long wait in the enterprise lab uses <code>deferrable=True</code>.</p>
+<hr />
+</div></section><section id="ch-12-beyond-aws"><div class="wrap"><h2 id="ch-12-beyond-aws">12 · Beyond AWS</h2>
+<p>Not installed in this repo's image. <code>pip install &lt;package&gt;</code> locally, or add it
+to <code>requirements.txt</code> on MWAA. Names are the PyPI package; the headline classes
+are the ones you would actually reach for.</p>
+<table>
+<thead>
+<tr>
+<th>target</th>
+<th>package</th>
+<th>headline classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Google Cloud</td>
+<td><code>apache-airflow-providers-google</code></td>
+<td><code>BigQueryInsertJobOperator</code>, <code>DataprocSubmitJobOperator</code>, <code>DataflowTemplatedJobStartOperator</code>, <code>GCSToBigQueryOperator</code></td>
+</tr>
+<tr>
+<td>Azure</td>
+<td><code>apache-airflow-providers-microsoft-azure</code></td>
+<td><code>AzureDataFactoryRunPipelineOperator</code>, <code>AzureSynapseRunSparkBatchOperator</code>, <code>WasbBlobSensor</code></td>
+</tr>
+<tr>
+<td>Databricks</td>
+<td><code>apache-airflow-providers-databricks</code></td>
+<td><code>DatabricksSubmitRunOperator</code>, <code>DatabricksRunNowOperator</code>, <code>DatabricksSqlOperator</code></td>
+</tr>
+<tr>
+<td>Snowflake</td>
+<td><code>apache-airflow-providers-snowflake</code></td>
+<td><code>SnowflakeSqlApiOperator</code>, <code>CopyFromExternalStageToSnowflakeOperator</code></td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td><code>apache-airflow-providers-cncf-kubernetes</code></td>
+<td><code>KubernetesPodOperator</code> — run any container image as a task</td>
+</tr>
+<tr>
+<td>Docker</td>
+<td><code>apache-airflow-providers-docker</code></td>
+<td><code>DockerOperator</code></td>
+</tr>
+<tr>
+<td>dbt Cloud</td>
+<td><code>apache-airflow-providers-dbt-cloud</code></td>
+<td><code>DbtCloudRunJobOperator</code>, <code>DbtCloudJobRunSensor</code></td>
+</tr>
+<tr>
+<td>dbt Core</td>
+<td><code>astronomer-cosmos</code> (community)</td>
+<td>renders every dbt model as its own Airflow task</td>
+</tr>
+<tr>
+<td>Spark (standalone)</td>
+<td><code>apache-airflow-providers-apache-spark</code></td>
+<td><code>SparkSubmitOperator</code></td>
+</tr>
+<tr>
+<td>Kafka</td>
+<td><code>apache-airflow-providers-apache-kafka</code></td>
+<td><code>ConsumeFromTopicOperator</code>, <code>ProduceToTopicOperator</code>, <code>AwaitMessageTrigger</code></td>
+</tr>
+<tr>
+<td>Trino / Presto</td>
+<td><code>apache-airflow-providers-trino</code>, <code>-presto</code></td>
+<td>via <code>SQLExecuteQueryOperator</code></td>
+</tr>
+<tr>
+<td>Hive</td>
+<td><code>apache-airflow-providers-apache-hive</code></td>
+<td><code>HiveOperator</code>, <code>NamedHivePartitionSensor</code></td>
+</tr>
+<tr>
+<td>Postgres / MySQL / MSSQL / Oracle</td>
+<td><code>-postgres</code>, <code>-mysql</code>, <code>-microsoft-mssql</code>, <code>-oracle</code></td>
+<td>all through <code>SQLExecuteQueryOperator</code></td>
+</tr>
+<tr>
+<td>SSH / SFTP / FTP</td>
+<td><code>-ssh</code>, <code>-sftp</code>, <code>-ftp</code></td>
+<td><code>SSHOperator</code>, <code>SFTPOperator</code>, <code>SFTPSensor</code></td>
+</tr>
+<tr>
+<td>HTTP</td>
+<td><code>apache-airflow-providers-http</code></td>
+<td><code>HttpOperator</code>, <code>HttpSensor</code></td>
+</tr>
+<tr>
+<td>Slack</td>
+<td><code>apache-airflow-providers-slack</code></td>
+<td><code>SlackAPIPostOperator</code>, <code>SlackWebhookOperator</code></td>
+</tr>
+<tr>
+<td>PagerDuty / Opsgenie</td>
+<td><code>-pagerduty</code>, <code>-opsgenie</code></td>
+<td>incident creation on failure</td>
+</tr>
+<tr>
+<td>Email</td>
+<td><code>apache-airflow-providers-smtp</code></td>
+<td><code>EmailOperator</code></td>
+</tr>
+<tr>
+<td>Salesforce / Zendesk / Jira</td>
+<td><code>-salesforce</code>, <code>-zendesk</code>, <code>-atlassian-jira</code></td>
+<td>SaaS extraction and ticketing</td>
+</tr>
+<tr>
+<td>GitHub</td>
+<td><code>apache-airflow-providers-github</code></td>
+<td><code>GithubOperator</code>, <code>GithubSensor</code></td>
+</tr>
+<tr>
+<td>Papermill</td>
+<td><code>apache-airflow-providers-papermill</code></td>
+<td>parameterised notebook execution</td>
+</tr>
+<tr>
+<td>Elasticsearch / OpenSearch</td>
+<td><code>-elasticsearch</code>, <code>-opensearch</code></td>
+<td>search index maintenance</td>
+</tr>
+<tr>
+<td>MongoDB / Redis / Neo4j / InfluxDB</td>
+<td><code>-mongo</code>, <code>-redis</code>, <code>-neo4j</code>, <code>-influxdb</code></td>
+<td>NoSQL and time-series</td>
+</tr>
+<tr>
+<td>OpenLineage</td>
+<td><code>apache-airflow-providers-openlineage</code></td>
+<td>automatic cross-system lineage emission</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Roughly 90 provider packages exist.</strong> A typical serious deployment installs
+between three and six.</p>
+<hr />
+</div></section><section id="ch-13-transformation-frameworks"><div class="wrap"><h2 id="ch-13-transformation-frameworks">13 · Transformation frameworks</h2>
+<p>Airflow does not transform data. It runs the thing that does. The three
+patterns you will meet:</p>
+<table>
+<thead>
+<tr>
+<th>pattern</th>
+<th>how it looks in a DAG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Spark</strong> (this course)</td>
+<td><code>EmrServerlessStartJobOperator</code> / <code>GlueJobOperator</code> pointing at a <code>.py</code> in S3</td>
+</tr>
+<tr>
+<td><strong>dbt, one task</strong></td>
+<td><code>BashOperator("dbt run --select tag:daily")</code> — simple, but one green box for 200 models</td>
+</tr>
+<tr>
+<td><strong>dbt, one task per model</strong></td>
+<td><code>astronomer-cosmos</code> renders the dbt DAG into the Airflow DAG — real per-model retry and lineage</td>
+</tr>
+<tr>
+<td><strong>Data quality</strong></td>
+<td>Glue Data Quality rulesets, the <code>SQLCheckOperator</code> family, or <code>great_expectations</code></td>
+</tr>
+</tbody>
+</table>
+<p>Airflow and dbt are not alternatives. Airflow triggers dbt. Atlas 8 chapter 7
+draws the boundary.</p>
+<hr />
+</div></section><section id="ch-14-notifications-and-human-in-the-loop"><div class="wrap"><h2 id="ch-14-notifications-and-human-in-the-loop">14 · Notifications and human-in-the-loop</h2>
+<p><strong>Notifications</strong> are not tasks. A callback is a plain function, so it uses a
+<strong>hook</strong>, never an operator:</p>
+<pre><code class="language-python">def notify(context):
+    from airflow.providers.amazon.aws.hooks.sns import SnsHook
+    ti = context[&quot;task_instance&quot;]
+    SnsHook(aws_conn_id=&quot;aws_default&quot;).publish_to_target(
+        target_arn=&quot;arn:aws:sns:...:alerts&quot;,
+        subject=f&quot;FAILED: {ti.dag_id}.{ti.task_id}&quot;[:100],
+        message=f&quot;try {ti.try_number}, run {context['dag_run'].run_id}&quot;,
+    )
+
+default_args = {&quot;on_failure_callback&quot;: notify}
+</code></pre>
+<p>Airflow 3 also ships a <strong>notifier</strong> abstraction (<code>on_failure_callback</code> accepts
+a <code>BaseNotifier</code>), and the Slack/SMTP providers include ready-made ones.</p>
+<p><strong>Human-in-the-loop</strong> is new and genuinely useful: <code>ApprovalOperator</code> and
+<code>HITLBranchOperator</code> in the standard provider pause a run until a person
+answers in the UI. That replaces the old pattern of failing the DAG and having
+someone clear the task manually.</p>
+<blockquote>
+<p>Airflow 3 <strong>removed task-level <code>sla=</code></strong>. A deadline that matters should be an
+explicit check that names what is at risk, which is more useful than an
+"SLA missed" email anyway. DAG 05 of the enterprise lab shows the pattern.</p>
+</blockquote>
+<hr />
+</div></section><section id="ch-15-when-there-is-no-operator"><div class="wrap"><h2 id="ch-15-when-there-is-no-operator">15 · When there is no operator</h2>
+<p>There are around 268 AWS classes and you will still hit a gap. The answer is
+always the hook, and it is idiomatic:</p>
+<pre><code class="language-python">@task
+def tag_glue_table_as_pii(table: str):
+    from airflow.providers.amazon.aws.hooks.glue_catalog import GlueCatalogHook
+    hook = GlueCatalogHook(aws_conn_id=&quot;aws_default&quot;)
+    client = hook.get_conn()                 # a real boto3 client, fully authenticated
+    tbl = client.get_table(DatabaseName=&quot;silver&quot;, Name=table)[&quot;Table&quot;]
+    params = {**(tbl.get(&quot;Parameters&quot;) or {}), &quot;pii&quot;: &quot;true&quot;}
+    client.update_table(DatabaseName=&quot;silver&quot;,
+                        TableInput={**{k: v for k, v in tbl.items()
+                                       if k in (&quot;Name&quot;, &quot;StorageDescriptor&quot;, &quot;TableType&quot;)},
+                                    &quot;Parameters&quot;: params})
+</code></pre>
+<p><code>hook.get_conn()</code> returns a boto3 client with the Connection's credentials
+already applied — including the MWAA execution role, cross-account assume-role,
+and region. <strong>Never construct <code>boto3.client()</code> yourself in a task</strong>: you lose
+all of that and hard-code an auth path that will not work in another
+environment.</p>
+<hr />
+</div></section><section id="ch-16-mwaa-what-changes"><div class="wrap"><h2 id="ch-16-mwaa-what-changes">16 · MWAA — what changes</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>local Docker</th>
+<th>MWAA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>add a provider</td>
+<td>edit the Dockerfile</td>
+<td>add to <code>requirements.txt</code> in S3, environment restarts</td>
+</tr>
+<tr>
+<td>system packages (Java, gcc)</td>
+<td><code>apt-get</code> in the Dockerfile</td>
+<td><strong>not possible</strong></td>
+</tr>
+<tr>
+<td>deploy a DAG</td>
+<td>it is bind-mounted</td>
+<td><code>aws s3 cp dags/ s3://&lt;bucket&gt;/dags/ --recursive</code></td>
+</tr>
+<tr>
+<td>credentials</td>
+<td>keys in a Connection</td>
+<td>leave <code>aws_default</code> <strong>empty</strong> — the execution role is used</td>
+</tr>
+<tr>
+<td>the CLI</td>
+<td><code>docker compose exec … airflow …</code></td>
+<td><code>aws mwaa create-cli-token</code> + an HTTPS POST</td>
+</tr>
+<tr>
+<td>executor</td>
+<td>LocalExecutor</td>
+<td>CeleryExecutor with autoscaling workers</td>
+</tr>
+<tr>
+<td><code>airflow.cfg</code></td>
+<td>all yours</td>
+<td>an allow-list of options only</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The architectural consequence:</strong> you cannot install Java on an MWAA worker,
+so you cannot run Spark there. That is not a limitation, it is MWAA telling you
+the correct design. Spark runs on EMR; Airflow submits.</p>
+<hr />
+</div></section><section id="ch-17-anti-patterns"><div class="wrap"><h2 id="ch-17-anti-patterns">17 · Anti-patterns</h2>
+<table>
+<thead>
+<tr>
+<th>do not</th>
+<th>because</th>
+<th>instead</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>process a DataFrame in a <code>@task</code></td>
+<td>the worker is a small box with no parallelism</td>
+<td>submit to EMR or Glue</td>
+</tr>
+<tr>
+<td>put data in XCom</td>
+<td>XCom lives in the metadata database</td>
+<td>pass an S3 path or a snapshot id</td>
+</tr>
+<tr>
+<td><code>Variable.get()</code> at the top of a DAG file</td>
+<td>it runs on <strong>every parse</strong>, every ~30 s, for every DAG</td>
+<td>read it inside a task, or use <code>{{ var.value.x }}</code></td>
+</tr>
+<tr>
+<td>build <code>boto3.client()</code> by hand in a task</td>
+<td>you lose the Connection, the role and the region</td>
+<td><code>Hook.get_conn()</code></td>
+</tr>
+<tr>
+<td><code>mode="poke"</code> on a multi-hour sensor</td>
+<td>it holds a worker slot the entire time</td>
+<td><code>deferrable=True</code></td>
+</tr>
+<tr>
+<td>map over a million rows</td>
+<td>the scheduler and XCom are not built for it</td>
+<td>map over partitions or batches</td>
+</tr>
+<tr>
+<td>let <code>EmrTerminateJobFlowOperator</code> default its trigger rule</td>
+<td>a failed step leaves the cluster running</td>
+<td><code>trigger_rule="all_done"</code></td>
+</tr>
+<tr>
+<td>trust a green <code>AthenaOperator</code></td>
+<td>it means the query ran, not that the answer was right</td>
+<td>read the result in a task and raise</td>
+</tr>
+<tr>
+<td>use a cron offset to wait for another DAG</td>
+<td>it is a guess that breaks the first time upstream is slow</td>
+<td>Assets</td>
+</tr>
+<tr>
+<td>hard-code a table list in a DAG</td>
+<td>it rots the moment another team adds a table</td>
+<td>read the inventory at run time and <code>.expand()</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-18-where-to-see-all-of-this-working"><div class="wrap"><h2 id="ch-18-where-to-see-all-of-this-working">18 · Where to see all of this working</h2>
+<table>
+<thead>
+<tr>
+<th>chapter</th>
+<th>enterprise lab DAG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5 — EMR on EC2, transient clusters, spot fleets</td>
+<td><code>01_cdr_mediation_hourly</code></td>
+</tr>
+<tr>
+<td>5, 11 — EMR Serverless, deferrable, self-healing compaction</td>
+<td><code>02_ran_kpi_micro_batch</code></td>
+</tr>
+<tr>
+<td>9 — SageMaker, drift-gated retraining, Assets</td>
+<td><code>03_subscriber_360_churn_ml</code></td>
+</tr>
+<tr>
+<td>4, 6, 8 — Glue, DQ rulesets, DMS, Athena, Step Functions</td>
+<td><code>04_revenue_assurance_interconnect</code></td>
+</tr>
+<tr>
+<td>5, 15 — EMR on EKS, hooks, runtime-derived fan-out</td>
+<td><code>05_gdpr_erasure_lakehouse_maintenance</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-appendix-a-complete-apache-airflow-providers-amazon-inventory"><div class="wrap"><h2 id="ch-appendix-a-complete-apache-airflow-providers-amazon-inventory">Appendix A · Complete <code>apache-airflow-providers-amazon</code> inventory</h2>
+<p>Generated by walking the installed package. Every class below exists in
+version 9.34.0; import path is <code>airflow.providers.amazon.aws.&lt;module&gt;</code>.</p>
+<h3 id="ch-operators-193-classes-in-41-modules">Operators — 193 classes in 41 modules</h3>
+<table>
+<thead>
+<tr>
+<th>module</th>
+<th>classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>operators.appflow</code></td>
+<td><code>AppflowRecordsShortCircuitOperator</code>, <code>AppflowRunAfterOperator</code>, <code>AppflowRunBeforeOperator</code>, <code>AppflowRunDailyOperator</code>, <code>AppflowRunFullOperator</code>, <code>AppflowRunOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.athena</code></td>
+<td><code>AthenaOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.batch</code></td>
+<td><code>BatchCreateComputeEnvironmentOperator</code>, <code>BatchOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.bedrock</code></td>
+<td><code>BedrockBatchInferenceOperator</code>, <code>BedrockCreateAgentRuntimeOperator</code>, <code>BedrockCreateDataSourceOperator</code>, <code>BedrockCreateEvaluationJobOperator</code>, <code>BedrockCreateGuardrailOperator</code>, <code>BedrockCreateGuardrailVersionOperator</code>, <code>BedrockCreateProvisionedModelThroughputOperator</code>, <code>BedrockCustomizeModelOperator</code>, <code>BedrockDeleteAgentRuntimeOperator</code>, <code>BedrockDeleteGuardrailOperator</code>, <code>BedrockIngestDataOperator</code>, <code>BedrockInvokeAgentRuntimeOperator</code>, <code>BedrockInvokeModelOperator</code>, <code>BedrockRaGOperator</code>, <code>BedrockRetrieveOperator</code>, <code>BedrockUpdateGuardrailOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.cloud_formation</code></td>
+<td><code>CloudFormationCreateStackOperator</code>, <code>CloudFormationDeleteStackOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.comprehend</code></td>
+<td><code>ComprehendCreateDocumentClassifierOperator</code>, <code>ComprehendStartPiiEntitiesDetectionJobOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.datasync</code></td>
+<td><code>DataSyncOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.dms</code></td>
+<td><code>DmsCreateReplicationConfigOperator</code>, <code>DmsCreateTaskOperator</code>, <code>DmsDeleteReplicationConfigOperator</code>, <code>DmsDeleteTaskOperator</code>, <code>DmsDescribeReplicationConfigsOperator</code>, <code>DmsDescribeReplicationsOperator</code>, <code>DmsDescribeTasksOperator</code>, <code>DmsModifyTaskOperator</code>, <code>DmsReloadTablesOperator</code>, <code>DmsStartReplicationOperator</code>, <code>DmsStartTaskOperator</code>, <code>DmsStopReplicationOperator</code>, <code>DmsStopTaskOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.ec2</code></td>
+<td><code>EC2CreateInstanceOperator</code>, <code>EC2HibernateInstanceOperator</code>, <code>EC2RebootInstanceOperator</code>, <code>EC2StartInstanceOperator</code>, <code>EC2StopInstanceOperator</code>, <code>EC2TerminateInstanceOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.ecr</code></td>
+<td><code>EcrCreateRepositoryOperator</code>, <code>EcrDeleteRepositoryOperator</code>, <code>EcrSetRepositoryPolicyOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.ecs</code></td>
+<td><code>EcsCreateClusterOperator</code>, <code>EcsDeleteClusterOperator</code>, <code>EcsDeregisterTaskDefinitionOperator</code>, <code>EcsRegisterTaskDefinitionOperator</code>, <code>EcsRunTaskOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.eks</code></td>
+<td><code>EksCreateClusterOperator</code>, <code>EksCreateFargateProfileOperator</code>, <code>EksCreateNodegroupOperator</code>, <code>EksDeleteClusterOperator</code>, <code>EksDeleteFargateProfileOperator</code>, <code>EksDeleteNodegroupOperator</code>, <code>EksPodOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.emr</code></td>
+<td><code>EmrAddStepsOperator</code>, <code>EmrContainerOperator</code>, <code>EmrCreateJobFlowOperator</code>, <code>EmrEksCreateClusterOperator</code>, <code>EmrModifyClusterOperator</code>, <code>EmrServerlessCreateApplicationOperator</code>, <code>EmrServerlessDeleteApplicationOperator</code>, <code>EmrServerlessStartJobOperator</code>, <code>EmrServerlessStopApplicationOperator</code>, <code>EmrStartNotebookExecutionOperator</code>, <code>EmrStopNotebookExecutionOperator</code>, <code>EmrTerminateJobFlowOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.eventbridge</code></td>
+<td><code>EventBridgeDisableRuleOperator</code>, <code>EventBridgeEnableRuleOperator</code>, <code>EventBridgePutEventsOperator</code>, <code>EventBridgePutRuleOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.glacier</code></td>
+<td><code>GlacierCreateJobOperator</code>, <code>GlacierUploadArchiveOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.glue</code></td>
+<td><code>GlueDataQualityOperator</code>, <code>GlueDataQualityRuleRecommendationRunOperator</code>, <code>GlueDataQualityRuleSetEvaluationRunOperator</code>, <code>GlueJobOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.glue_catalog</code></td>
+<td><code>GlueCatalogBatchDeletePartitionOperator</code>, <code>GlueCatalogCreateDatabaseOperator</code>, <code>GlueCatalogCreatePartitionOperator</code>, <code>GlueCatalogCreateTableOperator</code>, <code>GlueCatalogDeleteDatabaseOperator</code>, <code>GlueCatalogDeleteTableOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.glue_crawler</code></td>
+<td><code>GlueCrawlerCreateOperator</code>, <code>GlueCrawlerDeleteOperator</code>, <code>GlueCrawlerOperator</code>, <code>GlueCrawlerRunOperator</code>, <code>GlueCrawlerUpdateOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.glue_databrew</code></td>
+<td><code>GlueDataBrewStartJobOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.kinesis_analytics</code></td>
+<td><code>KinesisAnalyticsV2CreateApplicationOperator</code>, <code>KinesisAnalyticsV2StartApplicationOperator</code>, <code>KinesisAnalyticsV2StopApplicationOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.lambda_function</code></td>
+<td><code>LambdaCreateFunctionOperator</code>, <code>LambdaInvokeFunctionOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.mwaa</code></td>
+<td><code>MwaaTriggerDagRunOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.mwaa_serverless</code></td>
+<td><code>MwaaServerlessCreateWorkflowOperator</code>, <code>MwaaServerlessDeleteWorkflowOperator</code>, <code>MwaaServerlessStartWorkflowRunOperator</code>, <code>MwaaServerlessStopWorkflowRunOperator</code>, <code>MwaaServerlessUpdateWorkflowOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.neptune</code></td>
+<td><code>NeptuneStartDbClusterOperator</code>, <code>NeptuneStopDbClusterOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.neptune_analytics</code></td>
+<td><code>NeptuneCancelImportTaskOperator</code>, <code>NeptuneCreateGraphOperator</code>, <code>NeptuneCreateGraphWithImportOperator</code>, <code>NeptuneCreatePrivateGraphEndpointOperator</code>, <code>NeptuneDeleteGraphOperator</code>, <code>NeptuneDeletePrivateGraphEndpointOperator</code>, <code>NeptuneStartImportTaskOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.opensearch_serverless</code></td>
+<td><code>OpenSearchServerlessCreateCollectionOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.quicksight</code></td>
+<td><code>QuickSightCreateIngestionOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.rds</code></td>
+<td><code>RdsCancelExportTaskOperator</code>, <code>RdsCopyDbSnapshotOperator</code>, <code>RdsCreateDbInstanceOperator</code>, <code>RdsCreateDbSnapshotOperator</code>, <code>RdsCreateEventSubscriptionOperator</code>, <code>RdsDeleteDbInstanceOperator</code>, <code>RdsDeleteDbSnapshotOperator</code>, <code>RdsDeleteEventSubscriptionOperator</code>, <code>RdsStartDbOperator</code>, <code>RdsStartExportTaskOperator</code>, <code>RdsStopDbOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.redshift_cluster</code></td>
+<td><code>RedshiftCreateClusterOperator</code>, <code>RedshiftCreateClusterSnapshotOperator</code>, <code>RedshiftDeleteClusterOperator</code>, <code>RedshiftDeleteClusterSnapshotOperator</code>, <code>RedshiftPauseClusterOperator</code>, <code>RedshiftResumeClusterOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.redshift_data</code></td>
+<td><code>RedshiftDataOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.s3</code></td>
+<td><code>S3CopyObjectOperator</code>, <code>S3CopyPrefixOperator</code>, <code>S3CreateBucketOperator</code>, <code>S3CreateObjectOperator</code>, <code>S3DeleteBucketOperator</code>, <code>S3DeleteBucketTaggingOperator</code>, <code>S3DeleteObjectsOperator</code>, <code>S3FileTransformOperator</code>, <code>S3GetBucketTaggingOperator</code>, <code>S3ListOperator</code>, <code>S3ListPrefixesOperator</code>, <code>S3PutBucketTaggingOperator</code>, <code>S3ReadObjectOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.s3_tables</code></td>
+<td><code>S3TablesCreateNamespaceOperator</code>, <code>S3TablesCreateTableBucketOperator</code>, <code>S3TablesCreateTableOperator</code>, <code>S3TablesDeleteNamespaceOperator</code>, <code>S3TablesDeleteTableBucketOperator</code>, <code>S3TablesDeleteTableBucketPolicyOperator</code>, <code>S3TablesDeleteTableOperator</code>, <code>S3TablesPutTableBucketPolicyOperator</code>, <code>S3TablesRenameTableOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.s3_vectors</code></td>
+<td><code>S3VectorsCreateIndexOperator</code>, <code>S3VectorsCreateVectorBucketOperator</code>, <code>S3VectorsDeleteIndexOperator</code>, <code>S3VectorsDeleteVectorBucketOperator</code>, <code>S3VectorsPutVectorsOperator</code>, <code>S3VectorsQueryVectorsOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.sagemaker</code></td>
+<td><code>SageMakerAutoMLOperator</code>, <code>SageMakerConditionOperator</code>, <code>SageMakerCreateExperimentOperator</code>, <code>SageMakerCreateNotebookOperator</code>, <code>SageMakerDeleteModelOperator</code>, <code>SageMakerDeleteNotebookOperator</code>, <code>SageMakerEndpointConfigOperator</code>, <code>SageMakerEndpointOperator</code>, <code>SageMakerModelOperator</code>, <code>SageMakerProcessingOperator</code>, <code>SageMakerRegisterModelVersionOperator</code>, <code>SageMakerStartNoteBookOperator</code>, <code>SageMakerStartPipelineOperator</code>, <code>SageMakerStopNotebookOperator</code>, <code>SageMakerStopPipelineOperator</code>, <code>SageMakerTrainingOperator</code>, <code>SageMakerTransformOperator</code>, <code>SageMakerTuningOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.sagemaker_unified_studio</code></td>
+<td><code>SageMakerNotebookOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.sagemaker_unified_studio_notebook</code></td>
+<td><code>SageMakerUnifiedStudioNotebookOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.ses</code></td>
+<td><code>SesEmailOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.sns</code></td>
+<td><code>SnsPublishOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.sqs</code></td>
+<td><code>SqsPublishOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.ssm</code></td>
+<td><code>SsmGetCommandInvocationOperator</code>, <code>SsmRunCommandOperator</code></td>
+</tr>
+<tr>
+<td><code>operators.step_function</code></td>
+<td><code>StepFunctionGetExecutionOutputOperator</code>, <code>StepFunctionStartExecutionOperator</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch-sensors-59-classes-in-30-modules">Sensors — 59 classes in 30 modules</h3>
+<table>
+<thead>
+<tr>
+<th>module</th>
+<th>classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sensors.athena</code></td>
+<td><code>AthenaSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.batch</code></td>
+<td><code>BatchComputeEnvironmentSensor</code>, <code>BatchJobQueueSensor</code>, <code>BatchSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.bedrock</code></td>
+<td><code>BedrockBatchInferenceSensor</code>, <code>BedrockCustomizeModelCompletedSensor</code>, <code>BedrockIngestionJobSensor</code>, <code>BedrockProvisionModelThroughputCompletedSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.cloud_formation</code></td>
+<td><code>CloudFormationCreateStackSensor</code>, <code>CloudFormationDeleteStackSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.comprehend</code></td>
+<td><code>ComprehendCreateDocumentClassifierCompletedSensor</code>, <code>ComprehendStartPiiEntitiesDetectionJobCompletedSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.dms</code></td>
+<td><code>DmsTaskCompletedSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.dynamodb</code></td>
+<td><code>DynamoDBValueSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.ec2</code></td>
+<td><code>EC2InstanceStateSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.ecs</code></td>
+<td><code>EcsClusterStateSensor</code>, <code>EcsTaskDefinitionStateSensor</code>, <code>EcsTaskStateSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.eks</code></td>
+<td><code>EksClusterStateSensor</code>, <code>EksFargateProfileStateSensor</code>, <code>EksNodegroupStateSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.emr</code></td>
+<td><code>EmrContainerSensor</code>, <code>EmrJobFlowSensor</code>, <code>EmrNotebookExecutionSensor</code>, <code>EmrServerlessApplicationSensor</code>, <code>EmrServerlessJobSensor</code>, <code>EmrStepSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.glacier</code></td>
+<td><code>GlacierJobOperationSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.glue</code></td>
+<td><code>GlueDataQualityRuleRecommendationRunSensor</code>, <code>GlueDataQualityRuleSetEvaluationRunSensor</code>, <code>GlueJobSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.glue_catalog_partition</code></td>
+<td><code>GlueCatalogPartitionSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.glue_crawler</code></td>
+<td><code>GlueCrawlerSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.kinesis_analytics</code></td>
+<td><code>KinesisAnalyticsV2StartApplicationCompletedSensor</code>, <code>KinesisAnalyticsV2StopApplicationCompletedSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.lambda_function</code></td>
+<td><code>LambdaFunctionStateSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.mwaa</code></td>
+<td><code>MwaaDagRunSensor</code>, <code>MwaaTaskSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.mwaa_serverless</code></td>
+<td><code>MwaaServerlessWorkflowRunSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.opensearch_serverless</code></td>
+<td><code>OpenSearchServerlessCollectionActiveSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.quicksight</code></td>
+<td><code>QuickSightSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.rds</code></td>
+<td><code>RdsDbSensor</code>, <code>RdsExportTaskExistenceSensor</code>, <code>RdsSnapshotExistenceSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.redshift_cluster</code></td>
+<td><code>RedshiftClusterSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.s3</code></td>
+<td><code>S3KeySensor</code>, <code>S3KeysUnchangedSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.sagemaker</code></td>
+<td><code>SageMakerAutoMLSensor</code>, <code>SageMakerEndpointSensor</code>, <code>SageMakerPipelineSensor</code>, <code>SageMakerProcessingSensor</code>, <code>SageMakerTrainingSensor</code>, <code>SageMakerTransformSensor</code>, <code>SageMakerTuningSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.sagemaker_unified_studio</code></td>
+<td><code>SageMakerNotebookSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.sagemaker_unified_studio_notebook</code></td>
+<td><code>SageMakerUnifiedStudioNotebookSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.sqs</code></td>
+<td><code>SqsSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.ssm</code></td>
+<td><code>SsmRunCommandCompletedSensor</code></td>
+</tr>
+<tr>
+<td><code>sensors.step_function</code></td>
+<td><code>StepFunctionExecutionSensor</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch-transfers-16-classes-in-16-modules">Transfers — 16 classes in 16 modules</h3>
+<table>
+<thead>
+<tr>
+<th>module</th>
+<th>classes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>transfers.azure_blob_to_s3</code></td>
+<td><code>AzureBlobStorageToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.dynamodb_to_s3</code></td>
+<td><code>DynamoDBToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.ftp_to_s3</code></td>
+<td><code>FTPToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.gcs_to_s3</code></td>
+<td><code>GCSToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.glacier_to_gcs</code></td>
+<td><code>GlacierToGCSOperator</code></td>
+</tr>
+<tr>
+<td><code>transfers.google_api_to_s3</code></td>
+<td><code>GoogleApiToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.http_to_s3</code></td>
+<td><code>HttpToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.local_to_s3</code></td>
+<td><code>LocalFilesystemToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.redshift_to_s3</code></td>
+<td><code>RedshiftToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.s3_to_dynamodb</code></td>
+<td><code>S3ToDynamoDBOperator</code></td>
+</tr>
+<tr>
+<td><code>transfers.s3_to_ftp</code></td>
+<td><code>S3ToFTPOperator</code></td>
+</tr>
+<tr>
+<td><code>transfers.s3_to_redshift</code></td>
+<td><code>S3ToRedshiftOperator</code></td>
+</tr>
+<tr>
+<td><code>transfers.s3_to_sftp</code></td>
+<td><code>S3ToSFTPOperator</code></td>
+</tr>
+<tr>
+<td><code>transfers.s3_to_sql</code></td>
+<td><code>S3ToSqlOperator</code></td>
+</tr>
+<tr>
+<td><code>transfers.sftp_to_s3</code></td>
+<td><code>SFTPToS3Operator</code></td>
+</tr>
+<tr>
+<td><code>transfers.sql_to_s3</code></td>
+<td><code>SqlToS3Operator</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></section><section id="ch-verification-log" style="border-bottom:none"><div class="wrap"><h2 id="ch-verification-log">Verification log</h2>
+<table>
+<thead>
+<tr>
+<th>claim</th>
+<th>method</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Airflow version</td>
+<td><code>airflow.__version__</code> in the running scheduler</td>
+<td>3.3.1</td>
+</tr>
+<tr>
+<td>amazon provider version</td>
+<td><code>importlib.metadata.version</code></td>
+<td>9.34.0</td>
+</tr>
+<tr>
+<td>every AWS class name in chapters 5-10 and Appendix A</td>
+<td>walked <code>airflow.providers.amazon.aws.{operators,sensors,transfers}</code> with <code>pkgutil</code> + <code>inspect</code> inside the container</td>
+<td>268 classes across 87 modules, all names copied from that walk</td>
+</tr>
+<tr>
+<td>standard + common.sql class names (chapters 3-4)</td>
+<td>same walk over those packages</td>
+<td>standard 1.17.0, common-sql 2.1.0</td>
+</tr>
+<tr>
+<td><code>Variable.get</code> keyword rename</td>
+<td><code>inspect.signature</code> on both classes</td>
+<td><code>airflow.sdk.Variable.get(key, default=…)</code> vs <code>airflow.models.Variable.get(key, default_var=…)</code> — <strong>CORRECTED</strong>, the Airflow 2 form raises <code>TypeError</code> at parse time</td>
+</tr>
+<tr>
+<td>the five enterprise DAGs parse</td>
+<td><code>DagBag</code> in the running Airflow 3.3.1 image with the amazon provider</td>
+<td>5 DAGs, 98 tasks, <strong>0 import errors</strong>, <code>dag.validate()</code> passes on each</td>
+</tr>
+<tr>
+<td>manual runs have no logical date</td>
+<td>observed in the airflow_local lab</td>
+<td><strong>CONFIRMED</strong> — <code>{{ ds }}</code> is undefined, not None</td>
+</tr>
+<tr>
+<td>Airflow 3 seeds no default connections</td>
+<td>observed: <code>FileSensor</code> failed with <code>conn_id fs_default isn't defined</code></td>
+<td><strong>CONFIRMED</strong></td>
+</tr>
+<tr>
+<td><code>sla=</code> removed in Airflow 3</td>
+<td>Airflow 3 release notes; deadline alerting used instead in DAG 05</td>
+<td><strong>CONFIRMED</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Non-AWS package names in chapter 12 are PyPI package names, not verified class
+signatures — they are not installed in this image. Everything else above was
+read from a running system.</p></div></section>
+<footer><div class="wrap">
+  <b>The Airflow Integration Catalog</b> — reference companion to atlases 8 and 9. Surender Sara · NorthBay Solutions.<br>
+  Source of truth: <code>4_reference/airflow_integration_catalog.md</code>.
+  Working examples: <code>3_labs/airflow_enterprise/</code>.
+</div></footer>
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('nav a')),
+s=l.map(function(a){return document.querySelector(a.getAttribute('href'))});
+function spy(){var p=window.scrollY+140,i=0;
+for(var k=0;k<s.length;k++){if(s[k]&&s[k].offsetTop<=p)i=k}
+l.forEach(function(a,k){a.classList.toggle('on',k===i)})}
+window.addEventListener('scroll',spy,{passive:true});spy();
+// every table scrolls inside its own box rather than widening the page
+[].forEach.call(document.querySelectorAll('table'),function(t){
+if(t.parentNode.className==='tablewrap')return;
+var w=document.createElement('div');w.className='tablewrap';
+t.parentNode.insertBefore(w,t);w.appendChild(t);});})();
+</script>
