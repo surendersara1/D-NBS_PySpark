@@ -738,6 +738,16 @@ byte-identical while the live table has moved.
 
 ---
 
+# SUGGESTED 3-DAY PLAN
+
+| Day | Steps | Checkpoint |
+|---|---|---|
+| 1 | Harness, 1–3 | Micro-batches and price-interval catalog landed; sessions built; silver DDL with sort order; small-file baseline recorded |
+| 2 | 4–5 | Naive range-join plan captured; ≥2 optimisations measured; `price_match` rate; schema and partition evolution with all four proofs |
+| 3 | 6–10 | Q1/Q2 with confounders and both revenue definitions; compaction measured; tag with retention and 4-step immutability proof; Redshift three-way |
+
+---
+
 # ACCEPTANCE CRITERIA
 
 | # | Criterion | Pass condition |

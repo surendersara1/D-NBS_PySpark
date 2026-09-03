@@ -610,6 +610,16 @@ the failure that puts a bank on a regulator's list.
 
 ---
 
+# SUGGESTED 3-DAY PLAN
+
+| Day | Steps | Checkpoint |
+|---|---|---|
+| 1 | Harness, 1–3 | 20 days of Debezium-style CDC landed; bronze idempotency proven with two snapshot IDs; silver DDL with MoR modes set |
+| 2 | 4–6 | MERGE running with the ordering guard; duplicate-key error captured; Q1 both balances; Q2 rolling window; reconciliation at zero rows |
+| 3 | 7–10 | Compaction no-op and fix both recorded; retention set; Redshift external schema + MV; three-way measurement; full re-run identical |
+
+---
+
 # ACCEPTANCE CRITERIA
 
 | # | Criterion | Pass condition |
