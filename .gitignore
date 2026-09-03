@@ -6,3 +6,7 @@ __pycache__/
 
 # Third-party book — kept locally as source material, not redistributed
 4_reference/apache-iceberg-TDG_ER1.PDF
+3_labs/airflow_local/logs/*
+3_labs/airflow_local/work/*
+3_labs/airflow_local/landing/*
+!3_labs/airflow_local/**/.gitkeep

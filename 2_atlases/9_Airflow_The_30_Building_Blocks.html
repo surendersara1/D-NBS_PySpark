@@ -1,0 +1,562 @@
+<meta charset="utf-8">
+<title>Airflow: The 30 Building Blocks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F8;--surface:#FFFFFF;--surface2:#E9EDF2;--sunken:#DFE5EC;
+  --ink:#111820;--muted:#5A6875;--line:#CFD8E1;--line2:#B3C0CD;
+  --accent:#0E7490;--accent-ink:#0A5A70;--accent-soft:rgba(14,116,144,.11);
+  --ok:#2E7D4F;--ok-soft:rgba(46,125,79,.12);
+  --warn:#B45309;--warn-soft:rgba(180,83,9,.12);
+  --bad:#B3261E;--bad-soft:rgba(179,38,30,.10);
+  --code-bg:#0E1720;--code-ink:#D6E2EA;--code-dim:#6D8494;
+  --hero-bg:#0E1720;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#22323F;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}}
+:root[data-theme="dark"]{
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;font:16px/1.62 'Public Sans',system-ui,sans-serif}
+h1,h2,h3{font-family:'Chivo',system-ui,sans-serif;margin:0;text-wrap:balance}
+code,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.wrap{max-width:1100px;margin:0 auto;padding:0 28px}
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:70px 0 52px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{font-size:clamp(36px,6vw,62px);font-weight:800;letter-spacing:-.025em;line-height:1.02}
+.hero .thesis{font-size:clamp(18px,2.4vw,23px);font-weight:600;margin:20px 0 6px;font-family:'Chivo',sans-serif}
+.hero .thesis em{font-style:normal;color:var(--accent)}
+.hero p.sub{color:var(--hero-mute);max-width:66ch;margin:12px 0 0}
+.vbadge{display:inline-flex;align-items:center;gap:7px;background:rgba(46,125,79,.18);border:1px solid var(--ok);
+  color:#8FE0B0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+  padding:6px 12px;border-radius:3px;margin-top:26px}
+.stats{display:flex;flex-wrap:wrap;margin-top:30px;border-top:1px solid var(--hero-line);border-left:1px solid var(--hero-line)}
+.stats div{flex:1 1 158px;padding:14px 16px;border-right:1px solid var(--hero-line);border-bottom:1px solid var(--hero-line)}
+.stats b{display:block;font-family:'Chivo',sans-serif;font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--hero-mute);margin-top:5px}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 93%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;overflow-x:auto}
+nav a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;padding:12px 10px;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}nav a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+section{padding:66px 0 34px;border-bottom:1px solid var(--line)}
+.kick{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:10px}
+section h2{font-size:clamp(25px,3.5vw,36px);font-weight:700;letter-spacing:-.015em}
+.lede{max-width:70ch;color:var(--muted);font-size:17px;margin:14px 0 0}
+.lede b,p.body b{color:var(--ink);font-weight:600}
+p.body{max-width:70ch;color:var(--muted);margin:14px 0 0}
+.lede code,p.body code,li code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+figure{margin:30px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px 22px 12px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:640px;margin:0 auto}
+figcaption{font-size:14px;color:var(--muted);max-width:84ch;margin:14px auto 4px;padding-top:12px;border-top:1px solid var(--line)}
+figcaption b{color:var(--ink)}
+figcaption code{font-size:.9em;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+.grid{display:grid;gap:13px;margin-top:20px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(228px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:17px}
+.card .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:8px}
+.card h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;color:var(--muted);margin:6px 0 0}
+.card ul{margin:8px 0 0;padding-left:17px;font-size:14px;color:var(--muted)}
+.card li{margin:4px 0}
+.card code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink)}
+.card.ok{border-color:var(--ok)}.card.ok .tag{color:var(--ok)}
+.card.warn{border-color:var(--warn)}.card.warn .tag{color:var(--warn)}
+.card.bad{border-color:var(--bad)}.card.bad .tag{color:var(--bad)}
+.code{background:var(--code-bg);border-radius:6px;margin:20px 0 0;overflow:hidden}
+.code .hd{display:flex;justify-content:space-between;padding:8px 15px;border-bottom:1px solid rgba(255,255,255,.08)}
+.code .hd span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--code-dim)}
+.code .hd span.lang{color:var(--accent)}
+.code pre{margin:0;padding:15px 17px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12.6px;line-height:1.68;color:var(--code-ink)}
+.code .c{color:var(--code-dim)}.code .k{color:#7FD7E3}
+.code .d{color:#7FD7E3}.code .s{color:#E8C07D}.code .hl{color:#F0B860;font-weight:600}
+.note{display:flex;gap:12px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 5px 5px 0;padding:14px 16px;margin-top:20px;font-size:14.5px;max-width:90ch}
+.note b{color:var(--accent-ink)}
+.note.warn{background:var(--warn-soft);border-left-color:var(--warn)}.note.warn b{color:var(--warn)}
+.note.bad{background:var(--bad-soft);border-left-color:var(--bad)}.note.bad b{color:var(--bad)}
+.note.ok{background:var(--ok-soft);border-left-color:var(--ok)}.note.ok b{color:var(--ok)}
+.note .ic{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11.5px;flex-shrink:0;letter-spacing:.06em}
+table{width:100%;border-collapse:collapse;margin-top:20px;font-size:14px;background:var(--surface);border:1px solid var(--line)}
+th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2);background:var(--surface2);vertical-align:bottom}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)}
+td b{color:var(--ink)}
+.tw{overflow-x:auto}
+.mono1 td:first-child{font-family:'JetBrains Mono',monospace;font-size:12.2px;white-space:nowrap}
+.v{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.07em;padding:2px 6px;border-radius:2px;vertical-align:middle}
+.v-ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+.v-fix{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.v-no{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+footer{padding:44px 0 64px;color:var(--muted);font-size:13.5px}
+footer b{color:var(--ink)}
+svg text{font-family:'Public Sans',system-ui,sans-serif}
+.t1{font-size:13.5px;font-weight:700;fill:var(--ink)}
+.t2{font-size:12.5px;font-weight:600;fill:var(--ink)}
+.t3{font-size:12px;fill:var(--muted)}
+.t4{font-size:11px;fill:var(--muted)}
+.m1{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:var(--ink)}
+.m2{font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--muted)}
+.m3{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+.eb{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--accent-ink)}
+.eb-o{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--warn)}
+.eb-b{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--bad)}
+.eb-g{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--ok)}
+.la{fill:var(--accent-ink);font-size:11.5px;font-weight:600}
+.lb{fill:var(--bad);font-size:11.5px;font-weight:600}
+.lg{fill:var(--ok);font-size:11.5px;font-weight:600}
+.bx{fill:var(--surface);stroke:var(--line2);stroke-width:1.1}
+.bx2{fill:var(--surface2);stroke:var(--line2);stroke-width:1}
+.bxs{fill:var(--sunken);stroke:var(--line2);stroke-width:1}
+.bxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+.bxo{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.3}
+.bxb{fill:var(--bad-soft);stroke:var(--bad);stroke-width:1.3}
+.bxg{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.3}
+.bxd{fill:none;stroke:var(--line2);stroke-width:1.1;stroke-dasharray:5 4}
+.ln{stroke:var(--line2);stroke-width:1.5;fill:none}
+.lna{stroke:var(--accent);stroke-width:1.9;fill:none}
+.lnb{stroke:var(--bad);stroke-width:1.7;fill:none}
+.lng{stroke:var(--ok);stroke-width:1.7;fill:none}
+.dash{stroke-dasharray:5 4}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media print{nav{display:none}section{break-inside:avoid-page}figure{break-inside:avoid}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line2)"/></marker>
+<marker id="aa" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker>
+</defs></svg>
+
+
+<style>
+.fn{margin:0 0 30px;padding:0 0 26px;border-bottom:1px solid var(--line)}
+.fn:last-child{border-bottom:none}
+.fn-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.fn-h .num{font:600 12px/1 'JetBrains Mono',ui-monospace,monospace;color:var(--accent);letter-spacing:.06em;min-width:28px}
+.fn-h h3{margin:0;font:600 18px/1.25 'Chivo',system-ui,sans-serif;letter-spacing:-.01em}
+.fn-h .pkg{font:500 11.5px/1 'JetBrains Mono',ui-monospace,monospace;color:var(--muted);background:var(--card2);border:1px solid var(--line);padding:4px 8px;border-radius:4px}
+.fn>p{margin:4px 0 10px;max-width:74ch}
+.fn .got{font-size:13.5px;color:var(--muted);margin:10px 0 0;max-width:80ch}
+.fn .got b{color:var(--warn)}
+.fn .code{margin:0}
+.sec-n{display:flex;align-items:center;gap:14px;margin:0 0 22px}
+.sec-n .cnt{font:600 12px/1 'JetBrains Mono',ui-monospace,monospace;color:var(--muted);letter-spacing:.06em}
+</style>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Atlas 9 of 9 · the working set</div>
+  <h1>Airflow: the 30<br>building blocks</h1>
+  <p class="thesis">Hundreds of operators across ninety provider packages. <em>These thirty are the daily job.</em></p>
+  <p class="sub">The same treatment as the PySpark 30-functions handbook: one block per concept, the exact Airflow 3.3 import, a snippet you can paste, and the mistake everyone makes with it. Grouped in the order you need them — define, do, connect, wait, call AWS, steer, schedule, survive.</p>
+  <div class="vbadge">✓ AIRFLOW 3.3 IMPORTS — providers.standard AND airflow.sdk, NOT THE AIRFLOW 2 PATHS</div>
+  <div class="stats">
+    <div><b>8</b><span>groups</span></div>
+    <div><b>30</b><span>blocks</span></div>
+    <div><b>2</b><span>provider packages: standard, amazon</span></div>
+    <div><b>8</b><span>lab DAGs that exercise them</span></div>
+  </div>
+</div></header>
+
+<nav aria-label="Groups"><div class="wrap">
+<a href="#g1">A Define</a><a href="#g2">B Do</a><a href="#g3">C Connect</a><a href="#g4">D Wait</a><a href="#g5">E Call AWS</a><a href="#g6">F Steer</a><a href="#g7">G Time</a><a href="#g8">H Survive</a><a href="#g9">CLI</a>
+</div></nav>
+
+<!-- ================= A ================= -->
+<section id="g1"><div class="wrap">
+  <div class="kick">A · Define</div>
+  <h2>The DAG itself</h2>
+  <p class="lede">Five parameters carry almost all of the meaning. Get <code>start_date</code> and <code>catchup</code> wrong and you will create 400 runs on a Friday evening.</p>
+
+  <div class="fn"><div class="fn-h"><span class="num">01</span><h3>@dag / DAG</h3><span class="pkg">airflow.sdk</span></div>
+  <p>The container. The decorator form and the context-manager form are equivalent; the decorator is what new code uses.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 01 (DAG) · lab 02 (@dag)</span></div><pre><span class="k">from</span> airflow.sdk <span class="k">import</span> dag, task, DAG
+
+<span class="d">@dag</span>(dag_id=<span class="s">"nightly_iceberg"</span>, schedule=<span class="s">"0 2 * * *"</span>, start_date=datetime(2026, 9, 1), catchup=<span class="k">False</span>)
+<span class="k">def</span> nightly():
+    ...
+nightly()                          <span class="c"># the call registers it; forgetting this = DAG never appears</span>
+
+<span class="k">with</span> DAG(dag_id=<span class="s">"nightly_iceberg"</span>, schedule=<span class="s">"0 2 * * *"</span>, ...) <span class="k">as</span> dag:
+    ...</pre></div>
+  <p class="got"><b>Gotcha.</b> <code>dag_id</code> must be unique across the whole deployment; the file name does not matter. Two files defining the same id → one silently wins.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">02</span><h3>schedule=</h3><span class="pkg">parameter</span></div>
+  <p>When runs are created. Cron string, preset, <code>timedelta</code>, a list of Assets, or <code>None</code>.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>all valid</span></div><pre>schedule=<span class="s">"0 2 * * *"</span>            <span class="c"># cron, UTC unless the DAG sets a timezone</span>
+schedule=<span class="s">"@daily"</span>               <span class="c"># preset: @hourly @daily @weekly @monthly</span>
+schedule=timedelta(hours=6)     <span class="c"># every 6h from start_date</span>
+schedule=[silver_orders]        <span class="c"># run when this Asset is updated (block 22)</span>
+schedule=<span class="k">None</span>                   <span class="c"># manual or triggered only</span></pre></div>
+  <p class="got"><b>Gotcha.</b> It was <code>schedule_interval=</code> in Airflow 2. That keyword no longer exists; every 2.x tutorial you copy needs this one rename.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">03</span><h3>start_date + catchup</h3><span class="pkg">parameters</span></div>
+  <p><code>start_date</code> is the first data interval. <code>catchup=True</code> (the default!) creates a run for every interval between it and now the moment the DAG is unpaused.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 06 does this on purpose</span></div><pre>start_date=datetime(2026, 1, 1), schedule=<span class="s">"@daily"</span>, catchup=<span class="k">True</span>    <span class="c"># unpaused on Sep 2 → 244 runs, now</span>
+start_date=datetime(2026, 1, 1), schedule=<span class="s">"@daily"</span>, catchup=<span class="k">False</span>   <span class="c"># only the latest interval runs</span></pre></div>
+  <p class="got"><b>Gotcha.</b> Use a fixed date, never <code>datetime.now()</code>, in production — a moving start_date confuses the scheduler. Lab 06 uses <code>now() - 7 days</code> only so the demo always shows exactly seven catch-up runs.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">04</span><h3>default_args</h3><span class="pkg">parameter</span></div>
+  <p>A dict applied to every task in the DAG. This is where retries, owner and callbacks live so no task forgets them.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 04, 08</span></div><pre>default_args={
+    <span class="s">"owner"</span>: <span class="s">"data-eng"</span>,
+    <span class="s">"retries"</span>: 2,
+    <span class="s">"retry_delay"</span>: timedelta(minutes=2),
+    <span class="s">"retry_exponential_backoff"</span>: <span class="k">True</span>,
+    <span class="s">"execution_timeout"</span>: timedelta(hours=1),
+    <span class="s">"on_failure_callback"</span>: page_on_call,
+}</pre></div>
+  <p class="got"><b>Gotcha.</b> A task-level argument overrides the default silently. If one task has <code>retries=0</code> in its constructor, the DAG default of 2 does not apply to it.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">05</span><h3>max_active_runs · max_active_tasks · tags</h3><span class="pkg">parameters</span></div>
+  <p>Concurrency at the DAG level, and the labels the UI filters on.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 04</span></div><pre>max_active_runs=1        <span class="c"># two nightly runs must never overlap — they'd write the same partitions</span>
+max_active_tasks=4       <span class="c"># at most 4 tasks of this DAG running at once, across all its runs</span>
+tags=[<span class="s">"iceberg"</span>, <span class="s">"nightly"</span>, <span class="s">"tier-1"</span>]</pre></div>
+  <p class="got"><b>Gotcha.</b> <code>max_active_runs=1</code> plus <code>catchup=True</code> means a backfill runs strictly one day at a time. Usually what you want for a pipeline that overwrites partitions; not what you want for one that only reads.</p></div>
+</div></section>
+
+<!-- ================= B ================= -->
+<section id="g2"><div class="wrap">
+  <div class="kick">B · Do</div>
+  <h2>Tasks and how they connect</h2>
+
+  <div class="fn"><div class="fn-h"><span class="num">06</span><h3>@task</h3><span class="pkg">airflow.sdk</span></div>
+  <p>TaskFlow. The function is the task; its arguments are upstream XComs; its return value is this task's XCom. How 90% of new DAGs are written.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 02</span></div><pre><span class="d">@task</span>
+<span class="k">def</span> extract() -> dict:
+    <span class="k">return</span> {<span class="s">"rows"</span>: 1_240_331, <span class="s">"path"</span>: <span class="s">"s3://…/raw/2026-09-02/"</span>}
+
+<span class="d">@task</span>(retries=3)
+<span class="k">def</span> transform(payload: dict) -> int:      <span class="c"># payload IS extract()'s XCom</span>
+    <span class="k">return</span> payload[<span class="s">"rows"</span>]
+
+transform(extract())                    <span class="c"># calling wires the dependency</span></pre></div>
+  <p class="got"><b>Gotcha.</b> The function body runs on a worker with no Spark, no big memory. Return an id or a path, never a DataFrame. Context values (<code>ds</code>, <code>data_interval_start</code>) are injected by parameter name if you declare them.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">07</span><h3>BashOperator</h3><span class="pkg">providers.standard.operators.bash</span></div>
+  <p>Run a shell command. The universal escape hatch: spark-submit, dbt, aws cli, a script.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 01, 04</span></div><pre><span class="k">from</span> airflow.providers.standard.operators.bash <span class="k">import</span> BashOperator
+
+run = BashOperator(
+    task_id=<span class="s">"silver"</span>,
+    bash_command=<span class="s">"cd /opt/airflow/work && python /opt/airflow/labs/iceberg_deep/01_anatomy.py"</span>,
+    env={<span class="s">"RUN_DATE"</span>: <span class="s">"{{ ds }}"</span>},              <span class="c"># templated; the script reads os.environ</span>
+    append_env=<span class="k">True</span>,
+)</pre></div>
+  <p class="got"><b>Gotcha.</b> A command ending in a space and pointing at a <code>.sh</code> file is treated as a Jinja template file and fails with a cryptic error. Either drop the trailing space or use <code>bash script.sh</code>.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">08</span><h3>PythonOperator · EmptyOperator</h3><span class="pkg">providers.standard.operators.python / .empty</span></div>
+  <p>The classic way to run Python (pre-TaskFlow), and a do-nothing node used as a join point or a named marker in the graph.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 01, 02</span></div><pre><span class="k">from</span> airflow.providers.standard.operators.python <span class="k">import</span> PythonOperator
+<span class="k">from</span> airflow.providers.standard.operators.empty <span class="k">import</span> EmptyOperator
+
+hello = PythonOperator(task_id=<span class="s">"hello"</span>, python_callable=my_fn, op_kwargs={<span class="s">"n"</span>: 3})
+join  = EmptyOperator(task_id=<span class="s">"join"</span>, trigger_rule=<span class="s">"none_failed_min_one_success"</span>)</pre></div>
+  <p class="got"><b>Gotcha.</b> <code>DummyOperator</code> is the Airflow 1/2 name. Gone.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">09</span><h3>>>  ·  chain()  ·  lists</h3><span class="pkg">airflow.sdk</span></div>
+  <p>Dependencies. <code>>></code> is "then"; a list on either side fans out or in.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 01, 02, 04</span></div><pre>a >> b >> c                     <span class="c"># linear</span>
+a >> [b, c] >> d                <span class="c"># fan out to b and c, both must finish before d</span>
+<span class="k">from</span> airflow.sdk <span class="k">import</span> chain
+chain(a, [b, c], [d, e], f)     <span class="c"># pairwise: b>>d, c>>e — different from the line above</span></pre></div>
+  <p class="got"><b>Gotcha.</b> <code>[b, c] >> [d, e]</code> is not allowed directly (list to list). Use <code>chain</code> or <code>cross_downstream</code>.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">10</span><h3>TaskGroup</h3><span class="pkg">airflow.sdk</span></div>
+  <p>A collapsible box in the graph with its own prefix on task ids. Replaces SubDAGs, which are removed in 3.x.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 04</span></div><pre><span class="k">from</span> airflow.sdk <span class="k">import</span> TaskGroup
+
+<span class="k">with</span> TaskGroup(<span class="s">"silver"</span>) <span class="k">as</span> silver:
+    anatomy = spark_step(<span class="s">"01_anatomy"</span>)       <span class="c"># task_id becomes silver.01_anatomy</span>
+    commits = spark_step(<span class="s">"02_commits"</span>)
+    anatomy >> commits
+bronze >> silver >> gold                    <span class="c"># groups chain like tasks</span></pre></div>
+  <p class="got"><b>Gotcha.</b> Purely organisational — no scheduling semantics. A group does not retry as a unit.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">11</span><h3>trigger_rule</h3><span class="pkg">parameter on every task</span></div>
+  <p>When a task may run given its parents' final states. Default <code>all_success</code>: one skipped or failed parent and the child never runs.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 02, 08</span></div><pre>trigger_rule=<span class="s">"all_success"</span>                   <span class="c"># default</span>
+trigger_rule=<span class="s">"none_failed_min_one_success"</span>   <span class="c"># the join after a branch</span>
+trigger_rule=<span class="s">"all_done"</span>                      <span class="c"># cleanup: run whatever happened</span>
+trigger_rule=<span class="s">"one_failed"</span>                    <span class="c"># an alert task</span>
+trigger_rule=<span class="s">"all_failed"</span> / <span class="s">"one_success"</span> / <span class="s">"none_skipped"</span> / <span class="s">"always"</span></pre></div>
+  <p class="got"><b>Gotcha.</b> The most common "my DAG stops for no reason": a branch skipped one path, and the join downstream still has <code>all_success</code>. Skipped propagates.</p></div>
+</div></section>
+
+<!-- ================= C ================= -->
+<section id="g3"><div class="wrap">
+  <div class="kick">C · Connect</div>
+  <h2>Values, secrets and config</h2>
+
+  <div class="fn"><div class="fn-h"><span class="num">12</span><h3>XCom</h3><span class="pkg">implicit with @task; explicit with ti.xcom_pull</span></div>
+  <p>Small values between tasks, stored in the metadata DB. Return values from <code>@task</code> are XComs automatically.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 02</span></div><pre><span class="c"># TaskFlow: just pass the return value</span>
+n = count_rows(); load(n)
+
+<span class="c"># classic operators: pull by task_id (Jinja or Python)</span>
+bash_command=<span class="s">"echo rows={{ ti.xcom_pull(task_ids='count_rows') }}"</span>
+<span class="k">def</span> fn(ti, **_): n = ti.xcom_pull(task_ids=<span class="s">"count_rows"</span>)</pre></div>
+  <p class="got"><b>Gotcha.</b> Default size limit is tiny (tens of KB). XCom is for an id, a count, a path, a snapshot_id — the <i>address</i> of data, not data.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">13</span><h3>Variable</h3><span class="pkg">airflow.sdk</span></div>
+  <p>Key/value config in the metadata DB, editable in the UI. Environment names, bucket names, feature flags.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>two ways</span></div><pre><span class="k">from</span> airflow.sdk <span class="k">import</span> Variable
+bucket = Variable.get(<span class="s">"lab_bucket"</span>)                    <span class="c"># inside a task — fine</span>
+bash_command=<span class="s">"aws s3 ls s3://{{ var.value.lab_bucket }}/"</span>   <span class="c"># Jinja — resolved at run time</span></pre></div>
+  <p class="got"><b>Gotcha.</b> <code>Variable.get()</code> at the top level of a DAG file runs on every parse (every ~30 s, for every DAG) and hammers the DB. Use it inside tasks or via Jinja. On MWAA, Variables can also come from Secrets Manager.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">14</span><h3>Connection · aws_conn_id</h3><span class="pkg">UI → Admin → Connections</span></div>
+  <p>Credentials and endpoints by id. Every AWS operator takes <code>aws_conn_id</code>, default <code>"aws_default"</code>.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 04 (emr mode)</span></div><pre>EmrServerlessStartJobOperator(..., aws_conn_id=<span class="s">"aws_default"</span>)   <span class="c"># default; can be omitted</span>
+
+<span class="c"># local lab: an env var is the quickest way to define one</span>
+AIRFLOW_CONN_AWS_DEFAULT=<span class="s">'{"conn_type":"aws","extra":{"region_name":"us-east-1"}}'</span></pre></div>
+  <p class="got"><b>Gotcha.</b> On MWAA leave <code>aws_default</code> with no keys at all — the environment's execution role is used automatically. Keys in a Connection is the wrong pattern in AWS.</p></div>
+</div></section>
+
+<!-- ================= D ================= -->
+<section id="g4"><div class="wrap">
+  <div class="kick">D · Wait</div>
+  <h2>Sensors</h2>
+  <p class="lede">A sensor is a task that polls. The three parameters that matter are the same on every one: <code>poke_interval</code>, <code>timeout</code>, and <i>how</i> it waits.</p>
+
+  <div class="fn"><div class="fn-h"><span class="num">15</span><h3>S3KeySensor</h3><span class="pkg">providers.amazon.aws.sensors.s3</span></div>
+  <p>Wait for an object (or a wildcard) to exist. The start of almost every AWS data pipeline.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 03 (emr mode)</span></div><pre><span class="k">from</span> airflow.providers.amazon.aws.sensors.s3 <span class="k">import</span> S3KeySensor
+
+wait = S3KeySensor(
+    task_id=<span class="s">"wait_raw"</span>,
+    bucket_name=<span class="s">"lab-bucket"</span>,
+    bucket_key=<span class="s">"raw/{{ ds }}/_SUCCESS"</span>,          <span class="c"># wait for the marker, not the data files</span>
+    wildcard_match=<span class="k">False</span>,
+    poke_interval=60, timeout=6 * 3600,
+    <span class="hl">deferrable=True</span>,
+)</pre></div>
+  <p class="got"><b>Gotcha.</b> Waiting for <code>*.parquet</code> succeeds on the first file while the writer is still producing the rest. Wait for a <code>_SUCCESS</code> marker or a manifest.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">16</span><h3>FileSensor · ExternalTaskSensor</h3><span class="pkg">providers.standard.sensors.filesystem / .external_task</span></div>
+  <p>Local-filesystem wait (the lab's stand-in for S3), and "wait for that task in that other DAG, same logical date".</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 03</span></div><pre><span class="k">from</span> airflow.providers.standard.sensors.filesystem <span class="k">import</span> FileSensor
+<span class="k">from</span> airflow.providers.standard.sensors.external_task <span class="k">import</span> ExternalTaskSensor
+
+FileSensor(task_id=<span class="s">"wait"</span>, filepath=<span class="s">"/opt/airflow/landing/{{ ds }}/orders.csv"</span>, poke_interval=10, timeout=600, mode=<span class="s">"reschedule"</span>)
+ExternalTaskSensor(task_id=<span class="s">"wait_silver"</span>, external_dag_id=<span class="s">"silver_pipeline"</span>, external_task_id=<span class="s">"done"</span>, mode=<span class="s">"reschedule"</span>)</pre></div>
+  <p class="got"><b>Gotcha.</b> <code>ExternalTaskSensor</code> matches on the <i>same logical date</i> by default. If the two DAGs have different schedules it waits forever unless you give it <code>execution_delta</code> or <code>execution_date_fn</code>. Assets (block 22) are usually the better tool now.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">17</span><h3>mode="reschedule" vs deferrable=True</h3><span class="pkg">parameters on every sensor and many operators</span></div>
+  <p>How the wait is paid for. <code>poke</code> holds a worker slot the whole time. <code>reschedule</code> releases it between checks. <code>deferrable</code> moves the wait to the triggerer entirely.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>rule of thumb</span></div><pre>mode=<span class="s">"poke"</span>          <span class="c"># &lt; 1 minute expected wait, fine</span>
+mode=<span class="s">"reschedule"</span>    <span class="c"># minutes to hours: task goes to up_for_reschedule between pokes</span>
+deferrable=<span class="k">True</span>      <span class="c"># hours: async trigger in the triggerer; also on EMR/Glue/Athena operators</span></pre></div>
+  <p class="got"><b>Gotcha.</b> Twenty sensors in <code>poke</code> mode on a 16-slot worker pool = the whole environment appears hung. This is the #1 MWAA "my tasks are queued" ticket.</p></div>
+</div></section>
+
+<!-- ================= E ================= -->
+<section id="g5"><div class="wrap">
+  <div class="kick">E · Call AWS</div>
+  <h2>The amazon provider — the operators for this course</h2>
+  <p class="lede">Every one of these follows the same shape: parameters that mirror the AWS API call, <code>wait_for_completion</code>, and <code>deferrable</code>. If you know the boto3 call, you know the operator.</p>
+
+  <div class="fn"><div class="fn-h"><span class="num">18</span><h3>EmrServerlessStartJobOperator</h3><span class="pkg">providers.amazon.aws.operators.emr</span></div>
+  <p>Submit a Spark job to an EMR Serverless application and wait for it. The one that runs your Iceberg scripts.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 04 (emr mode) — full form in atlas 8 §05</span></div><pre><span class="k">from</span> airflow.providers.amazon.aws.operators.emr <span class="k">import</span> EmrServerlessStartJobOperator
+
+EmrServerlessStartJobOperator(
+    task_id=<span class="s">"silver_02"</span>,
+    application_id=<span class="s">"{{ var.value.emr_app_id }}"</span>,
+    execution_role_arn=<span class="s">"{{ var.value.emr_role }}"</span>,
+    job_driver={<span class="s">"sparkSubmit"</span>: {<span class="s">"entryPoint"</span>: <span class="s">"s3://b/labs/02_commits_time_travel.py"</span>,
+                               <span class="s">"sparkSubmitParameters"</span>: <span class="s">"--conf spark.executor.memory=4g"</span>}},
+    configuration_overrides={<span class="s">"monitoringConfiguration"</span>: {<span class="s">"s3MonitoringConfiguration"</span>: {<span class="s">"logUri"</span>: <span class="s">"s3://b/logs/"</span>}}},
+    wait_for_completion=<span class="k">True</span>, deferrable=<span class="k">True</span>,
+)</pre></div>
+  <p class="got"><b>Gotcha.</b> The job's own exit code decides success. A PySpark script that catches every exception and exits 0 will show green in Airflow while having done nothing. Let it raise.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">19</span><h3>EmrAddStepsOperator + EmrStepSensor</h3><span class="pkg">providers.amazon.aws.operators.emr / .sensors.emr</span></div>
+  <p>The EMR-on-EC2 equivalent: add a step to a running cluster, then wait for that step. Two tasks because the add call returns immediately.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>EMR on EC2</span></div><pre><span class="k">from</span> airflow.providers.amazon.aws.operators.emr <span class="k">import</span> EmrAddStepsOperator
+<span class="k">from</span> airflow.providers.amazon.aws.sensors.emr <span class="k">import</span> EmrStepSensor
+
+add = EmrAddStepsOperator(
+    task_id=<span class="s">"add_step"</span>, job_flow_id=<span class="s">"{{ var.value.emr_cluster_id }}"</span>,
+    steps=[{<span class="s">"Name"</span>: <span class="s">"silver"</span>, <span class="s">"ActionOnFailure"</span>: <span class="s">"CONTINUE"</span>,
+            <span class="s">"HadoopJarStep"</span>: {<span class="s">"Jar"</span>: <span class="s">"command-runner.jar"</span>,
+                              <span class="s">"Args"</span>: [<span class="s">"spark-submit"</span>, <span class="s">"--deploy-mode"</span>, <span class="s">"cluster"</span>, <span class="s">"s3://b/labs/01_anatomy.py"</span>]}}])
+wait = EmrStepSensor(task_id=<span class="s">"wait_step"</span>, job_flow_id=<span class="s">"{{ var.value.emr_cluster_id }}"</span>,
+                     step_id=<span class="s">"{{ ti.xcom_pull(task_ids='add_step')[0] }}"</span>, deferrable=<span class="k">True</span>)
+add >> wait</pre></div>
+  <p class="got"><b>Gotcha.</b> Steps on one cluster run serially by default. Ten Airflow tasks adding steps to the same cluster in parallel still execute one at a time on EMR — the parallelism you see in the grid is fake. Set <code>StepConcurrencyLevel</code> on the cluster or use EMR Serverless.</p></div>
+
+  <div name="glue" class="fn"><div class="fn-h"><span class="num">20</span><h3>GlueJobOperator</h3><span class="pkg">providers.amazon.aws.operators.glue</span></div>
+  <p>Start a Glue job run and wait. Same shape as EMR Serverless; the script location and DPU settings live on the Glue job, not the operator.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>Glue 5.0</span></div><pre><span class="k">from</span> airflow.providers.amazon.aws.operators.glue <span class="k">import</span> GlueJobOperator
+
+GlueJobOperator(task_id=<span class="s">"glue_silver"</span>, job_name=<span class="s">"silver_iceberg"</span>,
+                script_args={<span class="s">"--run_date"</span>: <span class="s">"{{ ds }}"</span>},
+                wait_for_completion=<span class="k">True</span>, deferrable=<span class="k">True</span>)</pre></div>
+  <p class="got"><b>Gotcha.</b> If the Glue job's own timeout (default 480 min on 5.0) is longer than the task's <code>execution_timeout</code>, Airflow gives up and marks failed while Glue keeps running and billing. Align the two.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">21</span><h3>AthenaOperator · RedshiftDataOperator</h3><span class="pkg">providers.amazon.aws.operators.athena / .redshift_data</span></div>
+  <p>Run SQL and wait. Athena for validation queries over Iceberg; Redshift Data API for the serving layer (no JDBC connection to manage).</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>the verify-and-refresh tail of lab 04 in production</span></div><pre><span class="k">from</span> airflow.providers.amazon.aws.operators.athena <span class="k">import</span> AthenaOperator
+<span class="k">from</span> airflow.providers.amazon.aws.operators.redshift_data <span class="k">import</span> RedshiftDataOperator
+
+verify = AthenaOperator(task_id=<span class="s">"verify_snapshot"</span>, database=<span class="s">"lake"</span>, workgroup=<span class="s">"primary"</span>,
+    query=<span class="s">"SELECT count(*) FROM \"silver_ledger$snapshots\" WHERE committed_at >= timestamp '{{ ds }} 00:00:00'"</span>,
+    output_location=<span class="s">"s3://b/athena-results/"</span>)
+refresh = RedshiftDataOperator(task_id=<span class="s">"refresh_mv"</span>, workgroup_name=<span class="s">"serving"</span>, database=<span class="s">"dev"</span>,
+    sql=<span class="s">"REFRESH MATERIALIZED VIEW mv_daily_summary"</span>, wait_for_completion=<span class="k">True</span>)</pre></div>
+  <p class="got"><b>Gotcha.</b> <code>AthenaOperator</code> succeeds if the <i>query</i> succeeds — a count of zero is still success. To fail on a bad result, follow it with a <code>@task</code> that reads the result via <code>AthenaHook.get_query_results</code> and raises.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">22</span><h3>LambdaInvokeFunctionOperator · SnsPublishOperator · S3 operators</h3><span class="pkg">providers.amazon.aws.operators.lambda_function / .sns / .s3</span></div>
+  <p>The glue tasks: call a function, send a notification, move or write a small object.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span></div><pre><span class="k">from</span> airflow.providers.amazon.aws.operators.lambda_function <span class="k">import</span> LambdaInvokeFunctionOperator
+<span class="k">from</span> airflow.providers.amazon.aws.operators.sns <span class="k">import</span> SnsPublishOperator
+<span class="k">from</span> airflow.providers.amazon.aws.operators.s3 <span class="k">import</span> S3CopyObjectOperator, S3CreateObjectOperator
+
+LambdaInvokeFunctionOperator(task_id=<span class="s">"enrich"</span>, function_name=<span class="s">"fx-rates"</span>, payload=<span class="s">'{"date": "{{ ds }}"}'</span>)
+SnsPublishOperator(task_id=<span class="s">"notify"</span>, target_arn=<span class="s">"arn:aws:sns:…:pipeline-alerts"</span>, message=<span class="s">"nightly {{ ds }} done"</span>)
+S3CreateObjectOperator(task_id=<span class="s">"marker"</span>, s3_bucket=<span class="s">"b"</span>, s3_key=<span class="s">"gold/{{ ds }}/_SUCCESS"</span>, data=<span class="s">""</span>)</pre></div>
+  <p class="got"><b>Gotcha.</b> <code>S3CopyObjectOperator</code> is a single-object API call — it is not a way to move a partition. Data movement is a Spark job or an S3 Batch Operation; Airflow writes markers.</p></div>
+</div></section>
+
+<!-- ================= F ================= -->
+<section id="g6"><div class="wrap">
+  <div class="kick">F · Steer</div>
+  <h2>Control flow</h2>
+
+  <div class="fn"><div class="fn-h"><span class="num">23</span><h3>@task.branch</h3><span class="pkg">airflow.sdk</span></div>
+  <p>Return the <code>task_id</code> (or list) to follow. Every other direct child is skipped.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 02</span></div><pre><span class="d">@task.branch</span>
+<span class="k">def</span> route(rows: int) -> str:
+    <span class="k">return</span> <span class="s">"full_rebuild"</span> <span class="k">if</span> rows > 10_000_000 <span class="k">else</span> <span class="s">"incremental_merge"</span>
+
+route(count()) >> [full_rebuild, incremental_merge] >> join   <span class="c"># join needs none_failed_min_one_success</span></pre></div>
+  <p class="got"><b>Gotcha.</b> Inside a TaskGroup the id to return is the full one: <code>"silver.full_rebuild"</code>.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">24</span><h3>ShortCircuitOperator</h3><span class="pkg">providers.standard.operators.python</span></div>
+  <p>If the callable returns falsy, everything downstream is skipped — cleanly, as SKIPPED, not FAILED. "Nothing landed today."</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 08</span></div><pre><span class="k">from</span> airflow.providers.standard.operators.python <span class="k">import</span> ShortCircuitOperator
+
+gate = ShortCircuitOperator(task_id=<span class="s">"anything_to_do"</span>, python_callable=<span class="k">lambda</span>: files_landed() > 0,
+                            ignore_downstream_trigger_rules=<span class="k">False</span>)   <span class="c"># respect all_done on the cleanup task</span></pre></div>
+  <p class="got"><b>Gotcha.</b> By default it skips <i>everything</i> downstream, ignoring trigger rules. Set <code>ignore_downstream_trigger_rules=False</code> if a cleanup task with <code>all_done</code> must still run.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">25</span><h3>Dynamic task mapping — expand() / partial()</h3><span class="pkg">on any @task or operator</span></div>
+  <p>One definition, N instances, decided at run time. One per partition, file, table, region.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 05</span></div><pre>days = list_partitions()                                        <span class="c"># returns ["2026-08-28", ...]</span>
+done = process.partial(target=<span class="s">"s3://b/silver"</span>).expand(day=days)   <span class="c"># N mapped instances</span>
+summarise(done)                                                 <span class="c"># receives the list of all results</span>
+
+<span class="c"># classic operators map too:</span>
+EmrServerlessStartJobOperator.partial(task_id=<span class="s">"per_region"</span>, application_id=app, execution_role_arn=role)
+                             .expand(job_driver=[driver(r) <span class="k">for</span> r <span class="k">in</span> regions])</pre></div>
+  <p class="got"><b>Gotcha.</b> Bound the fan-out: <code>max_active_tis_per_dag=</code> on the task, and never map over rows. A 10,000-way map is a scheduler problem, not a Spark problem.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">26</span><h3>TriggerDagRunOperator</h3><span class="pkg">providers.standard.operators.trigger_dagrun</span></div>
+  <p>Start another DAG by id, optionally passing <code>conf</code> and waiting for it.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 07</span></div><pre><span class="k">from</span> airflow.providers.standard.operators.trigger_dagrun <span class="k">import</span> TriggerDagRunOperator
+
+TriggerDagRunOperator(task_id=<span class="s">"kick_gold"</span>, trigger_dag_id=<span class="s">"gold_pipeline"</span>,
+                      conf={<span class="s">"snapshot_id"</span>: <span class="s">"{{ ti.xcom_pull(task_ids='silver') }}"</span>},
+                      wait_for_completion=<span class="k">False</span>)</pre></div>
+  <p class="got"><b>Gotcha.</b> Explicit and imperative — the producer must know the consumer's name. Assets (next) invert that: the consumer subscribes. Prefer Assets across team boundaries.</p></div>
+</div></section>
+
+<!-- ================= G ================= -->
+<section id="g7"><div class="wrap">
+  <div class="kick">G · Time</div>
+  <h2>Templates, Assets, backfill</h2>
+
+  <div class="fn"><div class="fn-h"><span class="num">27</span><h3>Jinja templates — the eight you use</h3><span class="pkg">any templated field: bash_command, sql, bucket_key, …</span></div>
+  <div class="code"><div class="hd"><span class="lang">jinja</span><span>lab 01</span></div><pre>{{ ds }}                    <span class="c"># 2026-09-02        logical date, the workhorse</span>
+{{ ds_nodash }}             <span class="c"># 20260902</span>
+{{ data_interval_start }}   <span class="c"># 2026-09-02T00:00:00+00:00 — use in WHERE clauses</span>
+{{ data_interval_end }}     <span class="c"># 2026-09-03T00:00:00+00:00 — exclusive upper bound</span>
+{{ logical_date }}          <span class="c"># datetime object; .strftime works</span>
+{{ run_id }}                <span class="c"># scheduled__2026-09-02T00:00:00+00:00 — put it in job names</span>
+{{ macros.ds_add(ds, -1) }} <span class="c"># yesterday</span>
+{{ var.value.bucket }}  {{ conn.aws_default.extra_dejson.region_name }}  {{ params.mode }}</pre></div>
+  <p class="got"><b>Gotcha.</b> Only fields listed in an operator's <code>template_fields</code> are rendered. A <code>{{ ds }}</code> inside a dict that is not templated stays literal — and your S3 key ends up containing the characters <code>{{ ds }}</code>. Check "Rendered Template" on the task instance.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">28</span><h3>Asset — outlets and schedule=[...]</h3><span class="pkg">airflow.sdk</span></div>
+  <p>Data-aware scheduling. A producer declares what it updated; a consumer runs when that happens. Called Dataset in Airflow 2.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 07</span></div><pre><span class="k">from</span> airflow.sdk <span class="k">import</span> Asset
+silver = Asset(name=<span class="s">"silver_orders"</span>, uri=<span class="s">"s3://b/silver/orders"</span>)
+
+<span class="d">@task</span>(outlets=[silver])                <span class="c"># producer, in DAG A</span>
+<span class="k">def</span> write_silver(): ...
+
+<span class="d">@dag</span>(schedule=[silver], ...)          <span class="c"># consumer, DAG B: no cron</span>
+<span class="k">def</span> gold(): ...</pre></div>
+  <p class="got"><b>Gotcha.</b> The Asset updates when the task <i>succeeds</i>, whether or not it actually wrote anything. It is a declaration, not a detection. Airflow does not watch S3 for you — that is what the sensor is for.</p></div>
+
+  <div class="fn"><div class="fn-h"><span class="num">29</span><h3>Backfill</h3><span class="pkg">CLI / UI</span></div>
+  <p>Create runs for a past date range. Only safe when tasks are idempotent by interval — which the templates above make natural.</p>
+  <div class="code"><div class="hd"><span class="lang">bash</span><span>lab 06</span></div><pre>airflow backfill create --dag-id 06_backfill_and_catchup --from-date 2026-08-20 --to-date 2026-08-25
+airflow backfill list
+<span class="c"># Airflow 2 was: airflow dags backfill -s ... -e ...   (gone)</span></pre></div>
+  <p class="got"><b>Gotcha.</b> A backfill of a DAG whose tasks append rather than overwrite doubles the data. The Iceberg answer is <code>overwritePartitions()</code> / <code>MERGE</code> keyed on the interval — the same discipline the iceberg_deep labs taught.</p></div>
+</div></section>
+
+<!-- ================= H ================= -->
+<section id="g8"><div class="wrap">
+  <div class="kick">H · Survive</div>
+  <h2>Reliability</h2>
+
+  <div class="fn"><div class="fn-h"><span class="num">30</span><h3>retries · execution_timeout · callbacks · pools</h3><span class="pkg">parameters</span></div>
+  <p>The four knobs that turn a demo into something an on-call engineer can trust.</p>
+  <div class="code"><div class="hd"><span class="lang">python</span><span>lab 04, 08</span></div><pre><span class="d">@task</span>(
+    retries=3, retry_delay=timedelta(minutes=1), retry_exponential_backoff=<span class="k">True</span>, max_retry_delay=timedelta(minutes=15),
+    execution_timeout=timedelta(hours=2),       <span class="c"># killed and marked failed after this; never hangs forever</span>
+    on_failure_callback=page_on_call,           <span class="c"># fn(context) — Slack, SNS, PagerDuty</span>
+    on_retry_callback=log_retry,
+    pool=<span class="s">"emr_serverless"</span>,                      <span class="c"># Admin → Pools: slot count = max concurrent jobs</span>
+    priority_weight=10,                         <span class="c">#  higher runs first when the pool is contended</span>
+)
+<span class="k">def</span> silver(): ...</pre></div>
+  <p class="got"><b>Gotcha.</b> <code>retries</code> re-runs the task from scratch. A Spark job that half-wrote a Parquet directory before dying leaves garbage a retry will read. With Iceberg it does not matter — the failed commit never became a snapshot. That is the cleanest argument for Iceberg under Airflow.</p></div>
+</div></section>
+
+<!-- ================= CLI ================= -->
+<section id="g9" style="border-bottom:none"><div class="wrap">
+  <div class="kick">Appendix</div>
+  <h2>The CLI you will actually type</h2>
+  <div class="code"><div class="hd"><span class="lang">bash</span><span>inside the container: docker compose run --rm airflow-cli airflow …</span></div><pre>airflow dags list                                  <span class="c"># is my DAG even loaded?</span>
+airflow dags list-import-errors                    <span class="c"># why not</span>
+airflow dags test 04_medallion_iceberg_pipeline    <span class="c"># run one full DagRun in-process, right now, logs to stdout</span>
+airflow tasks test 01_hello_dag print_dates 2026-09-02   <span class="c"># run ONE task, no DB state written</span>
+airflow dags trigger 02_taskflow_xcom_branch
+airflow dags unpause 06_backfill_and_catchup       <span class="c"># and watch catchup create runs</span>
+airflow tasks states-for-dag-run 04_medallion_iceberg_pipeline &lt;run_id&gt;
+airflow pools list
+airflow variables set lab_bucket my-bucket
+airflow connections add aws_default --conn-type aws --conn-extra '{"region_name":"us-east-1"}'</pre></div>
+  <div class="note ok"><span class="ic">MWAA</span><div>The same CLI exists on MWAA through <code>aws mwaa create-cli-token</code> + an HTTPS POST — no shell access. In practice you deploy by <code>aws s3 cp dags/ s3://&lt;mwaa-bucket&gt;/dags/ --recursive</code> and you debug in the UI. Practise the CLI locally; on MWAA you mostly will not have it.</div></div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>Airflow: the 30 building blocks</b> — atlas 9 of 9. Surender Sara · NorthBay Solutions.<br>
+  Companion to atlas 8 and to <code>3_labs/airflow_local/</code>. Imports verified against Airflow 3.3 (standard and amazon providers).
+</div></footer>
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('nav a')),s=l.map(function(a){return document.querySelector(a.getAttribute('href'))});
+function spy(){var p=window.scrollY+140,i=0;for(var k=0;k<s.length;k++){if(s[k]&&s[k].offsetTop<=p)i=k}l.forEach(function(a,k){a.classList.toggle('on',k===i)})}
+window.addEventListener('scroll',spy,{passive:true});spy();})();
+</script>

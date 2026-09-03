@@ -1,0 +1,596 @@
+<meta charset="utf-8">
+<title>Airflow on the EMR Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F8;--surface:#FFFFFF;--surface2:#E9EDF2;--sunken:#DFE5EC;
+  --ink:#111820;--muted:#5A6875;--line:#CFD8E1;--line2:#B3C0CD;
+  --accent:#0E7490;--accent-ink:#0A5A70;--accent-soft:rgba(14,116,144,.11);
+  --ok:#2E7D4F;--ok-soft:rgba(46,125,79,.12);
+  --warn:#B45309;--warn-soft:rgba(180,83,9,.12);
+  --bad:#B3261E;--bad-soft:rgba(179,38,30,.10);
+  --code-bg:#0E1720;--code-ink:#D6E2EA;--code-dim:#6D8494;
+  --hero-bg:#0E1720;--hero-ink:#E9F1F6;--hero-mute:#8FA5B3;--hero-line:#22323F;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}}
+:root[data-theme="dark"]{
+  --bg:#0A1119;--surface:#111A24;--surface2:#182430;--sunken:#0D151D;
+  --ink:#E3EDF4;--muted:#8CA0AF;--line:#22303D;--line2:#2E4050;
+  --accent:#38BDD8;--accent-ink:#5FD3E8;--accent-soft:rgba(56,189,216,.13);
+  --ok:#4FB07A;--ok-soft:rgba(79,176,122,.14);
+  --warn:#E0A44A;--warn-soft:rgba(224,164,74,.14);
+  --bad:#E8736D;--bad-soft:rgba(232,115,109,.13);
+  --code-bg:#070E15;--code-ink:#CBDCE6;--code-dim:#63808F;
+  --hero-bg:#070E15;--hero-ink:#E3EDF4;--hero-mute:#8CA0AF;--hero-line:#1B2A36;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);margin:0;font:16px/1.62 'Public Sans',system-ui,sans-serif}
+h1,h2,h3{font-family:'Chivo',system-ui,sans-serif;margin:0;text-wrap:balance}
+code,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.wrap{max-width:1100px;margin:0 auto;padding:0 28px}
+.hero{background:var(--hero-bg);color:var(--hero-ink);padding:70px 0 52px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{font-size:clamp(36px,6vw,62px);font-weight:800;letter-spacing:-.025em;line-height:1.02}
+.hero .thesis{font-size:clamp(18px,2.4vw,23px);font-weight:600;margin:20px 0 6px;font-family:'Chivo',sans-serif}
+.hero .thesis em{font-style:normal;color:var(--accent)}
+.hero p.sub{color:var(--hero-mute);max-width:66ch;margin:12px 0 0}
+.vbadge{display:inline-flex;align-items:center;gap:7px;background:rgba(46,125,79,.18);border:1px solid var(--ok);
+  color:#8FE0B0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;
+  padding:6px 12px;border-radius:3px;margin-top:26px}
+.stats{display:flex;flex-wrap:wrap;margin-top:30px;border-top:1px solid var(--hero-line);border-left:1px solid var(--hero-line)}
+.stats div{flex:1 1 158px;padding:14px 16px;border-right:1px solid var(--hero-line);border-bottom:1px solid var(--hero-line)}
+.stats b{display:block;font-family:'Chivo',sans-serif;font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--hero-mute);margin-top:5px}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 93%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;overflow-x:auto}
+nav a{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;padding:12px 10px;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--ink)}nav a.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
+section{padding:66px 0 34px;border-bottom:1px solid var(--line)}
+.kick{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:10px}
+section h2{font-size:clamp(25px,3.5vw,36px);font-weight:700;letter-spacing:-.015em}
+.lede{max-width:70ch;color:var(--muted);font-size:17px;margin:14px 0 0}
+.lede b,p.body b{color:var(--ink);font-weight:600}
+p.body{max-width:70ch;color:var(--muted);margin:14px 0 0}
+.lede code,p.body code,li code{font-size:.88em;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+figure{margin:30px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px 22px 12px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:640px;margin:0 auto}
+figcaption{font-size:14px;color:var(--muted);max-width:84ch;margin:14px auto 4px;padding-top:12px;border-top:1px solid var(--line)}
+figcaption b{color:var(--ink)}
+figcaption code{font-size:.9em;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink);font-family:'JetBrains Mono',monospace}
+.grid{display:grid;gap:13px;margin-top:20px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(228px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:17px}
+.card .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:8px}
+.card h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;color:var(--muted);margin:6px 0 0}
+.card ul{margin:8px 0 0;padding-left:17px;font-size:14px;color:var(--muted)}
+.card li{margin:4px 0}
+.card code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--surface2);padding:1px 4px;border-radius:3px;color:var(--ink)}
+.card.ok{border-color:var(--ok)}.card.ok .tag{color:var(--ok)}
+.card.warn{border-color:var(--warn)}.card.warn .tag{color:var(--warn)}
+.card.bad{border-color:var(--bad)}.card.bad .tag{color:var(--bad)}
+.code{background:var(--code-bg);border-radius:6px;margin:20px 0 0;overflow:hidden}
+.code .hd{display:flex;justify-content:space-between;padding:8px 15px;border-bottom:1px solid rgba(255,255,255,.08)}
+.code .hd span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--code-dim)}
+.code .hd span.lang{color:var(--accent)}
+.code pre{margin:0;padding:15px 17px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12.6px;line-height:1.68;color:var(--code-ink)}
+.code .c{color:var(--code-dim)}.code .k{color:#7FD7E3}.code .s{color:#E8C07D}.code .hl{color:#F0B860;font-weight:600}
+.note{display:flex;gap:12px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 5px 5px 0;padding:14px 16px;margin-top:20px;font-size:14.5px;max-width:90ch}
+.note b{color:var(--accent-ink)}
+.note.warn{background:var(--warn-soft);border-left-color:var(--warn)}.note.warn b{color:var(--warn)}
+.note.bad{background:var(--bad-soft);border-left-color:var(--bad)}.note.bad b{color:var(--bad)}
+.note.ok{background:var(--ok-soft);border-left-color:var(--ok)}.note.ok b{color:var(--ok)}
+.note .ic{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11.5px;flex-shrink:0;letter-spacing:.06em}
+table{width:100%;border-collapse:collapse;margin-top:20px;font-size:14px;background:var(--surface);border:1px solid var(--line)}
+th{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2);background:var(--surface2);vertical-align:bottom}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--muted)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)}
+td b{color:var(--ink)}
+.tw{overflow-x:auto}
+.mono1 td:first-child{font-family:'JetBrains Mono',monospace;font-size:12.2px;white-space:nowrap}
+.v{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.07em;padding:2px 6px;border-radius:2px;vertical-align:middle}
+.v-ok{background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
+.v-fix{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.v-no{background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad)}
+footer{padding:44px 0 64px;color:var(--muted);font-size:13.5px}
+footer b{color:var(--ink)}
+svg text{font-family:'Public Sans',system-ui,sans-serif}
+.t1{font-size:13.5px;font-weight:700;fill:var(--ink)}
+.t2{font-size:12.5px;font-weight:600;fill:var(--ink)}
+.t3{font-size:12px;fill:var(--muted)}
+.t4{font-size:11px;fill:var(--muted)}
+.m1{font-family:'JetBrains Mono',monospace;font-size:11.5px;fill:var(--ink)}
+.m2{font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--muted)}
+.m3{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+.eb{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--accent-ink)}
+.eb-o{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--warn)}
+.eb-b{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--bad)}
+.eb-g{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.1em;fill:var(--ok)}
+.la{fill:var(--accent-ink);font-size:11.5px;font-weight:600}
+.lb{fill:var(--bad);font-size:11.5px;font-weight:600}
+.lg{fill:var(--ok);font-size:11.5px;font-weight:600}
+.bx{fill:var(--surface);stroke:var(--line2);stroke-width:1.1}
+.bx2{fill:var(--surface2);stroke:var(--line2);stroke-width:1}
+.bxs{fill:var(--sunken);stroke:var(--line2);stroke-width:1}
+.bxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.3}
+.bxo{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.3}
+.bxb{fill:var(--bad-soft);stroke:var(--bad);stroke-width:1.3}
+.bxg{fill:var(--ok-soft);stroke:var(--ok);stroke-width:1.3}
+.bxd{fill:none;stroke:var(--line2);stroke-width:1.1;stroke-dasharray:5 4}
+.ln{stroke:var(--line2);stroke-width:1.5;fill:none}
+.lna{stroke:var(--accent);stroke-width:1.9;fill:none}
+.lnb{stroke:var(--bad);stroke-width:1.7;fill:none}
+.lng{stroke:var(--ok);stroke-width:1.7;fill:none}
+.lno{stroke:var(--warn);stroke-width:1.7;fill:none}
+.dash{stroke-dasharray:5 4}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media print{nav{display:none}section{break-inside:avoid-page}figure{break-inside:avoid}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line2)"/></marker>
+<marker id="aa" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--bad)"/></marker>
+<marker id="ag" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"/></marker><marker id="ao" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--warn)"/></marker>
+</defs></svg>
+
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Atlas 8 of 9 · orchestration</div>
+  <h1>Apache Airflow<br>on the EMR flow</h1>
+  <p class="thesis">Airflow decides <em>what runs, when, in what order, and what happens when it fails.</em> It never touches a row.</p>
+  <p class="sub">What an orchestrator is and is not, the five processes inside Airflow and what MWAA does with them, the life of one DAG run, how a DAG drives the EMR → Iceberg → Athena/Redshift pipeline you already built, and the honest comparison with dbt, EventBridge and Step Functions.</p>
+  <div class="vbadge">✓ AIRFLOW 3.3 — THE VERSION YOU WILL MEET, NOT THE ONE THE BLOG POSTS DESCRIBE</div>
+  <div class="stats">
+    <div><b>5</b><span>processes in a deployment</span></div>
+    <div><b>0</b><span>rows Airflow processes itself</span></div>
+    <div><b>1</b><span>DAG file runs locally and on MWAA</span></div>
+    <div><b>20</b><span>concepts that are 90% of daily use</span></div>
+    <div><b>8</b><span>lab DAGs that teach them</span></div>
+  </div>
+</div></header>
+
+<nav aria-label="Chapters"><div class="wrap">
+<a href="#c1">01 Is / is not</a><a href="#c2">02 Architecture</a><a href="#c3">03 A run's life</a><a href="#c4">04 Vocabulary</a><a href="#c5">05 Our pipeline</a><a href="#c6">06 Local vs MWAA</a><a href="#c7">07 vs dbt</a><a href="#c8">08 vs EventBridge</a><a href="#c9">09 Airflow 2 → 3</a><a href="#c10">10 The 90%</a>
+</div></nav>
+
+<!-- ============ 01 ============ -->
+<section id="c1"><div class="wrap">
+  <div class="kick">01 · The boundary</div>
+  <h2>An orchestrator, not an engine</h2>
+  <p class="lede">Every confusion about Airflow comes from expecting it to do work. It does not. <b>Airflow is a scheduler with a dependency graph and a state machine.</b> It calls other systems — EMR, Glue, Athena, Redshift, a shell — waits, records the result, and decides what to call next. The heavy lifting happens elsewhere, and if it happens inside Airflow's own worker you have made a design mistake.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 330" role="img" aria-label="Airflow sits above the compute engines and storage, issuing calls and tracking state, but the data flows only between the engines and the storage layer, never through Airflow.">
+      <rect x="20" y="24" width="960" height="92" rx="6" class="bxa"/>
+      <text x="36" y="48" class="eb">AIRFLOW — CONTROL PLANE</text>
+      <text x="36" y="72" class="t1">schedules · orders · retries · records state · alerts</text>
+      <text x="36" y="96" class="t4">holds: DAG definitions, run history, task states, small XCom values, connections. Nothing else.</text>
+
+      <line x1="160" y1="116" x2="160" y2="160" class="lna" marker-end="url(#aa)"/>
+      <line x1="400" y1="116" x2="400" y2="160" class="lna" marker-end="url(#aa)"/>
+      <line x1="640" y1="116" x2="640" y2="160" class="lna" marker-end="url(#aa)"/>
+      <line x1="860" y1="116" x2="860" y2="160" class="lna" marker-end="url(#aa)"/>
+      <text x="500" y="146" text-anchor="middle" class="m3">"run this" · "are you done?" · "what was the result?"</text>
+
+      <rect x="60" y="164" width="200" height="60" rx="5" class="bx"/>
+      <text x="76" y="188" class="t2">EMR Serverless</text><text x="76" y="208" class="t4">runs the PySpark job</text>
+      <rect x="300" y="164" width="200" height="60" rx="5" class="bx"/>
+      <text x="316" y="188" class="t2">Athena</text><text x="316" y="208" class="t4">runs a query, writes results</text>
+      <rect x="540" y="164" width="200" height="60" rx="5" class="bx"/>
+      <text x="556" y="188" class="t2">Redshift</text><text x="556" y="208" class="t4">refreshes a materialized view</text>
+      <rect x="780" y="164" width="200" height="60" rx="5" class="bx"/>
+      <text x="796" y="188" class="t2">Lambda · Glue · bash</text><text x="796" y="208" class="t4">anything with an API</text>
+
+      <line x1="160" y1="224" x2="160" y2="266" class="lnb" marker-end="url(#ab)"/>
+      <line x1="400" y1="224" x2="400" y2="266" class="lnb" marker-end="url(#ab)"/>
+      <line x1="640" y1="224" x2="640" y2="266" class="lnb" marker-end="url(#ab)"/>
+      <text x="880" y="250" text-anchor="middle" class="eb-b">DATA MOVES DOWN HERE ONLY</text>
+
+      <rect x="60" y="270" width="920" height="46" rx="5" class="bxs"/>
+      <text x="76" y="290" class="t2">S3 · Iceberg tables · Glue Data Catalog</text>
+      <text x="76" y="308" class="t4">1 TB flows between the engines and this layer. Zero bytes of it pass through Airflow.</text>
+    </svg>
+    <figcaption><b>The test for a good DAG:</b> every task should be a thin call to something else plus a wait. If a task is doing a <code>DataFrame</code> transform in Python, it is running on an Airflow worker — a small box with no parallelism — and it should have been an EMR job.</figcaption>
+  </figure>
+
+  <div class="grid g3">
+    <div class="card ok"><div class="tag">Airflow IS</div><h3>Scheduling and dependency</h3><ul><li>cron and data-driven scheduling</li><li>a DAG of tasks with explicit ordering</li><li>retries, timeouts, alerting, backfill</li><li>one UI showing every run of every pipeline</li></ul></div>
+    <div class="card bad"><div class="tag">Airflow IS NOT</div><h3>Compute or transport</h3><ul><li>not a Spark cluster — it <i>submits</i> to one</li><li>not an ETL tool — it <i>orders</i> ETL steps</li><li>not a queue — XCom carries ids, not data</li><li>not real-time — it schedules in minutes, not milliseconds</li></ul></div>
+    <div class="card"><div class="tag">Airflow REPLACES</div><h3>The thing you had before</h3><ul><li>cron jobs on a box someone forgot about</li><li>a bash script that calls five other scripts</li><li>"Raj runs it every morning"</li><li>a Step Functions state machine that grew a UI</li></ul></div>
+  </div>
+</div></section>
+
+<!-- ============ 02 ============ -->
+<section id="c2"><div class="wrap">
+  <div class="kick">02 · Architecture</div>
+  <h2>Five processes and a database</h2>
+  <p class="lede">Airflow 3 is five long-running processes around one Postgres database. Know what each one does, because when something is "stuck" the question is always <i>which process</i> is stuck — and because MWAA's entire value proposition is running these five for you.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 440" role="img" aria-label="Airflow 3 architecture: the dag-processor parses DAG files into the metadata database; the scheduler reads the database and hands tasks to the executor, which runs them on workers; the triggerer holds deferred waits; the api-server serves the UI and the task execution API; all five share the Postgres metadata database.">
+      <rect x="20" y="24" width="220" height="80" rx="6" class="bx2"/>
+      <text x="36" y="48" class="eb">DAG FILES</text>
+      <text x="36" y="70" class="m2">dags/*.py</text>
+      <text x="36" y="90" class="t4">plain Python; in git; on MWAA, in S3</text>
+
+      <line x1="240" y1="64" x2="290" y2="64" class="ln" marker-end="url(#a)"/>
+      <text x="265" y="54" text-anchor="middle" class="m3">parse</text>
+
+      <rect x="294" y="24" width="220" height="80" rx="6" class="bx"/>
+      <text x="310" y="48" class="eb">1 · DAG PROCESSOR</text>
+      <text x="310" y="70" class="t2">parses files every ~30 s</text>
+      <text x="310" y="90" class="t4">import errors show up here first</text>
+
+      <line x1="404" y1="104" x2="404" y2="150" class="ln" marker-end="url(#a)"/>
+
+      <rect x="20" y="154" width="960" height="70" rx="6" class="bxa"/>
+      <text x="36" y="178" class="eb">METADATA DATABASE — POSTGRES</text>
+      <text x="36" y="200" class="t3">serialized DAGs · DagRuns · TaskInstances + state · XCom · Variables · Connections · Assets · logs index</text>
+      <text x="36" y="216" class="t4">the single source of truth; every process reads and writes it; MWAA runs it for you and you never see it</text>
+
+      <line x1="160" y1="224" x2="160" y2="266" class="ln" marker-end="url(#a)"/>
+      <line x1="500" y1="224" x2="500" y2="266" class="ln" marker-end="url(#a)"/>
+      <line x1="840" y1="224" x2="840" y2="266" class="ln" marker-end="url(#a)"/>
+
+      <rect x="20" y="270" width="290" height="96" rx="6" class="bx"/>
+      <text x="36" y="294" class="eb">2 · SCHEDULER</text>
+      <text x="36" y="316" class="t2">the brain</text>
+      <text x="36" y="336" class="t4">creates DagRuns when a schedule is due,</text>
+      <text x="36" y="352" class="t4">finds runnable tasks, hands them to the executor</text>
+
+      <rect x="350" y="270" width="290" height="96" rx="6" class="bx"/>
+      <text x="366" y="294" class="eb">3 · API-SERVER</text>
+      <text x="366" y="316" class="t2">the UI and the task API</text>
+      <text x="366" y="336" class="t4">what you look at on :8080 — and in Airflow 3,</text>
+      <text x="366" y="352" class="t4">what running tasks talk to (no direct DB access)</text>
+
+      <rect x="690" y="270" width="290" height="96" rx="6" class="bx"/>
+      <text x="706" y="294" class="eb">4 · TRIGGERER</text>
+      <text x="706" y="316" class="t2">holds deferred waits</text>
+      <text x="706" y="336" class="t4">thousands of "is EMR done yet?" polls in one</text>
+      <text x="706" y="352" class="t4">async process — zero worker slots consumed</text>
+
+      <line x1="165" y1="366" x2="165" y2="398" class="lna" marker-end="url(#aa)"/>
+      <rect x="20" y="402" width="960" height="34" rx="5" class="bxo"/>
+      <text x="36" y="424" class="t2">5 · EXECUTOR + WORKERS — where task code actually runs</text>
+      <text x="960" y="424" text-anchor="end" class="m3">LocalExecutor (lab) · CeleryExecutor (MWAA) · KubernetesExecutor</text>
+    </svg>
+    <figcaption><b>The executor is a choice, and it is the main thing that differs between your laptop and MWAA.</b> The lab uses <code>LocalExecutor</code> — tasks run as subprocesses of the scheduler. MWAA uses <code>CeleryExecutor</code> — tasks go through a queue to a fleet of worker containers that autoscale. Your DAG code cannot tell the difference, which is the point.</figcaption>
+  </figure>
+
+  <div class="tw"><table>
+    <tr><th>process</th><th>local lab (docker compose)</th><th>MWAA</th><th>when it is the problem</th></tr>
+    <tr><td>dag-processor</td><td>one container</td><td>managed, invisible</td><td>DAG not appearing → import error in its log</td></tr>
+    <tr><td>scheduler</td><td>one container</td><td>managed, 2+ for HA</td><td>runs due but not starting → scheduler down or starved</td></tr>
+    <tr><td>api-server</td><td>one container, <code>:8080</code></td><td>managed, behind IAM/SSO</td><td>UI down but tasks still running → only this is unhealthy</td></tr>
+    <tr><td>triggerer</td><td>one container</td><td>managed</td><td>deferred sensors never resume → triggerer down</td></tr>
+    <tr><td>workers</td><td>none — LocalExecutor</td><td>autoscaled Celery workers (you set min/max)</td><td>tasks queued forever → no worker capacity, or pool exhausted</td></tr>
+    <tr><td>metadata DB</td><td>Postgres container</td><td>managed, no access</td><td>everything slow → DB bloat; on MWAA, open a ticket</td></tr>
+  </table></div>
+</div></section>
+
+<!-- ============ 03 ============ -->
+<section id="c3"><div class="wrap">
+  <div class="kick">03 · The lifecycle</div>
+  <h2>The life of one DAG run</h2>
+  <p class="lede">The concept that trips up every newcomer: <b>a run is <i>for</i> a data interval, and it starts <i>after</i> that interval ends.</b> A daily DAG scheduled at midnight runs on the 3rd to process the 2nd. Its logical date is the 2nd. Every timestamp you template into a path or a query comes from the interval, never from the wall clock.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 400" role="img" aria-label="Timeline of a daily DAG: the data interval for September 2 runs from midnight to midnight; the DagRun for that interval is created at the end of the interval on September 3 and its tasks move through scheduled, queued, running and success states; the logical date remains September 2 throughout.">
+      <text x="20" y="24" class="eb">A DAILY DAG · schedule="@daily"</text>
+      <line x1="20" y1="70" x2="980" y2="70" class="ln"/>
+      <line x1="140" y1="56" x2="140" y2="84" class="ln"/><text x="140" y="104" text-anchor="middle" class="m3">Sep 2 00:00</text>
+      <line x1="560" y1="56" x2="560" y2="84" class="ln"/><text x="560" y="104" text-anchor="middle" class="m3">Sep 3 00:00</text>
+      <line x1="980" y1="56" x2="980" y2="84" class="ln"/><text x="960" y="104" text-anchor="end" class="m3">Sep 4 00:00</text>
+
+      <rect x="140" y="120" width="420" height="40" rx="4" class="bxa"/>
+      <text x="350" y="138" text-anchor="middle" class="t2">the DATA INTERVAL the run is for</text>
+      <text x="350" y="154" text-anchor="middle" class="m3">data_interval_start = Sep 2 00:00 · data_interval_end = Sep 3 00:00 · ds = "2026-09-02"</text>
+
+      <line x1="560" y1="160" x2="560" y2="196" class="lnb" marker-end="url(#ab)"/>
+      <rect x="566" y="176" width="300" height="40" rx="4" class="bxb"/>
+      <text x="580" y="194" class="t2">the RUN starts here, on Sep 3</text>
+      <text x="580" y="210" class="m3">logical_date = Sep 2  ·  run_after = Sep 3 00:00</text>
+
+      <text x="20" y="252" class="eb">WHAT EACH TASK GOES THROUGH</text>
+      <rect x="20" y="264" width="130" height="36" rx="4" class="bx2"/><text x="85" y="287" text-anchor="middle" class="m2">none</text>
+      <line x1="150" y1="282" x2="178" y2="282" class="ln" marker-end="url(#a)"/>
+      <rect x="182" y="264" width="130" height="36" rx="4" class="bx2"/><text x="247" y="287" text-anchor="middle" class="m2">scheduled</text>
+      <line x1="312" y1="282" x2="340" y2="282" class="ln" marker-end="url(#a)"/>
+      <rect x="344" y="264" width="130" height="36" rx="4" class="bx2"/><text x="409" y="287" text-anchor="middle" class="m2">queued</text>
+      <line x1="474" y1="282" x2="502" y2="282" class="ln" marker-end="url(#a)"/>
+      <rect x="506" y="264" width="130" height="36" rx="4" class="bxa"/><text x="571" y="287" text-anchor="middle" class="m2">running</text>
+      <line x1="636" y1="282" x2="664" y2="282" class="lng" marker-end="url(#ag)"/>
+      <rect x="668" y="264" width="130" height="36" rx="4" class="bxg"/><text x="733" y="287" text-anchor="middle" class="m2">success</text>
+      <line x1="571" y1="300" x2="571" y2="330" class="lnb" marker-end="url(#ab)"/>
+      <rect x="506" y="334" width="130" height="36" rx="4" class="bxb"/><text x="571" y="357" text-anchor="middle" class="m2">failed</text>
+      <line x1="636" y1="352" x2="720" y2="352" class="lno" marker-end="url(#ao)"/>
+      <rect x="724" y="334" width="130" height="36" rx="4" class="bxo"/><text x="789" y="357" text-anchor="middle" class="m2">up_for_retry</text>
+      <path d="M 789 334 C 789 310, 700 310, 640 300" class="lno dash"/>
+      <text x="870" y="357" class="m3">→ queued again</text>
+      <rect x="20" y="334" width="130" height="36" rx="4" class="bx2"/><text x="85" y="357" text-anchor="middle" class="m2">skipped</text>
+      <text x="160" y="357" class="t4">← a branch or short-circuit chose the other path</text>
+      <text x="20" y="390" class="t4">"scheduled" = the scheduler decided it can run · "queued" = handed to the executor, waiting for a slot · the gap between them is where pool and concurrency limits bite.</text>
+    </svg>
+    <figcaption><b>Why the interval convention exists:</b> so that a backfill of last March produces exactly the files it would have produced in March. If your task writes to <code>today()</code>, a backfill overwrites the wrong partition. Template <code>{{ ds }}</code> or <code>{{ data_interval_start }}</code> and the run is idempotent by construction — which is the same discipline Iceberg's <code>overwritePartitions()</code> gave you in the labs.</figcaption>
+  </figure>
+
+  <div class="note warn"><span class="ic">3.x</span><div>Airflow 2 called this <code>execution_date</code>, and half the internet still does. <b>Airflow 3 removed it.</b> The names are <code>logical_date</code>, <code>data_interval_start</code> and <code>data_interval_end</code>. Code copied from a 2022 blog post will fail to parse. Chapter 09 lists every rename.</div></div>
+</div></section>
+
+<!-- ============ 04 ============ -->
+<section id="c4"><div class="wrap">
+  <div class="kick">04 · Vocabulary</div>
+  <h2>Twenty words that are ninety percent of the job</h2>
+  <div class="tw"><table class="mono1">
+    <tr><th>term</th><th>what it is</th><th>lab DAG</th></tr>
+    <tr><td>DAG</td><td>A named schedule plus a set of tasks and their edges. One Python file, usually.</td><td>01</td></tr>
+    <tr><td>task</td><td>One node in the graph. An instance of an operator with a <code>task_id</code>.</td><td>01</td></tr>
+    <tr><td>operator</td><td>The <i>kind</i> of task: <code>BashOperator</code>, <code>EmrServerlessStartJobOperator</code>, <code>S3KeySensor</code>…</td><td>01, 04</td></tr>
+    <tr><td>@task</td><td>TaskFlow: a Python function <i>is</i> the task; its return value is XCom. How 90% of new DAGs are written.</td><td>02</td></tr>
+    <tr><td>>></td><td>"then." Sets a dependency edge. <code>a >> b >> c</code>, or <code>a >> [b, c]</code> for fan-out.</td><td>01</td></tr>
+    <tr><td>schedule</td><td>Cron, a preset like <code>@daily</code>, a <code>timedelta</code>, a list of Assets, or <code>None</code> for manual.</td><td>01, 07</td></tr>
+    <tr><td>logical_date</td><td>The date the run is <i>for</i>. Not when it ran. Templated as <code>{{ ds }}</code>.</td><td>01, 06</td></tr>
+    <tr><td>data interval</td><td><code>[data_interval_start, data_interval_end)</code> — the window of data this run owns.</td><td>01, 06</td></tr>
+    <tr><td>catchup</td><td>On unpause, create a run for every missed interval since <code>start_date</code>. Default <b>True</b> — the #1 surprise.</td><td>06</td></tr>
+    <tr><td>backfill</td><td>The CLI form of catchup for a date range you choose.</td><td>06</td></tr>
+    <tr><td>XCom</td><td>Small values passed between tasks — an id, a count, a path. <b>Never a DataFrame.</b></td><td>02</td></tr>
+    <tr><td>sensor</td><td>A task that polls until something is true. Always <code>mode="reschedule"</code> or <code>deferrable=True</code>.</td><td>03</td></tr>
+    <tr><td>deferrable</td><td>The wait moves to the triggerer; the task holds no worker slot. Use for anything over a minute.</td><td>03, 04</td></tr>
+    <tr><td>branch</td><td><code>@task.branch</code> returns the <code>task_id</code> to follow; siblings are skipped.</td><td>02</td></tr>
+    <tr><td>trigger_rule</td><td>When a task runs given upstream states. Default <code>all_success</code> means a skipped parent blocks a join.</td><td>02, 08</td></tr>
+    <tr><td>retries</td><td>Per-task, with delay and exponential backoff. Transient failures heal themselves.</td><td>08</td></tr>
+    <tr><td>pool</td><td>A named slot count. "One Spark job at a time" is a pool of 1.</td><td>04</td></tr>
+    <tr><td>dynamic mapping</td><td><code>.expand()</code> — one task definition becomes N instances, one per input, at run time.</td><td>05</td></tr>
+    <tr><td>Asset</td><td>A named thing a task produces. A DAG scheduled on an Asset runs when it is updated — not on a clock.</td><td>07</td></tr>
+    <tr><td>Connection / Variable</td><td>Credentials and config, stored in the metadata DB, referenced by id. Never in the DAG file.</td><td>04</td></tr>
+  </table></div>
+</div></section>
+
+<!-- ============ 05 ============ -->
+<section id="c5"><div class="wrap">
+  <div class="kick">05 · The integration</div>
+  <h2>The pipeline you already built, orchestrated</h2>
+  <p class="lede">This is lab DAG 04. It runs the six <code>iceberg_deep</code> scripts as bronze → silver → gold — and the point is that <b>not one line of the Spark scripts changes</b> between running on your laptop and running on EMR Serverless. Airflow decides <i>where</i>; the script is the same.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 470" role="img" aria-label="An Airflow DAG orchestrating the EMR and Iceberg pipeline: an S3 sensor waits for raw data, EMR Serverless operators run the bronze, silver and gold Spark scripts in sequence, an Athena operator validates the Iceberg snapshot, a Redshift operator refreshes the materialized view, and a notification task closes the run.">
+      <text x="20" y="22" class="eb">THE DAG — WHAT AIRFLOW HOLDS</text>
+      <rect x="20" y="34" width="960" height="150" rx="6" class="bxa"/>
+
+      <rect x="36" y="52" width="140" height="56" rx="4" class="bx"/>
+      <text x="48" y="72" class="m3">S3KeySensor</text>
+      <text x="48" y="90" class="t4">raw/{{ ds }}/ landed?</text>
+      <line x1="176" y1="80" x2="204" y2="80" class="lna" marker-end="url(#aa)"/>
+
+      <rect x="208" y="52" width="140" height="56" rx="4" class="bx"/>
+      <text x="220" y="72" class="m3">EmrServerless…</text>
+      <text x="220" y="90" class="t4">bronze · 00_setup</text>
+      <line x1="348" y1="80" x2="376" y2="80" class="lna" marker-end="url(#aa)"/>
+
+      <rect x="380" y="52" width="140" height="56" rx="4" class="bx"/>
+      <text x="392" y="72" class="m3">EmrServerless…</text>
+      <text x="392" y="90" class="t4">silver · 01→02→03</text>
+      <line x1="520" y1="80" x2="548" y2="80" class="lna" marker-end="url(#aa)"/>
+
+      <rect x="552" y="52" width="140" height="56" rx="4" class="bx"/>
+      <text x="564" y="72" class="m3">EmrServerless…</text>
+      <text x="564" y="90" class="t4">gold · 04 · 05</text>
+      <line x1="692" y1="80" x2="720" y2="80" class="lna" marker-end="url(#aa)"/>
+
+      <rect x="724" y="52" width="120" height="56" rx="4" class="bx"/>
+      <text x="736" y="72" class="m3">AthenaOperator</text>
+      <text x="736" y="90" class="t4">SELECT $snapshots</text>
+      <line x1="844" y1="80" x2="872" y2="80" class="lna" marker-end="url(#aa)"/>
+
+      <rect x="876" y="52" width="92" height="56" rx="4" class="bx"/>
+      <text x="888" y="72" class="m3">Redshift…</text>
+      <text x="888" y="90" class="t4">REFRESH MV</text>
+
+      <text x="36" y="132" class="t4">each box: retries=1 · execution_timeout · deferrable=True · pool="spark" · on_failure_callback → Slack</text>
+      <text x="36" y="150" class="t4">TaskGroups bronze / silver / gold for the UI · max_active_runs=1 so two nightlies never overlap · schedule="0 2 * * *"</text>
+      <text x="36" y="170" class="m3">the whole thing is ~60 lines. The Spark scripts it calls are ~2,000.</text>
+
+      <line x1="278" y1="184" x2="278" y2="230" class="lnb" marker-end="url(#ab)"/>
+      <line x1="450" y1="184" x2="450" y2="230" class="lnb" marker-end="url(#ab)"/>
+      <line x1="622" y1="184" x2="622" y2="230" class="lnb" marker-end="url(#ab)"/>
+      <line x1="784" y1="184" x2="784" y2="230" class="ln" marker-end="url(#a)"/>
+      <line x1="922" y1="184" x2="922" y2="230" class="ln" marker-end="url(#a)"/>
+      <text x="100" y="212" class="m3">submit job → poll status (deferred) → read exit</text>
+
+      <text x="20" y="252" class="eb-o">THE WORK — WHAT AIRFLOW CALLS</text>
+      <rect x="208" y="262" width="484" height="70" rx="6" class="bxo"/>
+      <text x="224" y="286" class="t2">EMR Serverless — the same six PySpark scripts from 3_labs/iceberg_deep</text>
+      <text x="224" y="306" class="t4">MERGE, time travel, evolution, CoW/MoR, compaction, WAP — unchanged</text>
+      <text x="224" y="322" class="m3">entryPoint: s3://bucket/labs/iceberg_deep/0N_….py</text>
+      <rect x="724" y="262" width="120" height="70" rx="6" class="bx"/>
+      <text x="736" y="286" class="t2">Athena</text><text x="736" y="306" class="t4">verifies a new</text><text x="736" y="322" class="t4">snapshot exists</text>
+      <rect x="876" y="262" width="92" height="70" rx="6" class="bx"/>
+      <text x="888" y="286" class="t2">Redshift</text><text x="888" y="306" class="t4">serves the</text><text x="888" y="322" class="t4">dashboard</text>
+
+      <line x1="450" y1="332" x2="450" y2="372" class="lnb" marker-end="url(#ab)"/>
+      <line x1="784" y1="332" x2="784" y2="372" class="ln" marker-end="url(#a)"/>
+      <rect x="20" y="376" width="960" height="46" rx="6" class="bxs"/>
+      <text x="36" y="398" class="t2">Iceberg tables in S3 · Glue Data Catalog</text>
+      <text x="36" y="414" class="t4">bronze_cdc_events → silver_ledger → gold_daily_account_summary — the data never enters Airflow</text>
+
+      <rect x="20" y="436" width="960" height="28" rx="4" class="bxg"/>
+      <text x="36" y="455" class="m3" style="fill:var(--ink)">LAB_MODE=local swaps every EmrServerless box for a BashOperator running spark-submit in the container. Same DAG file. That switch is dags/lab_config.py.</text>
+    </svg>
+    <figcaption><b>Read the retries line carefully — it is where Airflow earns its keep.</b> An EMR job that dies to a spot reclaim gets resubmitted automatically. A sensor that waits for a file that never arrives fails at its timeout instead of hanging forever. A failed gold step fires a Slack message with the task, the logical date and a link to the log. None of that is in the Spark code, and none of it should be.</figcaption>
+  </figure>
+
+  <div class="code"><div class="hd"><span class="lang">the one operator that matters most for this course</span><span>EmrServerlessStartJobOperator, from the amazon provider</span></div>
+<pre><span class="k">from</span> airflow.providers.amazon.aws.operators.emr <span class="k">import</span> EmrServerlessStartJobOperator
+
+silver = EmrServerlessStartJobOperator(
+    task_id=<span class="s">"silver_02_commits"</span>,
+    application_id=<span class="s">"00fabc…"</span>,                 <span class="c"># the EMR Serverless app, created once</span>
+    execution_role_arn=<span class="s">"arn:aws:iam::…:role/EmrLabRole"</span>,
+    job_driver={<span class="s">"sparkSubmit"</span>: {
+        <span class="s">"entryPoint"</span>: <span class="s">"s3://bucket/labs/iceberg_deep/02_commits_time_travel.py"</span>,
+        <span class="s">"sparkSubmitParameters"</span>: <span class="s">"--conf spark.executor.memory=4g "</span>
+                                 <span class="s">"--py-files s3://bucket/labs/iceberg_deep/common.py"</span>}},
+    configuration_overrides={<span class="s">"monitoringConfiguration"</span>: {
+        <span class="s">"s3MonitoringConfiguration"</span>: {<span class="s">"logUri"</span>: <span class="s">"s3://bucket/emr-logs/"</span>}}},
+    wait_for_completion=<span class="k">True</span>,
+    <span class="hl">deferrable=True</span>,       <span class="c"># the triggerer polls; no worker is held for 20 minutes</span>
+    retries=1, retry_delay=timedelta(minutes=2),
+)</pre></div>
+</div></section>
+
+<!-- ============ 06 ============ -->
+<section id="c6"><div class="wrap">
+  <div class="kick">06 · Local vs managed</div>
+  <h2>What changes when you move to MWAA</h2>
+  <p class="lede">Nothing in the DAG. Everything around it. <b>MWAA is 100% upstream Apache Airflow with the operations taken away from you</b> — which is exactly what you want in production and exactly what gets in your way while learning. Practise on the compose stack, deploy to MWAA.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 300" role="img" aria-label="Side by side: the local docker compose stack where you own the image, executor and config, versus MWAA where DAGs and requirements are uploaded to S3 and AWS runs the scheduler, workers, database and web server.">
+      <rect x="20" y="24" width="470" height="250" rx="6" class="bx"/>
+      <text x="36" y="48" class="eb">LOCAL — docker compose (the lab)</text>
+      <rect x="36" y="62" width="438" height="30" rx="4" class="bx2"/><text x="48" y="82" class="m3">dags/  → bind-mounted; edit and it reloads in 15 s</text>
+      <rect x="36" y="98" width="438" height="30" rx="4" class="bx2"/><text x="48" y="118" class="m3">Dockerfile → you add Java + PySpark, anything</text>
+      <rect x="36" y="134" width="438" height="30" rx="4" class="bx2"/><text x="48" y="154" class="m3">LocalExecutor · Postgres container · no auth</text>
+      <rect x="36" y="170" width="438" height="30" rx="4" class="bx2"/><text x="48" y="190" class="m3">every airflow.cfg key is yours to set</text>
+      <text x="36" y="222" class="t4">cost: nothing while stopped</text>
+      <text x="36" y="240" class="t4">iterate in seconds; break it freely</text>
+      <text x="36" y="260" class="la">this is where you learn</text>
+
+      <rect x="510" y="24" width="470" height="250" rx="6" class="bxa"/>
+      <text x="526" y="48" class="eb">MWAA — managed</text>
+      <rect x="526" y="62" width="438" height="30" rx="4" class="bx"/><text x="538" y="82" class="m3">dags/  → an S3 prefix; sync takes ~a minute</text>
+      <rect x="526" y="98" width="438" height="30" rx="4" class="bx"/><text x="538" y="118" class="m3">requirements.txt in S3 → env restarts to apply</text>
+      <rect x="526" y="134" width="438" height="30" rx="4" class="bx"/><text x="538" y="154" class="m3">CeleryExecutor · managed DB · IAM / SSO login</text>
+      <rect x="526" y="170" width="438" height="30" rx="4" class="bx"/><text x="538" y="190" class="m3">allow-listed config options only; no SSH, no apt</text>
+      <text x="526" y="222" class="t4">cost: per environment-hour + worker-hour, idle included</text>
+      <text x="526" y="240" class="t4">versions lag upstream by months</text>
+      <text x="526" y="260" class="la">this is where it runs</text>
+    </svg>
+    <figcaption><b>The one architectural consequence:</b> on MWAA you cannot install Java, so you cannot run Spark on a worker. That is not a limitation — it is MWAA telling you the right design. Spark runs on EMR; Airflow only submits. Lab DAG 04's <code>LAB_MODE=emr</code> branch is the MWAA-shaped version.</figcaption>
+  </figure>
+</div></section>
+
+<!-- ============ 07 ============ -->
+<section id="c7"><div class="wrap">
+  <div class="kick">07 · Not the same thing</div>
+  <h2>Airflow vs dbt</h2>
+  <p class="lede">They are asked about together because they appear together. <b>Airflow orders work across systems; dbt defines transformations inside one.</b> A mature stack uses both: Airflow triggers <code>dbt run</code> as one task among many.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 300" role="img" aria-label="Airflow spans systems as an orchestrator while dbt lives inside a single warehouse or engine as a transformation layer; the typical pattern has an Airflow task that runs dbt.">
+      <rect x="20" y="24" width="960" height="100" rx="6" class="bxa"/>
+      <text x="36" y="48" class="eb">AIRFLOW — ACROSS SYSTEMS</text>
+      <rect x="36" y="60" width="150" height="48" rx="4" class="bx"/><text x="48" y="80" class="m3">wait for S3</text><text x="48" y="98" class="t4">sensor</text>
+      <line x1="186" y1="84" x2="214" y2="84" class="lna" marker-end="url(#aa)"/>
+      <rect x="218" y="60" width="150" height="48" rx="4" class="bx"/><text x="230" y="80" class="m3">EMR Spark job</text><text x="230" y="98" class="t4">bronze → silver</text>
+      <line x1="368" y1="84" x2="396" y2="84" class="lna" marker-end="url(#aa)"/>
+      <rect x="400" y="60" width="150" height="48" rx="4" class="bxo"/><text x="412" y="80" class="m3">dbt run</text><text x="412" y="98" class="t4">gold models on Redshift</text>
+      <line x1="550" y1="84" x2="578" y2="84" class="lna" marker-end="url(#aa)"/>
+      <rect x="582" y="60" width="150" height="48" rx="4" class="bx"/><text x="594" y="80" class="m3">dbt test</text><text x="594" y="98" class="t4">not-null, unique, accepted</text>
+      <line x1="732" y1="84" x2="760" y2="84" class="lna" marker-end="url(#aa)"/>
+      <rect x="764" y="60" width="200" height="48" rx="4" class="bx"/><text x="776" y="80" class="m3">notify + refresh dashboard</text><text x="776" y="98" class="t4">Slack · MV refresh</text>
+
+      <line x1="475" y1="124" x2="475" y2="160" class="lno" marker-end="url(#ao)"/>
+      <rect x="250" y="164" width="450" height="110" rx="6" class="bxo"/>
+      <text x="266" y="188" class="eb-o">DBT — INSIDE ONE ENGINE</text>
+      <text x="266" y="210" class="t3">a project of SQL SELECTs; each becomes a table or view via <tspan class="m2" style="fill:var(--ink)">ref()</tspan></text>
+      <text x="266" y="230" class="t3">tests, docs and column-level lineage come from the same files</text>
+      <text x="266" y="250" class="t3">runs against Redshift / Athena / Spark SQL — it does not move data between them</text>
+      <text x="266" y="268" class="t4">has no scheduler of its own — something has to run it, usually Airflow</text>
+    </svg>
+    <figcaption><b>Where each is strongest:</b> if your gold layer is "many SQL models with tests and lineage," dbt makes that clean and reviewable. If your pipeline is "wait, submit Spark, verify, refresh, alert" across five AWS services, that is Airflow. In this course the gold layer is PySpark on Iceberg, so dbt is optional — but you should be able to draw the line between them on a whiteboard.</figcaption>
+  </figure>
+
+  <div class="tw"><table>
+    <tr><th></th><th>Apache Airflow</th><th>dbt</th></tr>
+    <tr><td><b>Category</b></td><td>Orchestrator / workflow scheduler</td><td>Transformation framework</td></tr>
+    <tr><td><b>Unit of work</b></td><td>A task in a DAG — any callable, any system</td><td>A model — one SQL <code>SELECT</code> → one table/view</td></tr>
+    <tr><td><b>Where compute runs</b></td><td>Elsewhere: EMR, Glue, Athena, Redshift, Lambda</td><td>Inside the engine it connects to</td></tr>
+    <tr><td><b>Scheduling</b></td><td>Core: cron, Assets, backfill, retries, SLAs</td><td>None — needs Airflow, dbt Cloud, or cron</td></tr>
+    <tr><td><b>Dependencies</b></td><td>Explicit edges between tasks</td><td>Inferred from <code>ref()</code> between models</td></tr>
+    <tr><td><b>Testing</b></td><td>Your own tasks</td><td>Built in: schema tests, data tests</td></tr>
+    <tr><td><b>Lineage</b></td><td>Task-level, cross-system</td><td>Model/column-level, inside SQL</td></tr>
+    <tr><td><b>Language</b></td><td>Python</td><td>SQL + Jinja (Python models exist)</td></tr>
+    <tr><td><b>Together</b></td><td colspan="2">Airflow runs <code>dbt run</code> / <code>dbt test</code> as tasks — via <code>BashOperator</code> or the Cosmos provider that renders each dbt model as its own Airflow task</td></tr>
+  </table></div>
+</div></section>
+
+<!-- ============ 08 ============ -->
+<section id="c8"><div class="wrap">
+  <div class="kick">08 · The AWS-native alternatives</div>
+  <h2>When you would not use Airflow</h2>
+  <p class="lede">Atlas 7 showed that EventBridge can trigger an EMR job with no Lambda. So why Airflow? <b>Because a trigger is not a pipeline.</b> The moment you need step B to wait for step A, retry on failure, skip on a condition and show a human what happened, you are rebuilding Airflow badly.</p>
+  <div class="tw"><table>
+    <tr><th>need</th><th>EventBridge Scheduler</th><th>Step Functions</th><th>Airflow / MWAA</th></tr>
+    <tr><td>Run one job on a cron</td><td><b>Best.</b> No idle cost, no infra.</td><td>Overkill</td><td>Overkill — but fine if Airflow already exists</td></tr>
+    <tr><td>A → B → C with retries</td><td>No — one target per schedule</td><td><b>Good.</b> State machine, native retries</td><td><b>Good.</b> Plus a UI, backfill, sensors</td></tr>
+    <tr><td>Wait for a file, then run</td><td>Via S3 → EventBridge rule</td><td>Needs a Lambda poller or callback</td><td>A sensor — one line</td></tr>
+    <tr><td>Backfill last month</td><td>No concept</td><td>Manual, per execution</td><td><code>airflow backfill</code> — built in</td></tr>
+    <tr><td>50 pipelines, one team</td><td>No overview</td><td>Per-machine console</td><td><b>Best.</b> One grid, all runs, all history</td></tr>
+    <tr><td>Fan out over N partitions</td><td>No</td><td>Map state</td><td>Dynamic task mapping</td></tr>
+    <tr><td>Cost model</td><td>Per invocation — near zero</td><td>Per state transition</td><td>Per environment-hour — pays even when idle</td></tr>
+    <tr><td>Vendor lock-in</td><td>AWS</td><td>AWS</td><td>Open source — same DAG runs on GCP Composer, Astronomer, your own k8s</td></tr>
+  </table></div>
+  <div class="note"><span class="ic">RULE</span><div>One job, one schedule → <b>EventBridge Scheduler</b>. A handful of steps, all AWS, no humans watching → <b>Step Functions</b>. A team's worth of pipelines with dependencies, backfills and an on-call rota → <b>Airflow</b>. The mistake is choosing by familiarity rather than by that list.</div></div>
+</div></section>
+
+<!-- ============ 09 ============ -->
+<section id="c9"><div class="wrap">
+  <div class="kick">09 · Version trap</div>
+  <h2>Airflow 2 → 3: what breaks the code you will find online</h2>
+  <p class="lede">The lab runs <b>Airflow 3.3</b>. Most tutorials, Stack Overflow answers and LLM outputs describe Airflow 2. These are the renames and removals that produce a parse error or a silently wrong DAG.</p>
+  <div class="tw"><table class="mono1">
+    <tr><th>Airflow 2</th><th>Airflow 3</th><th>what happens if you use the old one</th></tr>
+    <tr><td>execution_date</td><td><code>logical_date</code></td><td><code>KeyError</code> in templates and context</td></tr>
+    <tr><td>schedule_interval=</td><td><code>schedule=</code></td><td>TypeError on DAG construction</td></tr>
+    <tr><td>from airflow import DAG</td><td><code>from airflow.sdk import DAG, dag, task</code></td><td>still imports via a shim — but deprecated; use the SDK</td></tr>
+    <tr><td>airflow.operators.bash</td><td><code>airflow.providers.standard.operators.bash</code></td><td>operators moved to the "standard" provider</td></tr>
+    <tr><td>Dataset</td><td><code>Asset</code></td><td>renamed; <code>schedule=[Asset(...)]</code></td></tr>
+    <tr><td>airflow webserver</td><td><code>airflow api-server</code></td><td>the command does not exist</td></tr>
+    <tr><td>SubDagOperator</td><td>removed — use <code>TaskGroup</code></td><td>ImportError</td></tr>
+    <tr><td>sla= on a task</td><td>removed (deadline alerts replace it)</td><td>TypeError</td></tr>
+    <tr><td>tasks read the DB directly</td><td>tasks talk to the api-server (Task SDK)</td><td>direct <code>Session()</code> use in a task fails</td></tr>
+    <tr><td>airflow dags backfill</td><td><code>airflow backfill create --dag-id … --from-date … --to-date …</code></td><td>old subcommand gone</td></tr>
+  </table></div>
+  <div class="note warn"><span class="ic">TELL</span><div>If a snippet says <code>execution_date</code> or <code>schedule_interval</code>, it is Airflow 2. It will not run here and it will not run on a current MWAA environment. Translate it with the table above before pasting.</div></div>
+</div></section>
+
+<!-- ============ 10 ============ -->
+<section id="c10" style="border-bottom:none"><div class="wrap">
+  <div class="kick">10 · Two days</div>
+  <h2>What to master, in order</h2>
+  <p class="lede">Airflow has hundreds of operators across ~90 provider packages. You will use about fifteen. The lab's eight DAGs cover them in the order they build on each other; atlas 9 is the reference for each one.</p>
+  <div class="tw"><table>
+    <tr><th>day</th><th>lab DAG</th><th>you can now…</th></tr>
+    <tr><td rowspan="4">1</td><td>01 hello</td><td>read a DAG file, explain schedule / start_date / catchup, template <code>{{ ds }}</code>, chain tasks</td></tr>
+    <tr><td>02 taskflow</td><td>write a DAG as functions, pass values via XCom, branch, fix a join with a trigger rule</td></tr>
+    <tr><td>03 sensor</td><td>wait for a file or an S3 key without burning a worker, and fail after a timeout</td></tr>
+    <tr><td>04 medallion</td><td><b>orchestrate the Iceberg labs</b> locally, then flip one flag and submit them to EMR Serverless</td></tr>
+    <tr><td rowspan="4">2</td><td>05 mapping</td><td>fan out one task over N partitions found at run time, fan back in</td></tr>
+    <tr><td>06 backfill</td><td>unpause a DAG and watch catchup create seven runs; backfill a date range from the CLI; explain why the task is idempotent</td></tr>
+    <tr><td>07 assets</td><td>chain two DAGs by data, not by clock; compare with <code>TriggerDagRunOperator</code></td></tr>
+    <tr><td>08 failures</td><td>watch a task fail twice and succeed on retry three; fire a callback; short-circuit; run cleanup regardless</td></tr>
+  </table></div>
+  <div class="note ok"><span class="ic">DONE</span><div>The bar for "mastered": you can look at the Grid view of a failed nightly run, say which task failed, why, whether it will retry, what was skipped as a result, and what you would change — in under a minute. That is the whole job of an on-call data engineer, and everything above exists to make it possible.</div></div>
+</div></section>
+
+<footer><div class="wrap">
+  <b>Apache Airflow on the EMR flow</b> — atlas 8 of 9. Surender Sara · NorthBay Solutions.<br>
+  Runs against <code>3_labs/airflow_local/</code>. Atlas 9 is the operator-by-operator reference for the DAGs it names.
+</div></footer>
+<script>
+(function(){var l=[].slice.call(document.querySelectorAll('nav a')),s=l.map(function(a){return document.querySelector(a.getAttribute('href'))});
+function spy(){var p=window.scrollY+140,i=0;for(var k=0;k<s.length;k++){if(s[k]&&s[k].offsetTop<=p)i=k}l.forEach(function(a,k){a.classList.toggle('on',k===i)})}
+window.addEventListener('scroll',spy,{passive:true});spy();})();
+</script>

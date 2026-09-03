@@ -6,8 +6,8 @@ run `3_labs` alongside module 3, and keep `2_atlases` open on the second screen.
 
 ```
 1_decks/       the three lecture PDFs, in teaching order
-2_atlases/     seven diagram atlases, numbered in learning order
-3_labs/        runnable PySpark + Iceberg — 103 assertions, laptop or EMR
+2_atlases/     nine diagram atlases, numbered in learning order
+3_labs/        runnable PySpark + Iceberg (103 assertions) + Airflow in Docker, laptop or EMR
 4_reference/   source material and deeper reading
 ```
 
@@ -26,10 +26,11 @@ Decks 1 and 2 label themselves "Module 01/02" internally, matching these numbers
 
 ## 2 · Visual atlases
 
-Seven self-contained HTML pages — no build step, no server. Open the file directly.
+Nine self-contained HTML pages — no build step, no server. Open the file directly.
 **Numbered in learning order**: the engine, then the cluster it runs on, then how data
 moves, then the table format, then the managed service, then the boundary between
-storage and compute, then where to run the job in the first place.
+storage and compute, then where to run the job in the first place — and finally the
+orthestrator that ties every step together.
 
 | # | Atlas | What it is |
 |---|---|---|
@@ -40,21 +41,24 @@ storage and compute, then where to run the job in the first place.
 | 5 | [S3 Tables — Managed Iceberg](2_atlases/5_S3_Tables_Managed_Iceberg.html) | Architecture, the **three automatic maintenance jobs with their real defaults**, DDL that works in Athena vs Spark, metadata tables, documented limits, views. Every number read from AWS docs. |
 | 6 | [Storage vs Compute Boundary](2_atlases/6_Storage_vs_Compute_Boundary.html) | Where each of the seven distribution mechanisms **actually executes**. Five live only in the engine; two are recorded in table metadata. Answers "can I set hash partitioning on an S3 Table?" |
 | 7 | [AWS Compute & Trigger Selection](2_atlases/7_AWS_Compute_And_Trigger_Selection.html) | The 15-minute wall, a **verified timeout table** for Lambda/Glue/Batch/Fargate/EMR, five ways to run a script straight from S3 with exact CLI calls, and the trigger patterns — including the Lambda shim you can drop. |
+| 8 | [Airflow Orchestration Atlas](2_atlases/8_Airflow_Orchestration_Atlas.html) | **What Apache Airflow does and does not do.** Five processes and a database, the life of one DAG run and why it starts after its interval, twenty-word vocabulary, the EMR → Iceberg → Athena/Redshift pipeline as a DAG, local vs MWAA, the honest comparison with dbt, EventBridge and Step Functions, and the Airflow 2 → 3 renames that break copied code. |
+| 9 | [Airflow: The 30 Building Blocks](2_atlases/9_Airflow_The_30_Building_Blocks.html) | The **30-functions treatment for Airflow**: DAG parameters, TaskFlow, operators, XCom/Variables/Connections, sensors, the amazon-provider operators for EMR Serverless / EMR on EC2 / Glue / Athena / Redshift, branching, dynamic mapping, Assets, backfill, retries and pools. Each with the Airflow 3.3 import, a pasteable snippet and its gotcha. |
 
-Atlases **5–7** were built by validating every claim against AWS documentation through the
+Atlases 8–9 are the companion to the `airflow_local` lab. Atlases **5–7** were built by validating every claim against AWS documentation through the
 AWS docs MCP server. Each ends with a verification log marking claims
 VERIFIED / CORRECTED / FALSE — nine widely-repeated statements did not survive that check.
 All seven are theme-aware (light/dark) and print cleanly for handouts.
 
 ## 3 · Labs
 
-Two suites. Run `pyspark30` alongside deck 3, then `iceberg_deep` alongside
-deck 2's Iceberg sections and atlas 4.
+Three suites. Run `pyspark30` alongside deck 3, then `iceberg_deep` alongside
+deck 2's Iceberg sections and atlas 4, then `airflow_local` with atlases 8–9.
 
 | Suite | Covers | Checks |
 |---|---|---|
 | [pyspark30/](3_labs/pyspark30/) | The 30 DataFrame functions — the daily vocabulary. Companion to deck 3. | 44 |
 | [iceberg_deep/](3_labs/iceberg_deep/) | **Spark × Iceberg interactions** — MERGE, snapshots, time travel, rollback, schema and partition evolution, delete files, CoW vs MoR, compaction, expiry, orphans, write-audit-publish. | 59 |
+| [airflow_local/](3_labs/airflow_local/) | **Apache Airflow 3.3 in Docker** — eight DAGs from anatomy to failure handling, ending with a DAG that orchestrates the six `iceberg_deep` scripts locally or on EMR Serverless by one flag. | 8 DAGs |
 
 ### pyspark30 — the 30 functions
 
@@ -113,6 +117,20 @@ Six labs that make the Iceberg atlas concrete — see
 including the big one: a plain `rewrite_data_files` does **not** reconcile
 merge-on-read delete files, so a naive compaction schedule silently lets read
 cost grow forever.
+
+### airflow_local — orchestrating the pipeline
+
+```bash
+cd 3_labs/airflow_local
+docker compose up -d --build     # Airflow 3.3.1 + Postgres; the image adds a JRE and PySpark
+# open http://localhost:8080, unpause 01_hello_dag, trigger it
+```
+
+Docker Desktop is the only prerequisite, and the drive holding its disk image
+needs ~6 GB free. Eight numbered DAGs, each a lesson; DAG 04 runs the
+`iceberg_deep` scripts as bronze → silver → gold, and `LAB_MODE=emr` in `.env`
+turns every Spark task into an `EmrServerlessStartJobOperator` without touching
+the DAG. See [its README](3_labs/airflow_local/README.md).
 
 ## 4 · Reference
 

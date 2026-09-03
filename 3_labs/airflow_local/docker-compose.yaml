@@ -1,0 +1,156 @@
+# Slim Apache Airflow 3.3.1 stack for the NBS labs.
+#
+# Derived from the official docker-compose.yaml but cut to what a laptop needs:
+#   LocalExecutor instead of Celery  -> no redis, no worker, no flower
+#   SimpleAuthManager, all admins    -> no login screen in the lab
+#   a custom image with Java + PySpark so DAGs can run the iceberg_deep scripts
+#
+#   docker compose up -d --build      # first time: builds the image (~4 min)
+#   open http://localhost:8080
+#   docker compose down               # keep volumes;  add -v to wipe the DB
+#
+# The same DAG files run unchanged on MWAA — that is the point of the exercise.
+
+x-airflow-common: &airflow-common
+  build: .
+  image: nbs/airflow-spark:3.3.1
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: 'true'
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: UTC
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-nbs_lab_jwt_secret_change_me}
+    AIRFLOW__API_AUTH__JWT_ISSUER: airflow
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: '15'
+    AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: '15'
+    # ---- lab switches, read by dags/lab_config.py ----
+    LAB_MODE: ${LAB_MODE:-local}
+    EMR_APPLICATION_ID: ${EMR_APPLICATION_ID:-}
+    EMR_EXECUTION_ROLE_ARN: ${EMR_EXECUTION_ROLE_ARN:-}
+    LAB_S3_BUCKET: ${LAB_S3_BUCKET:-}
+    AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+    # keep local Spark small enough for a laptop
+    PYSPARK_SUBMIT_ARGS: "--driver-memory 2g pyspark-shell"
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./config:/opt/airflow/config
+    - ./work:/opt/airflow/work            # Spark warehouse + DAG outputs live here
+    - ./landing:/opt/airflow/landing      # drop files here for the sensor DAG
+    - ../iceberg_deep:/opt/airflow/labs/iceberg_deep:ro
+    - ivy-cache:/home/airflow/.ivy2       # Iceberg runtime jar, downloaded once
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/{logs,work,landing}
+        airflow db migrate
+        # one Spark job at a time on a laptop — DAG 04 uses this pool
+        airflow pools set spark_local 1 "serialise local Spark jobs" || true
+        echo "init complete"
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # one-off CLI:  docker compose run --rm airflow-cli airflow dags list
+  airflow-cli:
+    <<: *airflow-common
+    profiles: [debug]
+    environment:
+      <<: *airflow-common-env
+      CONNECTION_CHECK_MAX_COUNT: "0"
+    command: ["bash", "-c", "airflow"]
+
+volumes:
+  postgres-db-volume:
+  ivy-cache:
