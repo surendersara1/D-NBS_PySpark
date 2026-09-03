@@ -20,10 +20,9 @@ from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOpe
 
 import lab_config as C
 
-silver_orders = Asset(
-    name="silver_orders",
-    uri=f"file://{C.WORK_DIR}/silver/orders",
-)
+# A name is enough. A uri (s3://bucket/silver/orders) is optional and only
+# matters when you want the same Asset to match across teams' DAG files.
+silver_orders = Asset(name="silver_orders")
 
 
 @dag(
@@ -36,8 +35,9 @@ silver_orders = Asset(
 def producer():
 
     @task(outlets=[silver_orders])        # <-- "I updated this asset"
-    def write_silver(ds: str):
+    def write_silver(dag_run):
         import os
+        ds = C.run_date(dag_run)
         d = f"{C.WORK_DIR}/silver/orders"
         os.makedirs(d, exist_ok=True)
         with open(f"{d}/{ds}.txt", "w") as fh:

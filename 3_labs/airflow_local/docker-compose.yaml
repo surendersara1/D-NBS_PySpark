@@ -75,6 +75,8 @@ services:
         airflow db migrate
         # one Spark job at a time on a laptop — DAG 04 uses this pool
         airflow pools set spark_local 1 "serialise local Spark jobs" || true
+        # Airflow 3 seeds NO default connections; FileSensor (DAG 03) needs this one
+        airflow connections add fs_default --conn-type fs --conn-extra '{"path": "/"}' || true
         echo "init complete"
     environment:
       <<: *airflow-common-env

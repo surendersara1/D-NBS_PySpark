@@ -38,6 +38,44 @@ docker compose down                           # stop; keeps the DB and the Ivy c
 docker compose down -v                        # stop and wipe everything
 ```
 
+### Run everything at once
+
+```bash
+bash run_all.sh      # seeds the sensor's landing file, unpauses and triggers all DAGs, polls until they settle
+```
+
+## Verified on this machine (2026-09-03)
+
+Windows 10, Docker Desktop 28.5.1, image `apache/airflow:3.3.1-python3.12`
+plus OpenJDK 17 and PySpark 4.1.3. Every DAG ran to success through the real
+scheduler (not `dags test`):
+
+| DAG | result | what was checked |
+|-----|--------|------------------|
+| 01 | 2 manual + 1 scheduled run, all success | manual run logs `logical_date=None`, `ds=2026-09-03` from the fallback idiom |
+| 02 | success | `small_load_path` skipped, `join` still ran (`none_failed_min_one_success`) |
+| 03 | success | `file arrived: /opt/airflow/landing/2026-09-03/orders.csv`, `3 data rows` |
+| 04 | 1 manual + 1 scheduled (02:00 UTC) run, both success | six Iceberg scripts, one at a time through the `spark_local` pool: 00_setup 42 s, 01 26 s, 02 39 s, 03 36 s, 05 88 s, 04 80 s — **about 5 min 15 s** end to end; tables `orders`, `orders_staging`, `t_cow`, `t_mor`, `t_maint`, `t_wap` under `work/warehouse/iceberg/deep_db/` |
+| 05 | success | 5 mapped instances, fan-in summary |
+| 06 | 8 runs, all success | catchup created a run per day from 2026-08-27; one file per interval in `work/backfill/` |
+| 07a / 07b | 07a success; **07b ran twice**, `asset_triggered__…` and `manual__…` | Asset scheduling and the explicit `TriggerDagRunOperator` each fired once |
+| 08 | success | `flaky` attempts 1 and 2 failed, attempt 3 succeeded; callback logged each failure |
+
+Two things the first run surfaced that the docs gloss over — both now handled in
+the DAGs and documented in atlases 8 and 9:
+
+1. **A manual run in Airflow 3 has no logical date.** `{{ ds }}` is undefined
+   (not None) and a `@task` declaring `ds` fails with "missing argument".
+   `lab_config.DS` and `lab_config.run_date(dag_run)` fall back to
+   `dag_run.run_after`. Scheduled runs never hit this, which is why it hides.
+2. **Airflow 3 seeds no default connections.** `FileSensor` needs `fs_default`;
+   `airflow-init` now creates it.
+
+Setup note: the first image build failed with `unable to find user root` — a
+Docker image-store layer corrupted by a pull interrupted when the host disk
+filled, which survived `docker rmi` and re-pull. Pulling the `-python3.12` tag
+(different layers) sidestepped it; that is why the Dockerfile pins that tag.
+
 ## What the compose file is
 
 The official Airflow 3.3.1 compose, cut down: `LocalExecutor` (no Redis, no
@@ -63,7 +101,7 @@ Bind mounts:
 |-----|---------|---------|
 | `01_hello_dag` | DAG anatomy, `>>`, `{{ ds }}`, data interval | unpause, trigger, read all three logs |
 | `02_taskflow_xcom_branch` | `@task`, XCom, `@task.branch`, trigger rules | trigger; note one path is *skipped* and the join still runs |
-| `03_sensor_wait_for_file` | sensors, `mode="reschedule"`, timeout | trigger, then create `landing/<ds>/orders.csv` and watch it unblock |
+| `03_sensor_wait_for_file` | sensors, `mode="reschedule"`, timeout | trigger, watch it poke, then create `landing/<date>/orders.csv` (path is in the log) and watch it unblock |
 | `04_medallion_iceberg_pipeline` | **the integration**: TaskGroups, pools, the local/EMR switch | trigger; ~8 min locally; inspect `work/warehouse/`. Then set `LAB_MODE=emr` in `.env` |
 | `05_dynamic_task_mapping` | `expand()` / `partial()`, fan-in | trigger; expand the `[5]` mapped task in the grid |
 | `06_backfill_and_catchup` | `catchup=True`, idempotent interval writes, backfill CLI | **unpause and watch 7 runs appear**; then run the backfill command in its docstring |
@@ -106,4 +144,6 @@ exactly why the Spark work goes to EMR.
 | DAG 04 task fails immediately | `docker compose exec airflow-scheduler java -version` — the image build must have installed the JRE |
 | first DAG 04 run slow | Ivy is downloading the Iceberg runtime jar into the `ivy-cache` volume; once |
 | `Permission denied` on `logs/` | `AIRFLOW_UID` in `.env` — 50000 is correct on Windows/macOS |
+| DAG 03 fails with `conn_id fs_default isn't defined` | Airflow 3 seeds no default connections; `airflow-init` creates it — re-run `docker compose up airflow-init` or `airflow connections add fs_default --conn-type fs --conn-extra '{"path": "/"}'` |
+| a manual run fails on `{{ ds }}` / a task asking for `ds` | Airflow 3: manual runs have no logical date. Use `lab_config.DS` / `lab_config.run_date(dag_run)`, or trigger with `-l 2026-09-02` |
 | UI shows a login page | `AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS` was removed from the compose env |

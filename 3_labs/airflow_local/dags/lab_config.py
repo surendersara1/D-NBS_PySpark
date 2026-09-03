@@ -36,6 +36,18 @@ ICEBERG_STEPS = [
 ]
 
 
+# ---------------------------------------------------------------- dates
+# Airflow 3 rule: a SCHEDULED run has a logical date (its data interval);
+# a MANUALLY TRIGGERED run has none — logical_date is None and `ds` is not
+# even defined. Both of these work in either case; use them, not bare {{ ds }}.
+DS = "{{ (dag_run.logical_date or dag_run.run_after) | ds }}"
+
+
+def run_date(dag_run) -> str:
+    """YYYY-MM-DD for this run, whether it was scheduled or triggered by hand."""
+    return (dag_run.logical_date or dag_run.run_after).strftime("%Y-%m-%d")
+
+
 def local_spark_cmd(script: str) -> str:
     """Run one lab script with Spark inside the container.
 

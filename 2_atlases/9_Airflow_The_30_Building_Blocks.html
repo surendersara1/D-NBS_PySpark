@@ -357,7 +357,7 @@ wait = S3KeySensor(
 
 FileSensor(task_id=<span class="s">"wait"</span>, filepath=<span class="s">"/opt/airflow/landing/{{ ds }}/orders.csv"</span>, poke_interval=10, timeout=600, mode=<span class="s">"reschedule"</span>)
 ExternalTaskSensor(task_id=<span class="s">"wait_silver"</span>, external_dag_id=<span class="s">"silver_pipeline"</span>, external_task_id=<span class="s">"done"</span>, mode=<span class="s">"reschedule"</span>)</pre></div>
-  <p class="got"><b>Gotcha.</b> <code>ExternalTaskSensor</code> matches on the <i>same logical date</i> by default. If the two DAGs have different schedules it waits forever unless you give it <code>execution_delta</code> or <code>execution_date_fn</code>. Assets (block 22) are usually the better tool now.</p></div>
+  <p class="got"><b>Gotcha — verified in the lab.</b> <code>FileSensor</code> needs a Connection named <code>fs_default</code> (type <code>fs</code>), and Airflow 3 seeds <b>no</b> default connections. Create it once: <code>airflow connections add fs_default --conn-type fs --conn-extra '{"path": "/"}'</code>. <code>ExternalTaskSensor</code> matches on the <i>same logical date</i> by default. If the two DAGs have different schedules it waits forever unless you give it <code>execution_delta</code> or <code>execution_date_fn</code>. Assets (block 22) are usually the better tool now.</p></div>
 
   <div class="fn"><div class="fn-h"><span class="num">17</span><h3>mode="reschedule" vs deferrable=True</h3><span class="pkg">parameters on every sensor and many operators</span></div>
   <p>How the wait is paid for. <code>poke</code> holds a worker slot the whole time. <code>reschedule</code> releases it between checks. <code>deferrable</code> moves the wait to the triggerer entirely.</p>
@@ -493,7 +493,8 @@ TriggerDagRunOperator(task_id=<span class="s">"kick_gold"</span>, trigger_dag_id
 {{ run_id }}                <span class="c"># scheduled__2026-09-02T00:00:00+00:00 — put it in job names</span>
 {{ macros.ds_add(ds, -1) }} <span class="c"># yesterday</span>
 {{ var.value.bucket }}  {{ conn.aws_default.extra_dejson.region_name }}  {{ params.mode }}</pre></div>
-  <p class="got"><b>Gotcha.</b> Only fields listed in an operator's <code>template_fields</code> are rendered. A <code>{{ ds }}</code> inside a dict that is not templated stays literal — and your S3 key ends up containing the characters <code>{{ ds }}</code>. Check "Rendered Template" on the task instance.</p></div>
+  <p class="got"><b>Gotcha #1 — verified in the lab.</b> A <i>manually triggered</i> run in Airflow 3 has no logical date, so <code>{{ ds }}</code>, <code>{{ data_interval_start }}</code> and a <code>ds</code> task parameter are <b>undefined</b>, not None; the task fails before it starts. Write <code>{{ (dag_run.logical_date or dag_run.run_after) | ds }}</code>, or in Python <code>(dag_run.logical_date or dag_run.run_after).strftime(...)</code>, or trigger with a date: <code>airflow dags trigger my_dag -l 2026-09-02</code>.</p>
+  <p class="got"><b>Gotcha #2.</b> Only fields listed in an operator's <code>template_fields</code> are rendered. A <code>{{ ds }}</code> inside a dict that is not templated stays literal — and your S3 key ends up containing the characters <code>{{ ds }}</code>. Check "Rendered Template" on the task instance.</p></div>
 
   <div class="fn"><div class="fn-h"><span class="num">28</span><h3>Asset — outlets and schedule=[...]</h3><span class="pkg">airflow.sdk</span></div>
   <p>Data-aware scheduling. A producer declares what it updated; a consumer runs when that happens. Called Dataset in Airflow 2.</p>

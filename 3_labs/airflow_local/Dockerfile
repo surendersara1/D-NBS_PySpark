@@ -4,7 +4,7 @@
 # On MWAA you cannot build an image: dependencies go in requirements.txt and
 # system packages are not available at all. That difference is the whole
 # reason DAG 04 has a LAB_MODE=emr branch that ships the work to EMR instead.
-FROM apache/airflow:3.3.1
+FROM apache/airflow:3.3.1-python3.12
 
 USER root
 RUN apt-get update \

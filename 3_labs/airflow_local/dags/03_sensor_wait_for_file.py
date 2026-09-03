@@ -8,6 +8,10 @@
                     for anything that waits more than a minute
     deferrable      hand the wait to the triggerer process; zero slot cost
 
+FileSensor needs a "fs_default" Connection (conn-type fs). Airflow 3 creates
+no default connections, so airflow-init in docker-compose.yaml adds it. On MWAA
+you would add it in Admin -> Connections. The S3 sensor uses aws_default.
+
 Local:  FileSensor watches ./landing/<ds>/orders.csv
 EMR:    S3KeySensor watches s3://<bucket>/raw/<ds>/orders.csv
 
@@ -38,22 +42,22 @@ def sensor_demo():
         wait = S3KeySensor(
             task_id="wait_for_orders_file",
             bucket_name=C.S3_BUCKET,
-            bucket_key="raw/{{ ds }}/orders.csv",
+            bucket_key=f"raw/{C.DS}/orders.csv",
             poke_interval=30,
             timeout=60 * 60,
             mode="reschedule",
             deferrable=True,            # the triggerer does the waiting
         )
-        path_expr = f"s3://{C.S3_BUCKET}/raw/{{{{ ds }}}}/orders.csv"
+        path_expr = f"s3://{C.S3_BUCKET}/raw/{C.DS}/orders.csv"
     else:
         wait = FileSensor(
             task_id="wait_for_orders_file",
-            filepath=f"{C.LANDING_DIR}/{{{{ ds }}}}/orders.csv",
+            filepath=f"{C.LANDING_DIR}/{C.DS}/orders.csv",   # C.DS works for manual runs too
             poke_interval=10,
             timeout=60 * 10,            # 10 minutes, then FAIL — never wait forever
             mode="reschedule",
         )
-        path_expr = f"{C.LANDING_DIR}/{{{{ ds }}}}/orders.csv"
+        path_expr = f"{C.LANDING_DIR}/{C.DS}/orders.csv"
 
     @task
     def process(path: str):

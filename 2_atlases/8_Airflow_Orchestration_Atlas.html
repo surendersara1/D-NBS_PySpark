@@ -325,6 +325,7 @@ svg text{font-family:'Public Sans',system-ui,sans-serif}
     <figcaption><b>Why the interval convention exists:</b> so that a backfill of last March produces exactly the files it would have produced in March. If your task writes to <code>today()</code>, a backfill overwrites the wrong partition. Template <code>{{ ds }}</code> or <code>{{ data_interval_start }}</code> and the run is idempotent by construction — which is the same discipline Iceberg's <code>overwritePartitions()</code> gave you in the labs.</figcaption>
   </figure>
 
+  <div class="note warn"><span class="ic">3.x</span><div><b>A manually triggered run has no logical date in Airflow 3.</b> <code>{{ ds }}</code> is not None — it is <i>undefined</i>, and a <code>@task</code> that declares <code>ds</code> as a parameter fails with "missing argument". Lab DAG 01 shows the idiom that works for both: <code>{{ (dag_run.logical_date or dag_run.run_after) | ds }}</code>. This was found by running the lab, not by reading docs.</div></div>
   <div class="note warn"><span class="ic">3.x</span><div>Airflow 2 called this <code>execution_date</code>, and half the internet still does. <b>Airflow 3 removed it.</b> The names are <code>logical_date</code>, <code>data_interval_start</code> and <code>data_interval_end</code>. Code copied from a 2022 blog post will fail to parse. Chapter 09 lists every rename.</div></div>
 </div></section>
 
@@ -553,6 +554,7 @@ silver = EmrServerlessStartJobOperator(
   <div class="tw"><table class="mono1">
     <tr><th>Airflow 2</th><th>Airflow 3</th><th>what happens if you use the old one</th></tr>
     <tr><td>execution_date</td><td><code>logical_date</code></td><td><code>KeyError</code> in templates and context</td></tr>
+    <tr><td>manual run always had a logical date</td><td>manual run has <b>none</b> — <code>{{ ds }}</code> is undefined</td><td>the run fails on its first templated field; scheduled runs work. Use <code>{{ (dag_run.logical_date or dag_run.run_after) | ds }}</code>, or trigger with <code>-l</code></td></tr>
     <tr><td>schedule_interval=</td><td><code>schedule=</code></td><td>TypeError on DAG construction</td></tr>
     <tr><td>from airflow import DAG</td><td><code>from airflow.sdk import DAG, dag, task</code></td><td>still imports via a shim — but deprecated; use the SDK</td></tr>
     <tr><td>airflow.operators.bash</td><td><code>airflow.providers.standard.operators.bash</code></td><td>operators moved to the "standard" provider</td></tr>

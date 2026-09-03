@@ -130,7 +130,10 @@ Docker Desktop is the only prerequisite, and the drive holding its disk image
 needs ~6 GB free. Eight numbered DAGs, each a lesson; DAG 04 runs the
 `iceberg_deep` scripts as bronze → silver → gold, and `LAB_MODE=emr` in `.env`
 turns every Spark task into an `EmrServerlessStartJobOperator` without touching
-the DAG. See [its README](3_labs/airflow_local/README.md).
+the DAG. **Verified end to end on 2026-09-03:** all eight DAGs green through the
+real scheduler, DAG 04 running the six Iceberg scripts in about 5 minutes.
+See [its README](3_labs/airflow_local/README.md) for the results table and two
+Airflow 3 behaviours the run surfaced.
 
 ## 4 · Reference
 

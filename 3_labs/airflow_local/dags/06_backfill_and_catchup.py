@@ -33,8 +33,9 @@ import lab_config as C
 def backfill_demo():
 
     @task
-    def write_partition(ds: str, data_interval_start=None, data_interval_end=None):
+    def write_partition(dag_run, data_interval_start=None, data_interval_end=None):
         import os
+        ds = C.run_date(dag_run)              # safe even if someone triggers by hand
         out_dir = f"{C.WORK_DIR}/backfill"
         os.makedirs(out_dir, exist_ok=True)
         path = f"{out_dir}/{ds}.txt"
