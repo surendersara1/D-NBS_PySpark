@@ -61,7 +61,7 @@ and read `airflow_enterprise` with atlas 10.
 | [pyspark30/](3_labs/pyspark30/) | The 30 DataFrame functions — the daily vocabulary. Companion to deck 3. | 44 |
 | [iceberg_deep/](3_labs/iceberg_deep/) | **Spark × Iceberg interactions** — MERGE, snapshots, time travel, rollback, schema and partition evolution, delete files, CoW vs MoR, compaction, expiry, orphans, write-audit-publish. | 59 |
 | [airflow_local/](3_labs/airflow_local/) | **Apache Airflow 3.3 in Docker** — eight DAGs from anatomy to failure handling, ending with a DAG that orchestrates the six `iceberg_deep` scripts locally or on EMR Serverless by one flag. | 8 DAGs |
-| [airflow_enterprise/](3_labs/airflow_enterprise/) | **Telco-scale reference DAGs** — CDR mediation on transient EMR, 15-minute RAN KPIs, asset-scheduled churn ML, revenue assurance, GDPR erasure. Not runnable without AWS; verified to parse. | 5 DAGs / 98 tasks |
+| [airflow_enterprise/](3_labs/airflow_enterprise/) | **Telco-scale reference DAGs plus the Spark jobs they submit** — CDR mediation on transient EMR, 15-minute RAN KPIs, asset-scheduled churn ML, revenue assurance, GDPR erasure. Not runnable without AWS; verified to parse. | 5 DAGs / 98 tasks + 19 jobs |
 
 ### pyspark30 — the 30 functions
 
@@ -148,7 +148,14 @@ real Airflow 3.3.1 image: **5 DAGs, 98 tasks, 0 import errors,
 
 Covers all three EMR deployment models, mapping over a table inventory read at
 run time, Assets instead of cron offsets, money- and drift-threshold branches,
-setup/teardown locks, and audit attestations. See
+setup/teardown locks, and audit attestations.
+
+`dags/` holds the orchestration; [`jobs/`](3_labs/airflow_enterprise/jobs/)
+holds the 15 PySpark jobs, 2 Glue scripts, SageMaker drift entrypoint and EMR
+bootstrap action they submit — dedup and MERGE, discovered-hot-key salting,
+label-leakage avoidance, CoW vs MoR erasure, and compaction that reconciles
+delete files. Every PySpark function used was verified against the installed
+API. See
 [its README](3_labs/airflow_enterprise/README.md) for the five things these
 teach that a tutorial will not.
 

@@ -191,6 +191,7 @@ with DAG(
                         "--subscriber-ids", ids,
                     ],
                     "sparkSubmitParameters":
+                        f"--py-files s3://{C.CODE_BUCKET}/jobs/job_common.py "
                         "--conf spark.executor.instances=6 "
                         "--conf spark.executor.memory=8g "
                         "--conf spark.sql.extensions="

@@ -156,6 +156,8 @@ def mediation_step(market: str) -> dict:
             "Args": [
                 "spark-submit", "--deploy-mode", "cluster",
                 "--conf", "spark.yarn.maxAppAttempts=2",
+                # jobs/cdr_mediation.py does `import job_common`
+                "--py-files", f"s3://{C.CODE_BUCKET}/jobs/job_common.py",
                 f"s3://{C.CODE_BUCKET}/jobs/cdr_mediation.py",
                 "--market", market,
                 "--run-date", C.DS,

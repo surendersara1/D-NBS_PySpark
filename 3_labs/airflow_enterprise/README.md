@@ -27,6 +27,37 @@ All five share [`dags/telco_config.py`](dags/telco_config.py) — every ARN,
 bucket, threshold and pool in one place, the same discipline as `config.py` in
 the other labs.
 
+## The two halves: `dags/` and `jobs/`
+
+The DAGs decide **when, where and in what order**. They submit work; they never
+touch a row. The actual data work lives in [`jobs/`](jobs/) — 15 PySpark jobs,
+2 Glue scripts, a SageMaker processing entrypoint and an EMR bootstrap action,
+one for every script the DAGs reference.
+
+```
+dags/    parsed by Airflow every ~30s.  Never runs Spark.
+jobs/    uploaded to S3.  Only ever runs on EMR / Glue / SageMaker.
+```
+
+Spark code deliberately does **not** live under `dags/`: the dag-processor
+imports every `.py` there on every parse, so a job placed in that folder gets
+imported by the scheduler repeatedly and can even start a SparkSession inside
+it. See [`jobs/README.md`](jobs/README.md) for the full DAG-task-to-script map
+and what each script is teaching.
+
+The techniques worth reading the jobs for:
+
+| technique | script |
+|---|---|
+| deduplicating a replayed stream, then `MERGE` so reprocessing is safe | `cdr_mediation.py` |
+| skew handled by **discovering** hot keys and salting only those | `interconnect_reconcile.py` |
+| ratios summed as counters and divided last, never averaged | `ran_kpi_aggregate.py` |
+| avoiding label leakage in a churn feature set | `subscriber_360_assemble.py` |
+| copy-on-write vs merge-on-read, and why a `DELETE` may erase nothing | `gdpr_erase.py` |
+| compaction that actually reconciles delete files | `iceberg_compaction.py` |
+| failing on a bad **value**, not just on an exception | `churn_scores_publish.py` |
+| one job, four incompatible partner file formats | `glue/interconnect_ingest.py` |
+
 ## What each technique looks like, and where
 
 | technique | where to look |
@@ -70,6 +101,16 @@ the other labs.
 Parsed against the real Airflow 3.3.1 image from `../airflow_local` with
 `apache-airflow-providers-amazon` 9.34.0 loaded, using `DagBag` plus
 `dag.validate()` on each DAG:
+
+The Spark jobs were checked the same way — every `F.*` name they use was
+verified to exist in the installed PySpark 4.1.3, not assumed:
+
+| check | result |
+|---|---|
+| 19 job files compile | clean |
+| `install_asn1.sh` | `bash -n` clean |
+| 39 distinct PySpark functions used | all exist in 4.1.3 |
+| `job_common.py` reaches the cluster | `--py-files` in every submit path |
 
 ```
 === IMPORT ERRORS: 0

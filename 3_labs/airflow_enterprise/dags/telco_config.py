@@ -170,6 +170,10 @@ def spark_submit(entry: str, args: list[str], *, executors: int = 20,
         "--conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO "
         "--conf spark.sql.adaptive.enabled=true "
         "--conf spark.sql.adaptive.skewJoin.enabled=true "
+        # Every job does `import job_common`, so the shared module has to be
+        # shipped with the submit. Without --py-files the job dies on the
+        # cluster with ModuleNotFoundError while working fine locally.
+        f"--py-files s3://{CODE_BUCKET}/jobs/job_common.py "
         f"{extra_conf}"
     ).strip()
     return {
